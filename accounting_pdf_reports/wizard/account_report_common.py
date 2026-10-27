@@ -21,6 +21,33 @@ class AccountCommonReport(models.TransientModel):
     target_move = fields.Selection([('posted', 'All Posted Entries'),
                                     ('all', 'All Entries'),
                                     ], string='Target Moves', required=True, default='posted')
+    draft_entry_count = fields.Integer(
+        string='Draft Entries',
+        compute='_compute_draft_entry_count',
+        help='Number of draft journal entries matching the selected company, journals and period.',
+    )
+
+    @api.depends('company_id', 'journal_ids', 'date_from', 'date_to')
+    def _compute_draft_entry_count(self):
+        """Mirror Enterprise's draft-entry warning without changing report scope.
+
+        The warning is informational: reports still use ``target_move`` exactly as
+        selected by the user.  The company and journal filters are applied so the
+        message points to entries that can affect the current report.
+        """
+        Move = self.env['account.move']
+        for report in self:
+            domain = [
+                ('state', '=', 'draft'),
+                ('company_id', 'child_of', report.company_id.id),
+            ]
+            if report.journal_ids:
+                domain.append(('journal_id', 'in', report.journal_ids.ids))
+            if report.date_from:
+                domain.append(('date', '>=', report.date_from))
+            if report.date_to:
+                domain.append(('date', '<=', report.date_to))
+            report.draft_entry_count = Move.search_count(domain)
 
     @api.onchange('company_id')
     def _onchange_company_id(self):

@@ -10,8 +10,8 @@ Last inventory: 2026-10-27
 
 | Enterprise destination / function | Standard Community or suite support | Actual gap | Proposed solution |
 | --- | --- | --- | --- |
-| Balance Sheet | `accounting_pdf_reports` action/menu exists and is installed | Enterprise full-page interactive toolbar and drill-down behavior are not yet proven equivalent | Compare rendered controls and add only missing filters/actions |
-| Profit and Loss | `accounting_pdf_reports` action/menu exists and is installed | Same visual/interaction parity gap as Balance Sheet | Reproduce verified date, comparison, status, currency, print and drill-down behavior |
+| Balance Sheet | `accounting_pdf_reports` action/menu exists and is installed; wizard exposes report, posted/all entries, comparison, debit/credit, dates and journals | Enterprise full-page interactive toolbar and drill-down behavior are not yet equivalent; currency selector is not present | Keep the verified wizard controls, add parity gaps only after report-engine validation |
+| Profit and Loss | `accounting_pdf_reports` action/menu exists and is installed; wizard exposes report, posted/all entries, comparison, debit/credit, dates and journals | Same visual/interaction parity gap as Balance Sheet; currency selector is not present | Reproduce verified date, comparison, status, currency, print and drill-down behavior |
 | Cash Flow Statement | `accounting_pdf_reports` action/menu exists and is installed | Enterprise layout and interaction parity not fully verified | Reconcile report lines, filters and export behavior |
 | Annual Report | `accounting_pdf_reports` and suite annual-report menu exist | Enterprise template/configuration behavior needs runtime comparison | Test template setup, period selection and output |
 | General Ledger | Suite exposes General Ledger under Audit Reports | Enterprise full-page search/grouping/drill-down behavior needs comparison | Preserve native report engine; add targeted UI gaps only |
@@ -39,3 +39,13 @@ The database currently has the following integrated modules installed:
 The next implementation tranche is the report-interaction audit: capture the
 Enterprise controls and compare them with the corresponding Community action,
 view, report engine and export before changing code.
+
+## Verified parity increment
+
+All common PDF report wizards now calculate a draft-entry count using the
+selected company, journals and period.  When the report is set to posted
+entries, the form shows an informational warning matching the Enterprise
+behavior; it does not change the report scope or posting rules.  The behavior
+was upgraded and exercised on `ff_flousflow_om_accountant20_tmp` with one
+committed draft journal entry (`draft_entry_count = 1`) and with no draft entry
+(`draft_entry_count = 0`).
