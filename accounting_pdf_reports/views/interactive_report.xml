@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="interactive_financial_report" name="Interactive Financial Report">
+        <t t-call="web.html_container">
+            <t t-call="web.internal_layout">
+                <div class="page" style="font-family: sans-serif;">
+                    <style>
+                        .ff-report-toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 18px; }
+                        .ff-report-toolbar select, .ff-report-toolbar input { padding: 6px 8px; border: 1px solid #ced4da; border-radius: 4px; }
+                        .ff-report-table { width: 100%; border-collapse: collapse; }
+                        .ff-report-table th, .ff-report-table td { border-bottom: 1px solid #e2e6ea; padding: 8px 10px; }
+                        .ff-report-table th { background: #e9ecef; text-align: right; }
+                        .ff-report-table td.amount { text-align: right; white-space: nowrap; }
+                        .ff-report-table tr.section td { background: #e9ecef; font-weight: 700; }
+                        .ff-report-table a { color: #495057; text-decoration: none; }
+                        .ff-report-warning { background: #d9f3f8; padding: 12px 16px; margin-bottom: 16px; }
+                    </style>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 t-out="report.name"/>
+                        <a class="btn btn-primary" href="/odoo/accounting">Back to Accounting</a>
+                    </div>
+                    <form class="ff-report-toolbar" method="get" action="/accounting_pdf_reports/financial_report">
+                        <input type="hidden" name="report_id" t-att-value="report.id"/>
+                        <label>From <input type="date" name="date_from" t-att-value="date_from"/></label>
+                        <label>As of <input type="date" name="date_to" t-att-value="date_to"/></label>
+                        <label>Entries
+                            <select name="target_move">
+                                <option value="posted" t-att-selected="target_move == 'posted'">Posted Entries</option>
+                                <option value="all" t-att-selected="target_move == 'all'">All Entries</option>
+                            </select>
+                        </label>
+                        <button type="submit" class="btn btn-secondary">Apply</button>
+                        <a class="btn btn-outline-secondary" t-att-href="'/web#action=%s' % pdf_action_id">Print from wizard</a>
+                    </form>
+                    <div class="ff-report-warning" t-if="draft_count and target_move == 'posted'">
+                        There are <strong t-out="draft_count"/> draft journal entries matching these filters. They are not included.
+                    </div>
+                    <table class="ff-report-table">
+                        <thead><tr><th>Account / Section</th><th>Balance</th></tr></thead>
+                        <tbody>
+                            <t t-foreach="lines" t-as="line">
+                                <tr t-if="line.get('level')" t-att-class="'account' if line.get('type') == 'account' else 'section'">
+                                    <td t-att-style="'padding-right: %spx' % (10 + int(line.get('level', 0)) * 18)">
+                                        <a t-if="line.get('account_id')" t-att-href="'/web#id=%s&amp;model=account.account&amp;view_type=form' % line['account_id']" t-out="line.get('name')"/>
+                                        <span t-else="" t-out="line.get('name')"/>
+                                    </td>
+                                    <td class="amount" t-out="line.get('balance')" t-options="{'widget': 'monetary', 'display_currency': company.currency_id}"/>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>

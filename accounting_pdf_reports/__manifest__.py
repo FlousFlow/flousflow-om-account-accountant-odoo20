@@ -34,6 +34,7 @@
         'wizard/journal_audit.xml',
         'wizard/cash_flow.xml',
         'wizard/annual_report.xml',
+        'views/interactive_report.xml',
         'report/report_style.xml',
         'report/report.xml',
         'report/report_partner_ledger.xml',

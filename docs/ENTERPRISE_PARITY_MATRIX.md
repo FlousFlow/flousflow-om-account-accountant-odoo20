@@ -10,7 +10,7 @@ Last inventory: 2026-10-27
 
 | Enterprise destination / function | Standard Community or suite support | Actual gap | Proposed solution |
 | --- | --- | --- | --- |
-| Balance Sheet | `accounting_pdf_reports` action/menu exists and is installed; wizard exposes report, posted/all entries, comparison, debit/credit, dates and journals | Enterprise full-page interactive toolbar and drill-down behavior are not yet equivalent; currency selector is not present | Keep the verified wizard controls, add parity gaps only after report-engine validation |
+| Balance Sheet | `accounting_pdf_reports` action/menu exists and is installed; wizard exposes report, posted/all entries, comparison, debit/credit, dates and journals; interactive screen now exposes As of, entry basis, table rows and account links | Enterprise still has richer toolbar controls, currency selector and journal-item drill-down | Extend the interactive screen with comparison, currency and journal-item drill-down |
 | Profit and Loss | `accounting_pdf_reports` action/menu exists and is installed; wizard exposes report, posted/all entries, comparison, debit/credit, dates and journals | Same visual/interaction parity gap as Balance Sheet; currency selector is not present | Reproduce verified date, comparison, status, currency, print and drill-down behavior |
 | Cash Flow Statement | `accounting_pdf_reports` action/menu exists and is installed | Enterprise layout and interaction parity not fully verified | Reconcile report lines, filters and export behavior |
 | Annual Report | `accounting_pdf_reports` and suite annual-report menu exist | Enterprise template/configuration behavior needs runtime comparison | Test template setup, period selection and output |
@@ -72,3 +72,14 @@ The Enterprise menu also exposes `Customer Statement`, `Fiscal Report`,
 Reporting. These are menu-placement and coverage differences to resolve
 individually; they are not being treated as interchangeable merely because
 both systems have a Reporting menu.
+
+## Implemented interactive tranche
+
+The local Balance Sheet (and the shared Profit and Loss report action) now has
+an **View Interactive** button. It opens an authenticated server-rendered
+screen with an `As of` date, `From` date, Posted/All Entries selector, Apply
+button, draft-entry warning, report hierarchy and clickable account rows. The
+existing PDF wizard and Print action remain available. The screen was opened
+through the local browser session and verified with a temporary posted journal
+entry; the account row exposed a working Odoo account form link. The temporary
+entry was removed after the check.

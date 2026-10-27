@@ -1,3 +1,5 @@
+from urllib.parse import urlencode
+
 from odoo import api, fields, models
 
 
@@ -59,3 +61,18 @@ class AccountingReport(models.TransientModel):
                                        'account_report_id', 'enable_filter', 'label_filter', 'target_move'])[0])
         return self.env.ref('accounting_pdf_reports.action_report_financial').report_action(
             self, data=data, config=False)
+
+    def action_open_interactive(self):
+        self.ensure_one()
+        params = urlencode({
+            'report_id': self.account_report_id.id,
+            'date_from': self.date_from.isoformat() if self.date_from else '',
+            'date_to': self.date_to.isoformat() if self.date_to else '',
+            'target_move': self.target_move,
+            'journal_ids': ','.join(str(journal_id) for journal_id in self.journal_ids.ids),
+        })
+        return {
+            'type': 'ir.actions.act_url',
+            'url': f'/accounting_pdf_reports/financial_report?{params}',
+            'target': 'self',
+        }

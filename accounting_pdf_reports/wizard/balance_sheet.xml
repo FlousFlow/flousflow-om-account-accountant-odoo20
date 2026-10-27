@@ -107,6 +107,9 @@
         <field name="model">accounting.report</field>
         <field name="inherit_id" ref="accounting_pdf_reports.account_common_report_view"/>
         <field name="arch" type="xml">
+            <xpath expr="//footer/button[@name='check_report']" position="before">
+                <button name="action_open_interactive" string="View Interactive" type="object" class="btn-primary"/>
+            </xpath>
             <field name="target_move" position="before">
                 <field name="account_report_id" domain="[('parent_id','=',False)]"/>
             </field>
