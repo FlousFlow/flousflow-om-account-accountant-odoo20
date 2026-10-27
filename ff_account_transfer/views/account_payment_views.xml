@@ -46,6 +46,6 @@
               name="Internal Transfers"
               parent="account.menu_finance_entries"
               action="action_account_payments_transfer_custom"
-              sequence="20"
+              sequence="25"
               groups="account.group_account_readonly"/>
 </odoo>
