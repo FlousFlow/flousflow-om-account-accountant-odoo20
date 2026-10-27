@@ -49,3 +49,26 @@ behavior; it does not change the report scope or posting rules.  The behavior
 was upgraded and exercised on `ff_flousflow_om_accountant20_tmp` with one
 committed draft journal entry (`draft_entry_count = 1`) and with no draft entry
 (`draft_entry_count = 0`).
+
+## Live UI comparison captured on 2026-10-27
+
+The same Accounting > Reporting > Balance Sheet destination was opened in the
+Enterprise database and in the local suite:
+
+| Surface | Enterprise observed behavior | Local suite observed behavior | Status |
+| --- | --- | --- | --- |
+| Report shell | Full-page report at `/odoo/balance-sheet` with a table | Modal `accounting.report` form | Gap confirmed |
+| Date | `As of` toolbar control | Start Date / End Date fields | Partial: date input exists, shell differs |
+| Comparison | Dedicated toolbar menu | Enable Comparison plus comparison fields in the wizard | Partial |
+| Posting basis | Posted Entries, Accrual Basis toolbar control | All Posted Entries / All Entries radio | Partial: accrual basis is not exposed as a toolbar option |
+| Currency | Currency selector (`In $`) | Company currency is implicit | Gap confirmed |
+| Draft warning | Link to unposted Journal Entries | Draft count is computed and displayed by the common wizard when applicable | Backend parity added; presentation still differs |
+| Report lines | Expandable hierarchy with links on amounts and accounts | PDF output after Print | Gap confirmed: interactive drill-down is missing |
+| Print | Toolbar Print button | Wizard Print button | Function exists, location differs |
+
+The Enterprise menu also exposes `Customer Statement`, `Fiscal Report`,
+`Executive Summary` and `Loans Analysis`, while the local suite exposes
+`Annual Report`, daily books, budget/asset analysis and cash forecast under
+Reporting. These are menu-placement and coverage differences to resolve
+individually; they are not being treated as interchangeable merely because
+both systems have a Reporting menu.
