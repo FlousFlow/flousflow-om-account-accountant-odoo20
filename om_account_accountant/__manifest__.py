@@ -39,6 +39,7 @@
         'om_spreadsheet_account_budget',
         'om_spreadsheet_account_followup',
         'ff_account_transfer',
+        'flousflow_branch_analytic',
     ],
     'data': [
         'security/group.xml',
