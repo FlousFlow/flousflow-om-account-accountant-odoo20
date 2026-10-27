@@ -1,11 +1,122 @@
 import time
-from odoo import api, models, _
-from odoo.exceptions import UserError
+from odoo import api, fields, models, _
+from odoo.exceptions import AccessError, UserError, ValidationError
 
 
 class ReportGeneralLedger(models.AbstractModel):
     _name = 'report.accounting_pdf_reports.report_general_ledger'
     _description = 'General Ledger Report'
+
+    @api.model
+    def get_interactive_data(self, date_from=None, date_to=None, target_move='posted',
+                             cash_basis=False, account_ids=None):
+        """Return General Ledger totals, loading move lines only for requested accounts."""
+        if not self.env.user.has_group('account.group_account_readonly'):
+            raise AccessError(_('You are not allowed to view the General Ledger.'))
+        if target_move not in ('posted', 'all'):
+            target_move = 'posted'
+        try:
+            date_from = fields.Date.to_date(date_from) if date_from else False
+            date_to = fields.Date.to_date(date_to) if date_to else fields.Date.context_today(self)
+        except (TypeError, ValueError):
+            raise ValidationError(_('Enter valid report dates.'))
+        if date_from and date_to and date_from > date_to:
+            raise ValidationError(_('The start date must be on or before the end date.'))
+
+        company = self.env.company
+        companies = self.env['res.company'].search([('id', 'child_of', company.id)])
+        journals = self.env['account.journal'].search([('company_id', 'in', companies.ids)])
+        accounts = self.env['account.account'].search([('company_ids', 'in', companies.ids)])
+        if account_ids:
+            try:
+                selected_ids = {int(account_id) for account_id in
+                                ([account_ids] if isinstance(account_ids, (str, int)) else account_ids)}
+            except (TypeError, ValueError):
+                raise ValidationError(_('Invalid account selection.'))
+            accounts = accounts.filtered(lambda account: account.id in selected_ids)
+        used_context = {
+            'company_id': company.id,
+            'journal_ids': journals.ids,
+            'date_from': fields.Date.to_string(date_from) if date_from else False,
+            'date_to': fields.Date.to_string(date_to),
+            'strict_range': bool(date_from),
+            'state': target_move,
+            # This is the same tax-exigible filter used by Odoo's Cash Basis Method.
+            'tax_exigible': bool(cash_basis),
+        }
+        self.env.flush_all()
+        account_lines = self.with_context(used_context)._get_account_move_entry(
+            accounts,
+            analytic_account_ids=False,
+            partner_ids=False,
+            init_balance=True,
+            sortby='sort_date',
+            display_account='movement',
+        )
+
+        result_lines = []
+        for account_line in account_lines:
+            account = accounts.filtered(lambda record: record.id == account_line['account_id'])[:1]
+            if not account:
+                continue
+            move_lines = []
+            if account_ids:
+                for line in account_line['move_lines']:
+                    move_lines.append({
+                        'id': line.get('lid') or 0,
+                        'date': fields.Date.to_string(line['ldate']) if line.get('ldate') else False,
+                        'journal_code': line.get('lcode') or '',
+                        'partner_name': line.get('partner_name') or '',
+                        'label': line.get('lname') or '',
+                        'move_name': line.get('move_name') or '',
+                        'currency_id': line.get('currency_id') or False,
+                        'currency_code': line.get('currency_code') or '',
+                        'amount_currency': line.get('amount_currency') or 0.0,
+                        'debit': line.get('debit') or 0.0,
+                        'credit': line.get('credit') or 0.0,
+                        'balance': line.get('balance') or 0.0,
+                    })
+            result_line = {
+                'account_id': account.id,
+                'code': account_line['code'] or '',
+                'name': account_line['name'],
+                'debit': account_line['debit'],
+                'credit': account_line['credit'],
+                'balance': account_line['balance'],
+            }
+            if account_ids:
+                result_line['move_lines'] = move_lines
+            result_lines.append(result_line)
+
+        draft_count = 0
+        if target_move == 'posted':
+            draft_domain = [
+                ('state', '=', 'draft'),
+                ('company_id', 'in', companies.ids),
+                ('journal_id', 'in', journals.ids),
+                ('date', '<=', date_to),
+            ]
+            draft_count = self.env['account.move'].search_count(draft_domain)
+
+        return {
+            'lines': result_lines,
+            'date_from': fields.Date.to_string(date_from) if date_from else False,
+            'date_to': fields.Date.to_string(date_to),
+            'target_move': target_move,
+            'cash_basis': bool(cash_basis),
+            'draft_count': draft_count,
+            'company_id': company.id,
+            'company_ids': companies.ids,
+            'company_name': company.name,
+            'journal_ids': journals.ids,
+            'currency_id': company.currency_id.id,
+            'currency_symbol': company.currency_id.symbol,
+            'totals': {
+                'debit': sum(line['debit'] for line in result_lines),
+                'credit': sum(line['credit'] for line in result_lines),
+                'balance': sum(line['balance'] for line in result_lines),
+            },
+        }
 
     def _get_account_move_entry(self, accounts, analytic_account_ids,
                                 partner_ids, init_balance,
@@ -47,7 +158,8 @@ class ReportGeneralLedger(models.AbstractModel):
             if init_where_clause.strip():
                 init_wheres.append(init_where_clause.strip())
             init_filters = " AND ".join(init_wheres)
-            filters = init_filters.replace('account_move_line__move_id', 'm').replace('account_move_line', 'l')
+            filters = init_filters.replace('"account_move_line__move_id"', '"m"')
+            filters = filters.replace('"account_move_line".', '"l".')
             sql = ("""SELECT 0 AS lid, l.account_id AS account_id, '' AS ldate,
                 '' AS lcode, 0.0 AS amount_currency, 
                 '' AS analytic_account_id, '' AS lref, 
@@ -85,7 +197,8 @@ class ReportGeneralLedger(models.AbstractModel):
         if where_clause.strip():
             wheres.append(where_clause.strip())
         filters = " AND ".join(wheres)
-        filters = filters.replace('account_move_line__move_id', 'm').replace('account_move_line', 'l')
+        filters = filters.replace('"account_move_line__move_id"', '"m"')
+        filters = filters.replace('"account_move_line".', '"l".')
 
         # Get move lines base on sql query and Calculate the total balance of move lines
         sql = ('''SELECT l.id AS lid, l.account_id AS account_id, 
@@ -128,6 +241,7 @@ class ReportGeneralLedger(models.AbstractModel):
             currency = account.currency_id and account.currency_id or self.env.company.currency_id
             res = dict((fn, 0.0) for fn in ['credit', 'debit', 'balance'])
             res['code'] = account.code
+            res['account_id'] = account.id
             res['name'] = account.name
             res['move_lines'] = move_lines[account.id]
             for line in res.get('move_lines'):

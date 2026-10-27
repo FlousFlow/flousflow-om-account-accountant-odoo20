@@ -10,8 +10,8 @@ Last inventory: 2026-10-27
 
 | Enterprise destination / function | Standard Community or suite support | Actual gap | Proposed solution |
 | --- | --- | --- | --- |
-| Balance Sheet | `accounting_pdf_reports` action/menu exists and is installed; wizard exposes report, posted/all entries, comparison, debit/credit, dates and journals; interactive screen now exposes As of, entry basis, table rows and account links | Enterprise still has richer toolbar controls, currency selector and journal-item drill-down | Extend the interactive screen with comparison, currency and journal-item drill-down |
-| Profit and Loss | `accounting_pdf_reports` action/menu exists and is installed; wizard exposes report, posted/all entries, comparison, debit/credit, dates and journals | Same visual/interaction parity gap as Balance Sheet; currency selector is not present | Reproduce verified date, comparison, status, currency, print and drill-down behavior |
+| Balance Sheet | The menu opens a full-page in-app report with As of date, comparison, posted/all entries, debit/credit columns, journal filters, amount scaling, draft warning, expandable report rows, account-to-journal-item links and Print options | Account-type categories and asset/liability subtotals are now built from the existing financial-report engine; latest hierarchy change passed module tests but has not been rechecked in the browser. Live-value parity is not established because the two databases contain different data | Recheck the updated hierarchy in the local browser; compare equivalent fixtures, native settings, and remaining line drill-down behavior |
+| Profit and Loss | Menu opens the same full-page in-app report with year-to-date dates, comparison, entry state, debit/credit, journal filters, scaling and Print options | Enterprise-specific period presets and hierarchy still need a line-by-line comparison | Compare report rows, date presets, settings, exports and drill-down |
 | Cash Flow Statement | `accounting_pdf_reports` action/menu exists and is installed | Enterprise layout and interaction parity not fully verified | Reconcile report lines, filters and export behavior |
 | Annual Report | `accounting_pdf_reports` and suite annual-report menu exist | Enterprise template/configuration behavior needs runtime comparison | Test template setup, period selection and output |
 | General Ledger | Suite exposes General Ledger under Reporting > Ledgers | Enterprise full-page search/grouping/drill-down behavior needs comparison | Preserve native report engine; add targeted UI gaps only |
@@ -36,9 +36,10 @@ The database currently has the following integrated modules installed:
 - `ff_account_transfer` `20.0.1.0.0`
 - `flousflow_branch_analytic` `20.0.1.0.0`
 
-The next implementation tranche is the report-interaction audit: capture the
-Enterprise controls and compare them with the corresponding Community action,
-view, report engine and export before changing code.
+The active report-interaction tranche compares each Enterprise destination
+with the corresponding Community action, view, report engine and export. The
+Balance Sheet and Profit and Loss have initial full-page implementations;
+General Ledger and other destinations remain in progress.
 
 ## Verified parity increment
 
@@ -96,11 +97,27 @@ equivalent. Those behavioral gaps remain open.
 
 ## Implemented interactive tranche
 
-The local Balance Sheet (and the shared Profit and Loss report action) now has
-an **View Interactive** button. It opens an authenticated server-rendered
-screen with an `As of` date, `From` date, Posted/All Entries selector, Apply
-button, draft-entry warning, report hierarchy and clickable account rows. The
-existing PDF wizard and Print action remain available. The screen was opened
-through the local browser session and verified with a temporary posted journal
-entry; the account row exposed a working Odoo account form link. The temporary
-entry was removed after the check.
+The local Balance Sheet menu now opens an in-app client action directly,
+without first showing the report wizard. Profit and Loss uses the same report
+shell and opens with a year-to-date range. The toolbar provides `As of`,
+Comparison, Posted/All Entries, debit/credit columns, journal selection, amount
+scaling, draft warning and Print options. The account report engine remains the
+source of report values, and account rows link to journal items. Balance Sheet
+now groups account types under current assets and liabilities, shows fixed and
+non-current asset categories, and calculates section/category totals. The
+visible labels for Bank and Cash Accounts and Receivables match Enterprise in
+English and have Arabic translations. The existing print wizard is still
+available from Print and the settings control.
+
+The updated `ff_flousflow_om_accountant20_tmp` database was verified in the
+local browser on 2026-10-28 before the latest hierarchy refinement: Balance
+Sheet and Profit and Loss both opened directly; Comparison added a
+previous-period column; debit/credit toggled its columns; and Print opened the
+existing wizard. The local database showed zero balances at the selected date,
+so this did not establish numerical equivalence with Enterprise, whose
+displayed Payables figure came from its own database. The latest code groups
+account-type lines under Current Assets and Current Liabilities, adds fixed and
+non-current asset categories, and calculates category and section subtotals
+from the financial-report engine. Its Odoo module tests pass; the revised
+hierarchy still needs a fresh browser check. Enterprise settings and full
+drill-down parity remain open gaps.

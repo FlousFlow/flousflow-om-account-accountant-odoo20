@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="accounting_pdf_reports.FinancialReport" owl="1">
+        <div class="o_action ff_financial_report">
+            <div class="ff_fr_toolbar">
+                <button class="btn btn-primary" t-on-click="this.openPrintOptions">Print</button>
+                <h2><t t-out="this.state.title"/> <button class="btn btn-link" title="Report options" t-on-click="this.openPrintOptions"><i class="fa fa-cog"/></button></h2>
+                <div class="ff_fr_controls">
+                    <label class="btn btn-outline-secondary"><i class="fa fa-calendar me-1"/>As of
+                        <input type="date" t-att-value="this.state.dateTo" t-on-change="(ev) => this.onDateChange('dateTo', ev)"/>
+                    </label>
+                    <button class="btn btn-outline-secondary" t-att-class="this.state.comparison ? 'btn-primary' : 'btn-outline-secondary'"
+                            t-on-click="() => { this.state.comparison = !this.state.comparison; this.loadReport(); }">Comparison</button>
+                    <label t-if="this.state.title === 'Profit and Loss'" class="btn btn-outline-secondary">From
+                        <input type="date" t-att-value="this.state.dateFrom" t-on-change="(ev) => this.onDateChange('dateFrom', ev)"/>
+                    </label>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="fa fa-sliders me-1"/><t t-if="this.state.targetMove === 'posted'">Posted Entries</t><t t-else="">All Entries</t>
+                            <t t-if="this.state.debitCredit">, Debit/Credit</t>
+                        </button>
+                        <div class="dropdown-menu p-3 ff_fr_filter_menu">
+                            <label class="form-check mb-2"><input class="form-check-input" type="radio" name="ff_target_move" t-att-checked="this.state.targetMove === 'posted'"
+                                t-on-change="() => { this.state.targetMove = 'posted'; this.loadReport(); }"/><span class="form-check-label">All Posted Entries</span></label>
+                            <label class="form-check mb-2"><input class="form-check-input" type="radio" name="ff_target_move" t-att-checked="this.state.targetMove === 'all'"
+                                t-on-change="() => { this.state.targetMove = 'all'; this.loadReport(); }"/><span class="form-check-label">All Entries</span></label>
+                            <label class="form-check mb-2"><input class="form-check-input" type="checkbox" t-att-checked="this.state.debitCredit"
+                                t-on-change="() => { this.state.debitCredit = !this.state.debitCredit; this.loadReport(); }"/><span class="form-check-label">Display Debit/Credit Columns</span></label>
+                            <label class="form-label mt-2">Journals</label>
+                            <select class="form-select" multiple="multiple" size="6" t-on-change="this.onJournalsChange">
+                                <option t-foreach="this.state.journals" t-as="journal" t-key="journal.id" t-att-value="journal.id"
+                                        t-att-selected="this.state.journalIds.includes(journal.id)" t-out="journal.name"/>
+                            </select>
+                        </div>
+                    </div>
+                    <select class="form-select ff_fr_scale" t-att-value="this.state.scale" t-on-change="(ev) => this.state.scale = ev.target.value">
+                        <option value="unit">In .$</option><option value="rounded">In $</option>
+                        <option value="thousand">In k$</option><option value="million">In M$</option>
+                    </select>
+                </div>
+            </div>
+            <div class="o_content">
+                <div t-if="this.state.draftCount and this.state.targetMove === 'posted' and !this.state.dismissedDraftWarning"
+                     class="alert alert-info d-flex align-items-center justify-content-between ff_fr_warning" role="status">
+                    <span>There are <strong t-out="this.state.draftCount"/> unposted Journal Entries prior or included in this period.</span>
+                    <button class="btn-close" aria-label="Close" t-on-click="() => this.state.dismissedDraftWarning = true"/>
+                </div>
+                <div t-if="this.state.loading" class="text-center p-5"><i class="fa fa-spinner fa-spin me-2"/>Loading…</div>
+                <div t-else="" class="ff_fr_report_wrap">
+                    <table class="table ff_fr_table">
+                        <thead><tr><th>Account / Section</th><th t-if="this.state.debitCredit" class="text-end">Debit</th><th t-if="this.state.debitCredit" class="text-end">Credit</th><th class="text-end">Balance</th><th t-if="this.state.comparison" class="text-end">Previous Period</th></tr></thead>
+                        <tbody>
+                        <tr t-if="!this.visibleLines.length"><td colspan="4" class="text-center text-muted py-5">No data found</td></tr>
+                        <tr t-foreach="this.visibleLines" t-as="line" t-key="line.row_key || (line.report_id + '-' + (line.account_id || 'section'))"
+                            t-att-class="line.type === 'report' ? (line.level &lt;= 1 ? 'ff_fr_section' : 'ff_fr_subsection') : (line.type === 'total' ? 'ff_fr_total' : (line.type === 'group' ? 'ff_fr_group' : 'ff_fr_account'))">
+                            <td t-att-style="'padding-inline-start: ' + (18 + line.level * 16) + 'px'">
+                                <button t-if="this.hasChildren(line)" class="btn btn-link p-0 me-2 ff_fr_fold" t-on-click="() => this.toggleLine(line)">
+                                    <i t-att-class="this.state.expanded.includes(this.expansionKey(line)) ? 'fa fa-caret-down' : 'fa fa-caret-right'"/>
+                                </button>
+                                <button t-if="line.account_id" class="btn btn-link p-0 ff_fr_account_link" t-on-click="() => this.openAccount(line.account_id)" t-out="line.name"/>
+                                <span t-else="" t-out="line.name"/>
+                            </td>
+                            <td t-if="this.state.debitCredit" class="text-end ff_fr_amount"><t t-if="line.show_amount !== false" t-out="this.formatAmount(line.debit)"/></td>
+                            <td t-if="this.state.debitCredit" class="text-end ff_fr_amount"><t t-if="line.show_amount !== false" t-out="this.formatAmount(line.credit)"/></td>
+                            <td class="text-end ff_fr_amount"><t t-if="line.show_amount !== false" t-out="this.formatAmount(line.balance)"/></td>
+                            <td t-if="this.state.comparison" class="text-end ff_fr_amount"><t t-if="line.show_amount !== false" t-out="this.formatAmount(line.balance_cmp)"/></td>
+                        </tr>
+                    </tbody></table>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

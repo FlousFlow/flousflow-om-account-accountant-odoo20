@@ -1,0 +1,20 @@
+.ff_financial_report {
+    .ff_fr_toolbar { display:flex; align-items:center; gap:.75rem; padding:.75rem 1.5rem; background:#fff; border-bottom:1px solid #dee2e6; }
+    .ff_fr_toolbar h2 { margin:0 auto 0 0; font-size:1.35rem; white-space:nowrap; }
+    .ff_fr_controls { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:.5rem; }
+    .ff_fr_controls input[type="date"] { border:0; background:transparent; font-weight:600; }
+    .ff_fr_scale { width:7.5rem; }
+    .ff_fr_filter_menu { min-width:19rem; }
+    .ff_fr_warning { margin:1rem 0 0; background:#d0edf2; border-color:#b2dce5; }
+    .ff_fr_report_wrap { width:96%; max-width:78rem; margin:1.5rem auto; padding:2rem; background:var(--o-view-background-color,#fff); border:1px solid #dee2e6; border-radius:.25rem; }
+    .ff_fr_table { margin:0; }
+    .ff_fr_table td { border-bottom:1px solid #dce0e4; padding:.65rem 1rem; }
+    .ff_fr_table .ff_fr_section td { background:#d8dde3; font-weight:700; text-transform:uppercase; }
+    .ff_fr_table .ff_fr_subsection td { font-weight:600; }
+    .ff_fr_table .ff_fr_group td { font-weight:600; }
+    .ff_fr_table .ff_fr_total td { border-top:1px solid #c3c9d0; font-weight:700; }
+    .ff_fr_table .ff_fr_account td { color:#424b57; }
+    .ff_fr_amount { min-width:8rem; white-space:nowrap; }
+    .ff_fr_fold { color:#69737d; }
+    .ff_fr_account_link { color:inherit; text-decoration:none; }
+}

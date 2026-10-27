@@ -153,6 +153,34 @@ class TestBalanceSheet(AccountTestInvoicingCommon):
         self.assertEqual(next(line['level'] for line in lines if line['name'] == 'Equity'), 1,
                          'a style chosen on the line wins over its depth')
 
+    def test_interactive_report_returns_the_same_financial_report_lines(self):
+        self.init_invoice('out_invoice', amounts=[420.0], invoice_date='2025-06-01', taxes=[], post=True)
+        report = self.env['report.accounting_pdf_reports.report_financial']
+        result = report.get_interactive_data(
+            self.env.ref('accounting_pdf_reports.account_financial_report_balancesheet0').id,
+            False, '2025-12-31', 'posted', self.env['account.journal'].search([
+                ('company_id', '=', self.env.company.id),
+            ]).ids, False, True,
+        )
+        self.assertEqual(result['name'], 'Balance Sheet')
+        self.assertEqual(result['date_to'], '2025-12-31')
+        self.assertTrue(result['lines'])
+        self.assertNotIn('Balance Sheet', [item['name'] for item in result['lines']])
+        self.assertNotIn('Liabilities and Equity', [item['name'] for item in result['lines']])
+        self.assertIn('Liabilities', [item['name'] for item in result['lines']])
+        self.assertIn('Current Assets', [item['name'] for item in result['lines']])
+        self.assertIn('Bank and Cash Accounts', [item['name'] for item in result['lines']])
+        self.assertIn('Receivables', [item['name'] for item in result['lines']])
+        self.assertAlmostEqual(next(item for item in result['lines']
+                                    if item['name'] == 'Total Current Assets')['balance'], 420.0)
+        self.assertAlmostEqual(next(item for item in result['lines']
+                                    if item['name'] == 'Total Assets')['balance'], 420.0)
+        receivable = self.partner_a.property_account_receivable_id
+        line = next(item for item in result['lines'] if item.get('account_id') == receivable.id)
+        self.assertAlmostEqual(line['balance'], 420.0)
+        self.assertIn('debit', line)
+        self.assertIn('credit', line)
+
     def test_the_sections_keep_their_order(self):
         """ The sections without a sequence print in the order they were created (Assets before the
         liabilities, Income before Expense), not in the order the database happens to return them. """

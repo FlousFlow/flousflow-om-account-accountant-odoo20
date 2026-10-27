@@ -1182,6 +1182,18 @@ msgid ""
 msgstr ""
 
 #. module: accounting_pdf_reports
+#: code:addons/accounting_pdf_reports/report/report_financial.py:0
+#, python-format
+msgid "Bank and Cash Accounts"
+msgstr "الحسابات البنكية والنقدية"
+
+#. module: accounting_pdf_reports
+#: code:addons/accounting_pdf_reports/report/report_financial.py:0
+#, python-format
+msgid "Receivables"
+msgstr "المدينين"
+
+#. module: accounting_pdf_reports
 #: code:addons/accounting_pdf_reports/wizard/account_general_ledger.py:0
 #, python-format
 msgid "You must define a Start Date"

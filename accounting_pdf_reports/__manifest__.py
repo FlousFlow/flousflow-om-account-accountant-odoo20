@@ -13,6 +13,16 @@
     'support': 'odoomates@gmail.com',
     'website': 'https://www.youtube.com/watch?v=yA4NLwOLZms',
     'depends': ['account'],
+    'assets': {
+        'web.assets_backend': [
+            'accounting_pdf_reports/static/src/general_ledger/general_ledger.js',
+            'accounting_pdf_reports/static/src/general_ledger/general_ledger.xml',
+            'accounting_pdf_reports/static/src/general_ledger/general_ledger.scss',
+            'accounting_pdf_reports/static/src/financial_report/financial_report.js',
+            'accounting_pdf_reports/static/src/financial_report/financial_report.xml',
+            'accounting_pdf_reports/static/src/financial_report/financial_report.scss',
+        ],
+    },
     'live_test_url': 'https://www.youtube.com/watch?v=yA4NLwOLZms',
     'data': [
         'security/ir.access.csv',

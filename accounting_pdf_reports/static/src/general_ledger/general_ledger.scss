@@ -1,0 +1,99 @@
+.ff_general_ledger {
+    .ff_gl_toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.75rem 1.5rem;
+        border-bottom: 1px solid #dee2e6;
+        background: #fff;
+    }
+
+    .ff_gl_filters {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        width: 100%;
+    }
+
+    .ff_gl_filters > .form-control:first-child {
+        width: 18rem;
+        max-width: 28vw;
+    }
+
+    .ff_gl_period {
+        width: 10.5rem;
+    }
+
+    .ff_gl_scale {
+        width: 7rem;
+    }
+
+    .ff_gl_filter_menu {
+        min-width: 17rem;
+    }
+
+    .ff_gl_report_header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        max-width: 78rem;
+        margin: 1.5rem auto 1rem;
+
+        h2 {
+            margin: 0;
+            font-size: 1.35rem;
+        }
+    }
+
+    .alert-info {
+        max-width: 78rem;
+        margin: 0 auto 1rem;
+        background-color: #d0edf2;
+        border-color: #d0edf2;
+    }
+
+    .ff_gl_table_wrap {
+        max-width: 78rem;
+        margin: 0 auto;
+        padding: 1rem 1.5rem;
+        background: var(--o-view-background-color, #fff);
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+    }
+
+    .ff_gl_table {
+        margin: 0;
+
+        th {
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .ff_gl_account_row td {
+            border-top: 1px solid #dce0e4;
+            background-color: #fff;
+        }
+
+        .ff_gl_move_row td {
+            color: #555b61;
+            background-color: #fbfbfc;
+        }
+
+        .ff_gl_total_row td {
+            border-top: 2px solid #87909a;
+            font-weight: 700;
+        }
+
+        td.text-end,
+        th.text-end {
+            min-width: 8.5rem;
+            white-space: nowrap;
+        }
+    }
+
+    .ff_gl_fold {
+        color: #69737d;
+    }
+}
