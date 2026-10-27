@@ -39,8 +39,8 @@
     <menuitem id="menu_asset_depreciation_schedule"
               name="Depreciation Schedule"
               action="action_asset_depreciation_schedule"
-              parent="account.account_reports_management_menu"
-              sequence="22"
+              parent="account.account_reports_legal_statements_menu"
+              sequence="40"
               groups="account.group_account_manager"/>
 
 </odoo>

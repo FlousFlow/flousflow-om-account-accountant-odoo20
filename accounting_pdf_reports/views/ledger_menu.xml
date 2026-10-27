@@ -40,8 +40,8 @@
         </field>
     </record>
 
-    <!-- the journal items by account and by partner, apart from the General Ledger and Partner Ledger reports -->
-    <menuitem id="menu_finance_entries_accounting_ledgers" name="Ledgers" parent="account.menu_finance_entries"
+    <!-- Journal item shortcuts by account and partner; distinct from report ledgers. -->
+    <menuitem id="menu_finance_entries_accounting_ledgers" name="Grouped Journal Items" parent="account.menu_finance_entries"
               sequence="20">
         <menuitem id="menu_action_account_moves_ledger_general" action="action_account_moves_ledger_general"
                   groups="account.group_account_readonly,account.group_account_manager" sequence="1"/>

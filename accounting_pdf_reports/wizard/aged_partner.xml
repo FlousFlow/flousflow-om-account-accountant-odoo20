@@ -44,7 +44,7 @@
 
     <menuitem id="menu_aged_trial_balance"
               name="Aged Partner Balance"
-              sequence="20"
+              sequence="50"
               action="action_account_aged_balance_view"
               parent="account.account_reports_partners_reports_menu"
               groups="account.group_account_invoice,account.group_account_readonly"/>

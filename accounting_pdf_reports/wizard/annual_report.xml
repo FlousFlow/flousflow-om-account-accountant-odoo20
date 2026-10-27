@@ -59,7 +59,7 @@
 
     <menuitem id="menu_account_report_annual"
               name="Annual Report"
-              sequence="40"
+              sequence="50"
               action="action_account_annual_report"
               parent="account.account_reports_legal_statements_menu"
               groups="account.group_account_readonly,account.group_account_manager"/>

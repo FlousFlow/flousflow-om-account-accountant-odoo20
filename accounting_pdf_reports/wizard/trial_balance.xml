@@ -32,8 +32,8 @@
 
     <menuitem id="menu_general_balance_report"
               name="Trial Balance"
-              sequence="20"
-              parent="menu_finance_audit_reports"
+              sequence="10"
+              parent="menu_finance_reporting_ledgers"
               action="action_account_balance_menu"
               groups="account.group_account_readonly,account.group_account_manager"/>
 

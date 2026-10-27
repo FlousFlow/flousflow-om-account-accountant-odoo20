@@ -14,15 +14,15 @@ Last inventory: 2026-10-27
 | Profit and Loss | `accounting_pdf_reports` action/menu exists and is installed; wizard exposes report, posted/all entries, comparison, debit/credit, dates and journals | Same visual/interaction parity gap as Balance Sheet; currency selector is not present | Reproduce verified date, comparison, status, currency, print and drill-down behavior |
 | Cash Flow Statement | `accounting_pdf_reports` action/menu exists and is installed | Enterprise layout and interaction parity not fully verified | Reconcile report lines, filters and export behavior |
 | Annual Report | `accounting_pdf_reports` and suite annual-report menu exist | Enterprise template/configuration behavior needs runtime comparison | Test template setup, period selection and output |
-| General Ledger | Suite exposes General Ledger under Audit Reports | Enterprise full-page search/grouping/drill-down behavior needs comparison | Preserve native report engine; add targeted UI gaps only |
-| Trial Balance | Suite exposes Trial Balance under Audit Reports | Enterprise filters and column behavior need comparison | Add missing filters/columns after evidence |
+| General Ledger | Suite exposes General Ledger under Reporting > Ledgers | Enterprise full-page search/grouping/drill-down behavior needs comparison | Preserve native report engine; add targeted UI gaps only |
+| Trial Balance | Suite exposes Trial Balance under Reporting > Ledgers | Enterprise filters and column behavior need comparison | Add missing filters/columns after evidence |
 | Journal Audit | Suite exposes Journals Audit | Enterprise action and result columns need comparison | Compare action payload and result view |
 | Partner Ledger and Aged Partner reports | Partner Ledger, Aged Partner Balance, Aged Receivable and Aged Payable are installed | Enterprise interaction and export parity needs runtime proof | Validate filters, partner drill-down and exports |
 | Tax Report | Tax Report menu/action is installed | Enterprise localization and period-lock behavior needs comparison | Reuse native tax engine; close verified gaps only |
 | Daily reports | Day Book, Cash Book and Bank Book are installed | Enterprise grouping and export behavior needs comparison | Compare output and filters |
 | Reconciliation | Bank Reconciliation, Open Items and Match Journal Items are installed | Enterprise reconciliation UX is not yet proven equivalent | Run representative reconciliation flows and document deltas |
 | Follow-ups | Follow-ups, My Follow-ups, Send All Reminders and analysis are installed | Enterprise automation/escalation parity needs workflow proof | Test reminders, plans, posting and permissions |
-| Assets and depreciation | Assets, Asset Analysis and Depreciation Schedule are installed | Enterprise lifecycle and report UI parity needs comparison | Test acquisition, depreciation, disposal and reporting |
+| Assets and depreciation | Assets and Asset Analysis are installed; Depreciation Schedule is under Statement Reports | Enterprise lifecycle and report UI parity needs comparison | Test acquisition, depreciation, disposal and reporting |
 | Budgets | Budgets, Budget Analysis and Budgetary Positions are installed | Enterprise workflow/approval and analysis parity needs comparison | Compare budget lifecycle and analytic integration |
 | Cash Forecast | Cash Forecast menu/action is installed | Enterprise forecast inputs and visualization need comparison | Test forecast lines, dashboard and exports |
 | Internal Transfers | `ff_account_transfer` is installed and integrated | Enterprise paired-transfer UX and edge cases need comparison | Test bank/cash, multi-company, cancellation and reconciliation |
@@ -72,6 +72,27 @@ The Enterprise menu also exposes `Customer Statement`, `Fiscal Report`,
 Reporting. These are menu-placement and coverage differences to resolve
 individually; they are not being treated as interchangeable merely because
 both systems have a Reporting menu.
+
+## Verified navigation alignment increment — 2026-10-27
+
+The Enterprise Reporting menu was reopened in the live browser. It orders
+Trial Balance before General Ledger under `Ledgers`, and places Depreciation
+Schedule last under `Statement Reports`. The local module definitions now use
+the same parents and order, with the local-only Annual Report after
+Depreciation Schedule. In the local suite, the former `Ledgers` shortcut under
+Accounting has been renamed `Grouped Journal Items`, since its actions open grouped
+`account.move.line` list/pivot/graph views rather than ledger reports. The
+`Journals Audit` destination remains in the additional `Audit Reports` folder.
+The local database `ff_flousflow_om_accountant20_tmp` was upgraded for
+`accounting_pdf_reports` and `om_account_asset`; the Reporting tree was then
+observed in the local UI with the aligned placements.
+
+This is navigation parity only. General Ledger and Trial Balance still open
+Community report wizards, while Enterprise's report destinations use an
+interactive report interface. Enterprise also has a distinct interactive
+Customer Statement with period, account, partner, posting-state and currency
+filters; the local Partner Ledger is a different wizard and is not a verified
+equivalent. Those behavioral gaps remain open.
 
 ## Implemented interactive tranche
 
