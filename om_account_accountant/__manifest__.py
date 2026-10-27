@@ -38,6 +38,7 @@
         'om_spreadsheet_account_asset',
         'om_spreadsheet_account_budget',
         'om_spreadsheet_account_followup',
+        'ff_account_transfer',
     ],
     'data': [
         'security/group.xml',
