@@ -4,7 +4,7 @@ This is the living gap-analysis baseline for the FlousFlow Community Accounting
 Suite. It separates native Community coverage from the remaining Enterprise
 parity work; it is not a claim that Community and Enterprise are identical.
 
-Baseline database: `flousflow_om_accountant_dev20_20261028`; Odoo 20.0; last inventory: 2026-10-28.
+Baseline database: `flousflow_om_accountant_dev20_20261028`; Odoo 20.0; last inventory: 2026-10-29.
 
 | Enterprise destination / function | Standard Community or suite support | Actual gap | Proposed solution |
 | --- | --- | --- | --- |
@@ -12,7 +12,7 @@ Baseline database: `flousflow_om_accountant_dev20_20261028`; Odoo 20.0; last inv
 | Profit and Loss | Menu opens the same full-page in-app report with year-to-date dates, comparison, entry state, debit/credit, journal filters, scaling and Print options | Enterprise-specific period presets and hierarchy still need a line-by-line comparison | Compare report rows, date presets, settings, exports and drill-down |
 | Cash Flow Statement | `accounting_pdf_reports` action/menu exists and is installed | Enterprise layout and interaction parity not fully verified | Reconcile report lines, filters and export behavior |
 | Annual Report | `accounting_pdf_reports` and suite annual-report menu exist | Enterprise template/configuration behavior needs runtime comparison | Test template setup, period selection and output |
-| General Ledger | Suite exposes General Ledger under Reporting > Ledgers | Enterprise full-page search/grouping/drill-down behavior needs comparison | Preserve native report engine; add targeted UI gaps only |
+| General Ledger | Interactive full-page report with account search, expandable journal items, month/quarter/fiscal-year/custom dates, posting/cash-basis filters, scaling, Print, XLSX and CSV | Report controls and date presets now align with observed Enterprise behavior. Documents and Knowledge actions remain absent; export output still needs direct live-file comparison | Validate exports against matched records; consider Documents and Knowledge integrations where available |
 | Trial Balance | Suite exposes Trial Balance under Reporting > Ledgers | Enterprise filters and column behavior need comparison | Add missing filters/columns after evidence |
 | Journal Audit | Period presets, entry filters, payment toggle, scale, per-journal audit action, tax summary, print, XLSX export, Send to Documents and Insert in Article | Main report, date presets and per-journal action visibility are browser-tested; Send to Documents and Insert in Article are missing because Documents and Knowledge are unavailable in local Community | Preserve native report flow; investigate optional integrations when compatible platform modules exist |
 | Partner Ledger and Aged Partner reports | Partner Ledger, Aged Partner Balance, Aged Receivable and Aged Payable are installed | Enterprise interaction and export parity needs runtime proof | Validate filters, partner drill-down and exports |
@@ -30,7 +30,8 @@ Baseline database: `flousflow_om_accountant_dev20_20261028`; Odoo 20.0; last inv
 
 The database currently has the following integrated modules installed:
 
-- `om_account_accountant` `20.0.1.12.0`
+- `om_account_accountant` `20.0.1.32.0`
+- `accounting_pdf_reports` `20.0.2.0.9`
 - `ff_account_transfer` `20.0.1.0.0`
 - `flousflow_branch_analytic` `20.0.1.0.0`
 
@@ -86,9 +87,10 @@ The local database `ff_flousflow_om_accountant20_tmp` was upgraded for
 `accounting_pdf_reports` and `om_account_asset`; the Reporting tree was then
 observed in the local UI with the aligned placements.
 
-This is navigation parity only. General Ledger and Trial Balance still open
-Community report wizards, while Enterprise's report destinations use an
-interactive report interface. Enterprise also has a distinct interactive
+This is navigation parity only. General Ledger opens the suite's interactive
+report; Trial Balance still opens the Community report wizard, while
+Enterprise's report destinations use an interactive report interface.
+Enterprise also has a distinct interactive
 Customer Statement with period, account, partner, posting-state and currency
 filters; the local Partner Ledger is a different wizard and is not a verified
 equivalent. Those behavioral gaps remain open.
@@ -185,3 +187,24 @@ Review > Control still matches Enterprise's three destinations and their order;
 the local-only Entries to Review queue remains afterward as an additional
 destination. Export integrations and the Enterprise workflow behind the
 separate tax verification link remain open parity items.
+
+## Verified General Ledger export and period increment — 2026-10-29
+
+The Enterprise General Ledger options menu exposes XLSX, CSV, Send to
+Documents, and Insert in Article. The local interactive report already matches
+the observed account summary, expandable move rows, posted/draft and
+cash-basis controls, amount scale, Print, and Journal Items drill-down. The
+period picker supports month, quarter, company fiscal year, and custom dates;
+these resolved date boundaries are shared by the on-screen report, print,
+exports, and Journal Items drill-down. Its settings menu now offers XLSX and
+CSV. Both endpoints preserve the selected
+period, entry state, cash-basis option, amount scale, and account search; XLSX
+contains General Ledger and Journal Items worksheets, while CSV includes
+account totals and journal-item rows. An Odoo HTTP test validates both response
+formats, and a browser tour checks the report's export menu. The report tour
+also exposed and fixed a QWeb render error when collapsed account rows had not
+loaded move details.
+
+Documents and Knowledge are still unavailable in the local Community addons
+path. Export file values and layout still need comparison against live
+Enterprise exports using matched company data.

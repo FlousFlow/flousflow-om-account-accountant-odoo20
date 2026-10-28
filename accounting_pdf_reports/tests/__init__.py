@@ -10,4 +10,5 @@ from . import test_tax_grid
 from . import test_branch_reports
 from . import test_partner_ledger
 from . import test_general_ledger
+from . import test_general_ledger_export
 from . import test_financial_report_formula_tour

@@ -22,9 +22,10 @@
         max-width: 28vw;
     }
 
-    .ff_gl_period {
-        width: 10.5rem;
-    }
+    .ff_gl_period_picker > button { min-width: 10.5rem; }
+    .ff_gl_period_menu { min-width: 21rem; }
+    .ff_gl_period_option > .dropdown-item { min-width: 7rem; }
+    .ff_gl_period_option > span { flex: 1; text-align: center; }
 
     .ff_gl_scale {
         width: 7rem;

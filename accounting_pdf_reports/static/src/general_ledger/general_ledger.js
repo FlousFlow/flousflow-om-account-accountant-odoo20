@@ -5,7 +5,7 @@ import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { formatMonetary } from "@web/views/fields/formatters";
 import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
-import { deserializeDate, serializeDate } from "@web/core/l10n/dates";
+import { deserializeDate } from "@web/core/l10n/dates";
 import { Component, onWillStart, proxy, useProps } from "@odoo/owl";
 
 const { DateTime } = luxon;
@@ -18,8 +18,16 @@ export class GeneralLedger extends Component {
         this.orm = useService("orm");
         this.action = useService("action");
         this.notification = useService("notification");
+        const today = DateTime.now();
         this.state = proxy({
-            period: DateTime.now().toFormat("yyyy-MM"),
+            periodType: "month",
+            periodAnchor: today.toISODate(),
+            periodPickerOpen: false,
+            dateFrom: "",
+            dateTo: "",
+            customDateFrom: "",
+            customDateTo: "",
+            customDateError: "",
             targetMove: "posted",
             cashBasis: false,
             scale: "unit",
@@ -28,6 +36,7 @@ export class GeneralLedger extends Component {
             lines: [],
             expandedIds: [],
             dismissedDraftWarning: false,
+            settingsOpen: false,
             draftCount: 0,
             currencyId: false,
             companyName: "",
@@ -35,9 +44,23 @@ export class GeneralLedger extends Component {
         onWillStart(() => this.loadReport());
     }
 
-    get periodDates() {
-        const start = DateTime.fromFormat(this.state.period, "yyyy-MM").startOf("month");
-        return [serializeDate(start), serializeDate(start.endOf("month"))];
+    get periodLabel() {
+        if (this.state.periodType === "custom") {
+            return `${DateTime.fromISO(this.state.dateFrom).toLocaleString(DateTime.DATE_MED)} – ${DateTime.fromISO(this.state.dateTo).toLocaleString(DateTime.DATE_MED)}`;
+        }
+        const anchor = DateTime.fromISO(this.state.periodAnchor);
+        if (this.state.periodType === "month") {
+            return anchor.toFormat("LLLL yyyy");
+        }
+        return this.state.periodType === "quarter" ? `Q${anchor.quarter} ${anchor.year}` : `FY ${anchor.year}`;
+    }
+
+    getPeriodOptionLabel(periodType) {
+        const anchor = DateTime.fromISO(this.state.periodAnchor);
+        if (periodType === "month") {
+            return anchor.toFormat("LLLL yyyy");
+        }
+        return periodType === "quarter" ? `Q${anchor.quarter} ${anchor.year}` : `FY ${anchor.year}`;
     }
 
     get visibleLines() {
@@ -65,13 +88,14 @@ export class GeneralLedger extends Component {
     }
 
     async loadReport(accountIds = false) {
-        const [dateFrom, dateTo] = this.periodDates;
         this.state.loading = true;
         try {
             const data = await this.orm.call(
                 "report.accounting_pdf_reports.report_general_ledger",
                 "get_interactive_data",
-                [dateFrom, dateTo, this.state.targetMove, this.state.cashBasis, accountIds || []]
+                [false, false, this.state.targetMove, this.state.cashBasis, accountIds || [],
+                    this.state.periodType, this.state.periodAnchor,
+                    this.state.customDateFrom, this.state.customDateTo]
             );
             if (accountIds) {
                 const selected = new Set(accountIds);
@@ -90,6 +114,12 @@ export class GeneralLedger extends Component {
             this.state.companyId = data.company_id;
             this.state.companyIds = data.company_ids;
             this.state.journalIds = data.journal_ids;
+            this.state.dateFrom = data.date_from || "";
+            this.state.dateTo = data.date_to || "";
+            if (this.state.periodType !== "custom") {
+                this.state.customDateFrom = data.date_from || "";
+                this.state.customDateTo = data.date_to || "";
+            }
         } catch (error) {
             this.notification.add(error.message || _t("The General Ledger could not be loaded."), {
                 type: "danger",
@@ -100,6 +130,53 @@ export class GeneralLedger extends Component {
     }
 
     async applyFilters() {
+        await this.loadReport();
+    }
+
+    togglePeriodPicker() {
+        this.state.periodPickerOpen = !this.state.periodPickerOpen;
+    }
+
+    async setPeriodType(periodType) {
+        this.state.periodType = periodType;
+        this.state.periodPickerOpen = true;
+        if (periodType === "custom") {
+            this.state.customDateFrom = this.state.dateFrom;
+            this.state.customDateTo = this.state.dateTo;
+            await this.applyCustomDateRange();
+        } else {
+            await this.loadReport();
+        }
+    }
+
+    async navigatePeriod(periodType, offset) {
+        const unit = { month: "months", quarter: "quarters", fiscal_year: "years" }[periodType];
+        if (!unit) return;
+        this.state.periodType = periodType;
+        this.state.periodAnchor = DateTime.fromISO(this.state.periodAnchor).plus({ [unit]: offset }).toISODate();
+        await this.loadReport();
+    }
+
+    async onCustomDateChange(key, ev) {
+        this.state[key] = ev.target.value;
+        await this.applyCustomDateRange();
+    }
+
+    async applyCustomDateRange() {
+        const from = DateTime.fromISO(this.state.customDateFrom);
+        const to = DateTime.fromISO(this.state.customDateTo);
+        if (!from.isValid || !to.isValid) {
+            this.state.customDateError = this.state.customDateFrom && this.state.customDateTo
+                ? _t("Enter valid start and end dates.") : "";
+            return;
+        }
+        if (from > to) {
+            this.state.customDateError = _t("The start date must be on or before the end date.");
+            return;
+        }
+        this.state.customDateError = "";
+        this.state.periodType = "custom";
+        this.state.periodAnchor = from.toISODate();
         await this.loadReport();
     }
 
@@ -154,7 +231,7 @@ export class GeneralLedger extends Component {
     }
 
     async openJournalItems(accountId = false, drafts = false) {
-        const [dateFrom, dateTo] = this.periodDates;
+        const { dateFrom, dateTo } = this.state;
         const action = await this.action.loadAction("account.action_account_moves_all");
         action.domain = [...(action.domain || []), ["company_id", "in", this.state.companyIds]];
         if (accountId) {
@@ -171,7 +248,7 @@ export class GeneralLedger extends Component {
     }
 
     async printReport() {
-        const [dateFrom, dateTo] = this.periodDates;
+        const { dateFrom, dateTo } = this.state;
         const action = await this.action.loadAction("accounting_pdf_reports.action_account_general_ledger_menu");
         action.context = {
             ...action.context,
@@ -184,6 +261,25 @@ export class GeneralLedger extends Component {
             default_initial_balance: true,
         };
         return this.action.doAction(action);
+    }
+
+    exportReport(exportFormat) {
+        const { dateFrom, dateTo } = this.state;
+        const params = new URLSearchParams({
+            export_format: exportFormat,
+            date_from: dateFrom || "",
+            date_to: dateTo,
+            target_move: this.state.targetMove,
+            cash_basis: this.state.cashBasis ? "1" : "0",
+            scale: this.state.scale,
+            search: this.state.search,
+        });
+        this.state.settingsOpen = false;
+        return this.action.doAction({
+            type: "ir.actions.act_url",
+            url: `/accounting_pdf_reports/general_ledger/export?${params.toString()}`,
+            target: "download",
+        });
     }
 }
 

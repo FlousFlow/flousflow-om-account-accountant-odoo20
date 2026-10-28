@@ -1,3 +1,5 @@
+from odoo import fields
+from odoo.exceptions import ValidationError
 from odoo.tests import tagged
 
 from odoo.addons.account.tests.common import AccountTestInvoicingCommon
@@ -52,3 +54,21 @@ class TestGeneralLedger(AccountTestInvoicingCommon):
         self.assertNotIn('move_lines', account)
 
         self.assertEqual([line['balance'] for line in detailed_account['move_lines']], [100.0, 300.0, 350.0])
+
+    def test_interactive_period_presets(self):
+        report = self.env['report.accounting_pdf_reports.report_general_ledger']
+        self.assertEqual(report._get_interactive_period_dates('month', '2025-02-18'),
+                         ('2025-02-01', '2025-02-28'))
+        self.assertEqual(report._get_interactive_period_dates('quarter', '2025-11-18'),
+                         ('2025-10-01', '2025-12-31'))
+        fiscal = self.env.company.compute_fiscalyear_dates(fields.Date.from_string('2025-05-15'))
+        self.assertEqual(report._get_interactive_period_dates('fiscal_year', '2025-05-15'),
+                         (fields.Date.to_string(fiscal['date_from']),
+                          fields.Date.to_string(fiscal['date_to'])))
+        self.assertEqual(report._get_interactive_period_dates(
+            'custom', custom_date_from='2025-02-03', custom_date_to='2025-02-11'
+        ), ('2025-02-03', '2025-02-11'))
+        with self.assertRaises(ValidationError):
+            report._get_interactive_period_dates(
+                'custom', custom_date_from='2025-02-12', custom_date_to='2025-02-11'
+            )

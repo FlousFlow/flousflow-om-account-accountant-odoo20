@@ -1,4 +1,5 @@
 import time
+from dateutil.relativedelta import relativedelta
 from odoo import api, fields, models, _
 from odoo.exceptions import AccessError, UserError, ValidationError
 
@@ -8,13 +9,48 @@ class ReportGeneralLedger(models.AbstractModel):
     _description = 'General Ledger Report'
 
     @api.model
+    def _get_interactive_period_dates(
+        self, period_type, period_anchor=None, custom_date_from=None, custom_date_to=None,
+    ):
+        if period_type not in ('month', 'quarter', 'fiscal_year', 'custom'):
+            raise ValidationError(_('Choose a valid reporting period.'))
+        try:
+            anchor = fields.Date.to_date(period_anchor) or fields.Date.context_today(self)
+        except (TypeError, ValueError):
+            raise ValidationError(_('Choose a valid reporting period.'))
+
+        if period_type == 'custom':
+            try:
+                date_from = fields.Date.to_date(custom_date_from)
+                date_to = fields.Date.to_date(custom_date_to)
+            except (TypeError, ValueError):
+                date_from = date_to = False
+            if not date_from or not date_to or date_from > date_to:
+                raise ValidationError(_('Choose a valid custom date range.'))
+        elif period_type == 'month':
+            date_from = anchor.replace(day=1)
+            date_to = date_from + relativedelta(months=1, days=-1)
+        elif period_type == 'quarter':
+            date_from = anchor.replace(month=((anchor.month - 1) // 3) * 3 + 1, day=1)
+            date_to = date_from + relativedelta(months=3, days=-1)
+        else:
+            fiscal_dates = self.env.company.compute_fiscalyear_dates(anchor)
+            date_from, date_to = fiscal_dates['date_from'], fiscal_dates['date_to']
+        return fields.Date.to_string(date_from), fields.Date.to_string(date_to)
+
+    @api.model
     def get_interactive_data(self, date_from=None, date_to=None, target_move='posted',
-                             cash_basis=False, account_ids=None):
+                             cash_basis=False, account_ids=None, period_type=None,
+                             period_anchor=None, custom_date_from=None, custom_date_to=None):
         """Return General Ledger totals, loading move lines only for requested accounts."""
         if not self.env.user.has_group('account.group_account_readonly'):
             raise AccessError(_('You are not allowed to view the General Ledger.'))
         if target_move not in ('posted', 'all'):
             target_move = 'posted'
+        if period_type:
+            date_from, date_to = self._get_interactive_period_dates(
+                period_type, period_anchor, custom_date_from, custom_date_to
+            )
         try:
             date_from = fields.Date.to_date(date_from) if date_from else False
             date_to = fields.Date.to_date(date_to) if date_to else fields.Date.context_today(self)
