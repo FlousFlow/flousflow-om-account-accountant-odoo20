@@ -74,10 +74,12 @@ stored mappings were queried after the upgrade. The live Enterprise Bills To
 Receive group shows an average Unit Price: 132.50 and 89.00 on its two lines
 produce 110.75, while Amount totals 3,095. The local purchase lists now use the
 average aggregator; their own-view test distinguishes purchase averages from
-the existing sales sums. Version 20.0.1.29.0 is installed on the local 8077
+the existing sales sums. The expanded Enterprise Invoices To Be Issued group
+shows unit-price lines 14,920, 5,222, and 3,730; their sum is the displayed
+23,872. The local sales list retains its sum aggregator, with a matching
+grouped-read regression test. Version 20.0.1.30.0 is installed on the local 8077
 database, and the stored purchase and sales view arches were queried after the
-upgrade. The Enterprise sales Unit Price group still needs an expanded-row
-comparison. A live Enterprise Invoices To Be Issued view confirmed
+upgrade. A live Enterprise Invoices To Be Issued view confirmed
 that Total Cost follows the delivered quantity. The
 unit-cost computation now switches to the sale line's company before reading
 company-dependent product cost, matching Odoo's native sales margin cost

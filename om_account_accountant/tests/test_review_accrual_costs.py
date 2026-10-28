@@ -204,6 +204,25 @@ class TestReviewAccrualCosts(AccountTestInvoicingCommon):
         )
         self.assertAlmostEqual(grouped_rows[0]["price_unit:avg"], 110.75)
 
+    def test_sale_unit_price_group_uses_sum(self):
+        order = self.env["sale.order"].sudo().create({
+            "partner_id": self.partner_a.id,
+            "order_line": [Command.create({
+                "product_id": self.product.id,
+                "product_uom_qty": 1.0,
+                "price_unit": unit_price,
+                "tax_ids": [Command.clear()],
+            }) for unit_price in (14920.0, 5222.0, 3730.0)],
+        })
+        order.action_confirm()
+
+        grouped_rows = order.order_line.formatted_read_group(
+            [("id", "in", order.order_line.ids)],
+            ["order_partner_id"],
+            ["price_unit:sum"],
+        )
+        self.assertAlmostEqual(grouped_rows[0]["price_unit:sum"], 23872.0)
+
     def test_review_accrual_actions_default_to_enterprise_grouping_and_period(self):
         purchase_action = self.env.ref(
             "om_account_accountant.action_purchase_bill_to_receive"
