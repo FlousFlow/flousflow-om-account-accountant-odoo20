@@ -1,3 +1,7 @@
+from datetime import date
+
+from freezegun import freeze_time
+from odoo.addons.account.tests.common import AccountTestInvoicingCommon
 from odoo.exceptions import ValidationError
 from odoo.tests import HttpCase, TransactionCase, tagged
 
@@ -69,3 +73,75 @@ class TestDeferredSchedulePeriodsTour(HttpCase):
             "ff_deferred_schedule_periods",
             login="admin",
         )
+
+
+@tagged("post_install", "-at_install")
+class TestDeferredScheduleReportValues(AccountTestInvoicingCommon):
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        account_model = cls.env["account.account"]
+        cls.asset_account = account_model.create({
+            "code": "151100",
+            "name": "Period Test Equipment",
+            "account_type": "asset_fixed",
+        })
+        cls.accumulated_account = account_model.create({
+            "code": "151900",
+            "name": "Period Test Accumulated Depreciation",
+            "account_type": "asset_fixed",
+        })
+        cls.expense_account = account_model.create({
+            "code": "681100",
+            "name": "Period Test Depreciation Expense",
+            "account_type": "expense_depreciation",
+        })
+        cls.category = cls.env["account.asset.category"].create({
+            "name": "Period Test Equipment",
+            "type": "purchase",
+            "journal_id": cls.company_data["default_journal_misc"].id,
+            "account_asset_id": cls.asset_account.id,
+            "account_depreciation_id": cls.accumulated_account.id,
+            "account_depreciation_expense_id": cls.expense_account.id,
+            "method_number": 12,
+            "method_period": 1,
+            "date_first_depreciation": "last_day_period",
+            "open_asset": True,
+        })
+
+    def test_quarter_report_and_custom_drilldown_use_selected_dates(self):
+        asset = self.env["account.asset.asset"].create({
+            "name": "Period Test Laptop",
+            "category_id": self.category.id,
+            "value": 1200.0,
+            "date": date(2025, 1, 1),
+            "method": "linear",
+            "method_time": "number",
+            "method_number": 12,
+            "method_period": 1,
+            "date_first_depreciation": "last_day_period",
+        })
+        with freeze_time("2025-04-15"):
+            asset.validate()
+
+        report = self.env["account.deferred.schedule.report"]
+        quarter = report.get_report_data(
+            "expense", "2025-03", comparison_periods=1,
+            period_type="quarter", period_anchor="2025-03-15",
+        )
+        self.assertEqual(
+            (quarter["date_from"], quarter["date_to"]),
+            ("2025-01-01", "2025-03-31"),
+        )
+        self.assertEqual(len(quarter["rows"]), 1)
+        self.assertEqual(quarter["rows"][0]["amount"], 300.0)
+        self.assertEqual(quarter["rows"][0]["entries"], 3)
+        self.assertEqual(quarter["rows"][0]["comparison_values"][quarter["periods"][1]["key"]], 300.0)
+
+        group_domain = report.get_group_move_domain(
+            "expense", "2025-02-01", "account", self.expense_account.id,
+            "posted", self.env["account.account"]._name, [], "2025-02-28",
+        )
+        matching_moves = self.env["account.move"].search(group_domain)
+        self.assertEqual(matching_moves.mapped("date"), [date(2025, 2, 28)])

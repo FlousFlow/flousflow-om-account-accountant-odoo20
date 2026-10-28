@@ -83,6 +83,10 @@ asset name for product grouping. At the time of comparison, the local database
 had zero assets, asset categories, asset schedule moves, and invoice lines
 assigned to asset categories. The live Enterprise report also had no rows, so
 nonzero schedule arithmetic has not yet been validated against matched records.
+An isolated accounting fixture now verifies nonzero quarter totals and prior-
+period comparison against three posted depreciation moves (300.00 each total),
+and confirms that a February drill-down returns only the February move. A live
+matched-company comparison remains outstanding.
 
 ## Working Files
 
