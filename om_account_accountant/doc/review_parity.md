@@ -9,10 +9,10 @@ company data and period.
 
 The local Review menu follows the live grouping and order: Control (Journal
 Items, Audit Trail, Journal Audit, then the suite-specific Entries to Review
-queue), Audit (Working Files, Annual Report),
-Inventory, Regulatory (Unrealized Currencies, Deferred Revenues, Deferred
-Expenses), Purchases, then Sales. `Draft Entries` remains an additional
-community work queue under Accounting.
+queue), Audit (Working Files, Annual Report), Inventory Valuation, Regulatory
+(Unrealized Currencies, Deferred Revenues, Deferred Expenses), Purchases, then
+Sales. Inventory Valuation is a direct Review destination to match Enterprise.
+`Draft Entries` remains an additional community work queue under Accounting.
 
 ## Journal Audit
 

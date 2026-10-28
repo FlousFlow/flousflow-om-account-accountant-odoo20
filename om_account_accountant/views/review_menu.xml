@@ -229,11 +229,14 @@
         <field name="sequence" eval="20"/>
     </record>
 
-    <menuitem id="menu_review_inventory" name="Inventory" parent="account.account_audit_menu"
-              groups="account.group_account_readonly" sequence="40"/>
+    <!-- Enterprise lists Inventory Valuation directly under Review. Deactivate
+         the old community-only folder so it does not leave an empty destination. -->
+    <record id="menu_review_inventory" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
     <menuitem id="menu_review_inventory_valuation" name="Inventory Valuation"
-              action="account.action_report_stock_valuation" parent="menu_review_inventory"
-              groups="account.group_account_readonly" sequence="10"/>
+              action="account.action_report_stock_valuation" parent="account.account_audit_menu"
+              groups="account.group_account_readonly" sequence="40"/>
 
     <menuitem id="menu_review_regularization" name="Regulatory" parent="account.account_audit_menu"
               groups="account.group_account_readonly" sequence="50"/>

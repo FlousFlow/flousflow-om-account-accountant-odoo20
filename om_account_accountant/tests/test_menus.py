@@ -76,7 +76,7 @@ class TestMenus(TransactionCase):
             'account.account_audit_menu': [
                 'account.account_audit_control_menu',
                 'om_account_accountant.menu_review_audit',
-                'om_account_accountant.menu_review_inventory',
+                'om_account_accountant.menu_review_inventory_valuation',
                 'om_account_accountant.menu_review_regularization',
                 'om_account_accountant.menu_review_purchases',
                 'om_account_accountant.menu_review_sales',
@@ -84,9 +84,6 @@ class TestMenus(TransactionCase):
             'om_account_accountant.menu_review_audit': [
                 'om_account_accountant.menu_review_working_files',
                 'accounting_pdf_reports.menu_account_report_annual',
-            ],
-            'om_account_accountant.menu_review_inventory': [
-                'om_account_accountant.menu_review_inventory_valuation',
             ],
             'om_account_accountant.menu_review_regularization': [
                 'om_account_accountant.menu_review_unrealized_currencies',
@@ -109,6 +106,7 @@ class TestMenus(TransactionCase):
                 )
                 expected_ids = [self.env.ref(xmlid).id for xmlid in child_xmlids]
                 self.assertEqual(actual.ids, expected_ids)
+        self.assertFalse(self.env.ref('om_account_accountant.menu_review_inventory').active)
 
     def test_no_two_menus_share_a_place(self):
         """ Menus with the same sequence under the same parent come in no given order. """
