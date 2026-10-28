@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="om_account_accountant.JournalAudit" owl="1">
+        <div class="o_action_manager o_ff_journal_audit">
+            <div class="o_control_panel d-flex justify-content-between align-items-center px-3 py-2">
+                <div>
+                    <h2 class="mb-0">Journal Audit</h2>
+                    <span class="text-muted" t-out="this.state.companyName"/>
+                    <div class="dropdown d-inline-block ms-2">
+                        <button class="btn btn-light btn-sm" title="Report options"
+                                t-att-aria-expanded="this.state.settingsOpen"
+                                t-on-click="() => this.toggleSettings()">
+                            <i class="fa fa-cog"/>
+                        </button>
+                        <div t-if="this.state.settingsOpen" class="dropdown-menu show">
+                            <button class="dropdown-item" t-on-click="() => this.exportXlsx()">
+                                <i class="fa fa-file-excel-o me-2"/>XLSX
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <label for="ff_journal_audit_year" class="visually-hidden">Year</label>
+                    <input id="ff_journal_audit_year" class="form-control ff_journal_audit_year"
+                           type="number" min="1900" max="9999" t-att-value="this.state.year"
+                           t-on-change="(ev) => this.onYearChange(ev)"/>
+                    <label for="ff_journal_audit_target" class="visually-hidden">Target Moves</label>
+                    <select id="ff_journal_audit_target" class="form-select ff_journal_audit_target"
+                            t-att-value="this.state.targetMove" t-on-change="(ev) => this.onTargetMoveChange(ev)">
+                        <option value="posted">Posted Moves</option>
+                        <option value="draft">Draft Entries</option>
+                        <option value="all">All Entries</option>
+                    </select>
+                    <label class="form-check d-flex align-items-center gap-1 mb-0 text-nowrap">
+                        <input class="form-check-input mt-0" type="checkbox"
+                               t-att-checked="this.state.includePayments" t-on-change="(ev) => this.onPaymentsChange(ev)"/>
+                        <span>Include Payments</span>
+                    </label>
+                    <label for="ff_journal_audit_scale" class="visually-hidden">Display Amounts</label>
+                    <select id="ff_journal_audit_scale" class="form-select ff_journal_audit_scale"
+                            t-att-value="this.state.displayScale" t-on-change="(ev) => this.onDisplayScaleChange(ev)">
+                        <option value="1">In $</option>
+                        <option value="1000">In k$</option>
+                        <option value="1000000">In M$</option>
+                    </select>
+                    <button class="btn btn-primary" t-on-click="printReport">
+                        <i class="fa fa-print me-1"/>Print
+                    </button>
+                </div>
+            </div>
+
+            <div t-if="this.state.loading" class="text-center p-5">
+                <i class="fa fa-spinner fa-spin me-2"/>Loading Journal Audit…
+            </div>
+            <div t-else="" class="o_content p-3">
+                <div class="card shadow-sm ff_journal_audit_card">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 ff_journal_audit_table">
+                            <thead>
+                                <tr>
+                                    <th>Documents</th>
+                                    <th class="text-end">To Review</th>
+                                    <th class="text-end">Debit</th>
+                                    <th class="text-end">Credit</th>
+                                    <th class="text-end">Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-if="!this.state.journals.length">
+                                    <td colspan="5" class="text-center text-muted py-5">No data found for the selected period.</td>
+                                </tr>
+                                <t t-foreach="this.state.journals" t-as="journal" t-key="journal.id">
+                                    <tr class="ff_journal_audit_journal">
+                                        <td>
+                                            <button class="btn btn-link p-0 me-2 ff_journal_audit_fold"
+                                                    t-on-click="() => this.toggleJournal(journal)"
+                                                    t-att-aria-expanded="this.state.expanded.includes(journal.id)">
+                                                <i t-att-class="this.state.expanded.includes(journal.id) ? 'fa fa-chevron-down' : 'fa fa-chevron-right'"/>
+                                            </button>
+                                            <strong t-out="journal.name"/>
+                                            <span class="text-muted ms-2">(<t t-out="journal.documents"/> documents)</span>
+                                            <button t-if="this.state.canAudit and journal.to_review"
+                                                    class="btn btn-sm btn-outline-primary ms-2"
+                                                    t-att-disabled="this.state.auditingJournalId === journal.id"
+                                                    t-on-click="() => this.auditJournal(journal)">
+                                                <i t-if="this.state.auditingJournalId === journal.id" class="fa fa-spinner fa-spin me-1"/>
+                                                Audit
+                                            </button>
+                                        </td>
+                                        <td class="text-end">
+                                            <span t-att-class="journal.to_review ? 'badge text-bg-warning' : 'text-muted'"
+                                                  t-out="journal.to_review"/>
+                                        </td>
+                                        <td class="text-end" t-out="this.formatAmount(journal.debit)"/>
+                                        <td class="text-end" t-out="this.formatAmount(journal.credit)"/>
+                                        <td class="text-end fw-semibold" t-out="this.formatAmount(journal.balance)"/>
+                                    </tr>
+                                    <t t-set="page" t-value="this.state.movePages[journal.id]"/>
+                                    <tr t-if="this.state.expanded.includes(journal.id)" class="ff_journal_audit_details">
+                                        <td colspan="5" class="p-0">
+                                            <div t-if="!page or page.loading" class="text-center p-3 text-muted">
+                                                <i class="fa fa-spinner fa-spin me-2"/>Loading entries…
+                                            </div>
+                                            <table t-elif="page.rows.length" class="table table-sm mb-0">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Date</th><th>Document</th><th>Type</th><th>Review</th>
+                                                        <th class="text-end">Debit</th><th class="text-end">Credit</th><th class="text-end">Balance</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr t-foreach="page.rows" t-as="move" t-key="move.id">
+                                                        <td t-out="move.date"/>
+                                                        <td><strong t-out="move.name"/><span t-if="move.ref" class="text-muted ms-1" t-out="move.ref"/></td>
+                                                        <td t-out="move.document_type"/>
+                                                        <td><span t-att-class="move.review_state === 'To Review' || move.review_state === 'Anomaly' ? 'badge text-bg-warning' : 'text-muted'" t-out="move.review_state"/></td>
+                                                        <td class="text-end" t-out="this.formatAmount(move.debit)"/>
+                                                        <td class="text-end" t-out="this.formatAmount(move.credit)"/>
+                                                        <td class="text-end" t-out="this.formatAmount(move.balance)"/>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                            <div t-else="" class="text-center p-3 text-muted">No journal entries in this group.</div>
+                                            <div t-if="page and page.hasMore" class="p-2 text-center">
+                                                <button class="btn btn-link" t-att-disabled="page.loading"
+                                                        t-on-click="() => this.loadJournalMoves(journal.id, page.offset)">
+                                                    Load more entries
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </t>
+                                <tr t-if="this.state.journals.length" class="ff_journal_audit_total">
+                                    <td>Total</td>
+                                    <td class="text-end" t-out="this.totals.toReview"/>
+                                    <td class="text-end" t-out="this.formatAmount(this.totals.debit)"/>
+                                    <td class="text-end" t-out="this.formatAmount(this.totals.credit)"/>
+                                    <td class="text-end" t-out="this.formatAmount(this.totals.balance)"/>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="ff_journal_audit_tax_summary">
+                        <h3>Tax Summary</h3>
+                        <table class="table table-sm mb-0">
+                            <thead>
+                                <tr><th>Tax</th><th class="text-end">Base Amount</th><th class="text-end">Tax Amount</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr t-if="!this.state.taxes.length">
+                                    <td colspan="3" class="text-center text-muted py-3">No tax lines for the selected period.</td>
+                                </tr>
+                                <tr t-foreach="this.state.taxes" t-as="tax" t-key="tax.id">
+                                    <td>
+                                        <button class="btn btn-link p-0" t-on-click="() => this.openTaxLines(tax)" t-out="tax.name"/>
+                                    </td>
+                                    <td class="text-end" t-out="this.formatAmount(tax.base)"/>
+                                    <td class="text-end" t-out="this.formatAmount(tax.balance)"/>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

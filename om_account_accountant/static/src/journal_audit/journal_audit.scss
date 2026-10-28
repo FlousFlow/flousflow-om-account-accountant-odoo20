@@ -1,0 +1,78 @@
+.o_ff_journal_audit {
+    min-height: 100%;
+    background: var(--body-bg, #f8f9fa);
+
+    .ff_journal_audit_year {
+        width: 110px;
+    }
+
+    .ff_journal_audit_target {
+        width: 190px;
+    }
+
+    .ff_journal_audit_card {
+        max-width: 1240px;
+        margin: 20px auto;
+        border-color: #d8dde3;
+    }
+
+    .ff_journal_audit_table > thead {
+        background: #e1e5ea;
+    }
+
+    .ff_journal_audit_journal > td {
+        vertical-align: middle;
+    }
+
+    .ff_journal_audit_fold {
+        color: #68727d;
+        min-width: 18px;
+    }
+
+    .ff_journal_audit_details {
+        background: #f6f7f8;
+
+        .table {
+            font-size: 0.92rem;
+
+            thead {
+                color: #59636f;
+            }
+        }
+    }
+
+    .ff_journal_audit_total {
+        font-weight: 700;
+        border-top: 2px solid #adb5bd;
+    }
+
+    .ff_journal_audit_tax_summary {
+        border-top: 1px solid #dee2e6;
+        padding: 20px 24px 24px;
+
+        h3 {
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+        }
+
+        table {
+            max-width: 760px;
+        }
+    }
+
+    @media print {
+        .o_control_panel button,
+        .o_control_panel select,
+        .o_control_panel input,
+        .ff_journal_audit_fold,
+        .ff_journal_audit_journal button,
+        .ff_journal_audit_tax_summary button {
+            display: none !important;
+        }
+
+        .ff_journal_audit_card {
+            border: 0;
+            box-shadow: none !important;
+        }
+    }
+}

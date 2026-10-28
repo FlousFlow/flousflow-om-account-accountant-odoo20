@@ -1,12 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- The Review menu of Odoo 20 Community holds a single entry, Control > Journal Items. The suite fills it
-         with what an accountant actually opens when reviewing a period: the entries still to check, the items
-         left to reconcile, the regularisation of the foreign currency balances and the journals audit. -->
-
-    <!-- ============ actions of our own ============ -->
-
     <record id="action_moves_to_review" model="ir.actions.act_window">
         <field name="name">Entries to Review</field>
         <field name="res_model">account.move</field>
@@ -31,80 +25,171 @@
         </field>
     </record>
 
-    <!-- a transaction is marked to check through the review state of its entry, so the reconciliation
-         screen filtered on to_review is the right screen for it -->
     <record id="action_bank_rec_to_review" model="ir.actions.client">
         <field name="name">Transactions to Review</field>
         <field name="tag">om_bank_reconciliation</field>
         <field name="params" eval="{'filter': 'to_review'}"/>
     </record>
 
-    <!-- ============ the menu ============ -->
+    <!-- The four accrual queues use Odoo's native as-of date search methods. -->
+    <record id="action_purchase_bill_to_receive" model="ir.actions.act_window">
+        <field name="name">Bills To Receive</field>
+        <field name="res_model">purchase.order.line</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('bill_to_receive', 'in', [True])]</field>
+        <field name="context">{'create': False, 'delete': False}</field>
+    </record>
 
-    <!-- like the Enterprise layout: the journals audit sits at the top of Review -->
-    <menuitem id="menu_review_journal_audit"
-              name="Journal Audit"
-              action="accounting_pdf_reports.action_account_print_journal_menu"
-              parent="account.account_audit_menu"
-              groups="account.group_account_readonly"
-              sequence="1"/>
+    <record id="view_purchase_bill_to_receive_list" model="ir.ui.view">
+        <field name="name">purchase.order.line.bill.to.receive.list</field>
+        <field name="model">purchase.order.line</field>
+        <field name="arch" type="xml">
+            <list string="Bills To Receive" create="false" delete="false">
+                <field name="order_id" string="PO Reference"/>
+                <field name="partner_id"/>
+                <field name="product_id"/>
+                <field name="name" string="Description" optional="show"/>
+                <field name="product_qty" string="Quantity" sum="Total Quantity"/>
+                <field name="qty_received_at_date" string="Received" sum="Total Received"/>
+                <field name="qty_invoiced_at_date" string="Billed" sum="Total Billed"/>
+                <field name="price_unit" string="Unit Price"/>
+                <field name="amount_to_invoice_at_date" string="Amount" sum="Total Amount"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="company_id" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+    <record id="action_purchase_bill_to_receive_list" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_purchase_bill_to_receive_list"/>
+        <field name="act_window_id" ref="action_purchase_bill_to_receive"/>
+    </record>
 
-    <!-- Control: the core Journal Items, plus what is still waiting -->
-    <menuitem id="menu_review_moves_to_review"
-              action="action_moves_to_review"
+    <record id="action_purchase_billed_not_received" model="ir.actions.act_window">
+        <field name="name">Billed Not Received</field>
+        <field name="res_model">purchase.order.line</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('prepaid_expense', 'in', [True])]</field>
+        <field name="context">{'create': False, 'delete': False}</field>
+    </record>
+    <record id="action_purchase_billed_not_received_list" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_purchase_bill_to_receive_list"/>
+        <field name="act_window_id" ref="action_purchase_billed_not_received"/>
+    </record>
+
+    <record id="action_sale_invoice_to_be_issued" model="ir.actions.act_window">
+        <field name="name">Invoices To Be Issued</field>
+        <field name="res_model">sale.order.line</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('invoice_to_be_issued', 'in', [True])]</field>
+        <field name="context">{'create': False, 'delete': False}</field>
+    </record>
+
+    <record id="view_sale_invoice_to_be_issued_list" model="ir.ui.view">
+        <field name="name">sale.order.line.invoice.to.be.issued.list</field>
+        <field name="model">sale.order.line</field>
+        <field name="arch" type="xml">
+            <list string="Invoices To Be Issued" create="false" delete="false">
+                <field name="order_id" string="Order Ref"/>
+                <field name="order_partner_id" string="Customer"/>
+                <field name="name" string="Description"/>
+                <field name="salesman_id" string="Salesperson" optional="show"/>
+                <field name="product_uom_qty" string="Quantity" sum="Total Quantity"/>
+                <field name="qty_delivered_at_date" string="Delivered" sum="Total Delivered"/>
+                <field name="qty_invoiced_at_date" string="Invoiced" sum="Total Invoiced"/>
+                <field name="price_unit" string="Unit Price"/>
+                <field name="amount_to_invoice_at_date" string="Amount" sum="Total Amount"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="company_id" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+    <record id="action_sale_invoice_to_be_issued_list" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_sale_invoice_to_be_issued_list"/>
+        <field name="act_window_id" ref="action_sale_invoice_to_be_issued"/>
+    </record>
+
+    <record id="action_sale_invoiced_not_delivered" model="ir.actions.act_window">
+        <field name="name">Invoiced Not Delivered</field>
+        <field name="res_model">sale.order.line</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('deferred_revenue', 'in', [True])]</field>
+        <field name="context">{'create': False, 'delete': False}</field>
+    </record>
+    <record id="action_sale_invoiced_not_delivered_list" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_sale_invoice_to_be_issued_list"/>
+        <field name="act_window_id" ref="action_sale_invoiced_not_delivered"/>
+    </record>
+
+    <!-- Keep the extra community work queues available under Accounting. -->
+    <menuitem id="menu_review_work_queues" name="Work Queues"
+              parent="account.menu_finance_entries" groups="account.group_account_readonly" sequence="80"/>
+    <menuitem id="menu_review_moves_to_review" name="Entries to Review" action="action_moves_to_review"
+              parent="menu_review_work_queues" groups="account.group_account_readonly" sequence="10"/>
+    <menuitem id="menu_review_moves_unposted" name="Draft Entries" action="action_moves_unposted"
+              parent="menu_review_work_queues" groups="account.group_account_readonly" sequence="20"/>
+
+    <menuitem id="menu_review_reconciliation" name="Reconciliation"
+              parent="account.menu_finance_entries" groups="account.group_account_readonly" sequence="90"/>
+    <menuitem id="menu_review_bank_reconciliation" action="om_account_reconcile.action_bank_reconciliation"
+              parent="menu_review_reconciliation" groups="account.group_account_user" sequence="10"/>
+    <menuitem id="menu_review_open_items" action="om_account_reconcile.action_open_items_reconciliation"
+              parent="menu_review_reconciliation" groups="account.group_account_user" sequence="20"/>
+    <menuitem id="menu_review_match_journal_items" action="om_account_reconcile.action_move_line_match"
+              parent="menu_review_reconciliation" groups="account.group_account_user" sequence="30"/>
+    <menuitem id="menu_review_bank_rec_to_review" action="action_bank_rec_to_review"
+              parent="menu_review_reconciliation" groups="account.group_account_user" sequence="40"/>
+
+    <record id="action_journal_audit" model="ir.actions.client">
+        <field name="name">Journal Audit</field>
+        <field name="tag">om_account_accountant.journal_audit</field>
+        <field name="params" eval="{}"/>
+    </record>
+
+    <!-- Use the interactive community report; keep the printable wizard in Reporting. -->
+    <menuitem id="menu_review_journal_audit" name="Journal Audit"
+              action="action_journal_audit"
               parent="account.account_audit_control_menu"
-              groups="account.group_account_readonly"
-              sequence="5"/>
+              groups="account.group_account_readonly" sequence="30"/>
 
-    <menuitem id="menu_review_moves_unposted"
-              action="action_moves_unposted"
-              parent="account.account_audit_control_menu"
-              groups="account.group_account_readonly"
-              sequence="6"/>
+    <menuitem id="menu_review_audit" name="Audit" parent="account.account_audit_menu"
+              groups="account.group_account_readonly" sequence="30"/>
+    <record id="accounting_pdf_reports.menu_account_report_annual" model="ir.ui.menu">
+        <field name="parent_id" ref="menu_review_audit"/>
+        <field name="sequence" eval="10"/>
+    </record>
 
-    <!-- Reconciliation: what is left open -->
-    <menuitem id="menu_review_reconciliation"
-              name="Reconciliation"
-              parent="account.account_audit_menu"
-              groups="account.group_account_readonly"
-              sequence="30"/>
+    <menuitem id="menu_review_inventory" name="Inventory" parent="account.account_audit_menu"
+              groups="account.group_account_readonly" sequence="40"/>
+    <menuitem id="menu_review_inventory_valuation" name="Inventory Valuation"
+              action="account.action_report_stock_valuation" parent="menu_review_inventory"
+              groups="account.group_account_readonly" sequence="10"/>
 
-    <menuitem id="menu_review_bank_reconciliation"
-              action="om_account_reconcile.action_bank_reconciliation"
-              parent="menu_review_reconciliation"
-              groups="account.group_account_user"
-              sequence="10"/>
+    <menuitem id="menu_review_regularization" name="Regulatory" parent="account.account_audit_menu"
+              groups="account.group_account_readonly" sequence="50"/>
+    <menuitem id="menu_review_unrealized_currencies" name="Unrealized Currencies"
+              action="om_currency_revaluation.action_currency_revaluation" parent="menu_review_regularization"
+              groups="account.group_account_manager" sequence="10"/>
 
-    <menuitem id="menu_review_open_items"
-              action="om_account_reconcile.action_open_items_reconciliation"
-              parent="menu_review_reconciliation"
-              groups="account.group_account_user"
-              sequence="20"/>
+    <menuitem id="menu_review_purchases" name="Purchases" parent="account.account_audit_menu"
+              groups="account.group_account_readonly" sequence="60"/>
+    <menuitem id="menu_review_bill_to_receive" action="action_purchase_bill_to_receive"
+              parent="menu_review_purchases" groups="account.group_account_readonly" sequence="10"/>
+    <menuitem id="menu_review_billed_not_received" action="action_purchase_billed_not_received"
+              parent="menu_review_purchases" groups="account.group_account_readonly" sequence="20"/>
 
-    <menuitem id="menu_review_match_journal_items"
-              action="om_account_reconcile.action_move_line_match"
-              parent="menu_review_reconciliation"
-              groups="account.group_account_user"
-              sequence="30"/>
-
-    <menuitem id="menu_review_bank_rec_to_review"
-              action="action_bank_rec_to_review"
-              parent="menu_review_reconciliation"
-              groups="account.group_account_user"
-              sequence="40"/>
-
-    <!-- Regularization Entries: the same place Enterprise puts the unrealized currency gains and losses -->
-    <menuitem id="menu_review_regularization"
-              name="Regularization Entries"
-              parent="account.account_audit_menu"
-              groups="account.group_account_manager"
-              sequence="40"/>
-
-    <menuitem id="menu_review_unrealized_currencies"
-              name="Unrealized Currencies"
-              action="om_currency_revaluation.action_currency_revaluation"
-              parent="menu_review_regularization"
-              groups="account.group_account_manager"
-              sequence="10"/>
+    <menuitem id="menu_review_sales" name="Sales" parent="account.account_audit_menu"
+              groups="account.group_account_readonly" sequence="70"/>
+    <menuitem id="menu_review_invoice_to_be_issued" action="action_sale_invoice_to_be_issued"
+              parent="menu_review_sales" groups="account.group_account_readonly" sequence="10"/>
+    <menuitem id="menu_review_invoiced_not_delivered" action="action_sale_invoiced_not_delivered"
+              parent="menu_review_sales" groups="account.group_account_readonly" sequence="20"/>
 
 </odoo>

@@ -21,6 +21,8 @@
     'support': 'support@flousflow.com',
     'depends': [
         'accounting_pdf_reports',
+        'sale_stock',
+        'purchase_stock',
         'om_account_asset',
         'om_account_budget',
         'om_fiscal_year',
@@ -41,6 +43,13 @@
         'ff_account_transfer',
         'flousflow_branch_analytic',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'om_account_accountant/static/src/journal_audit/journal_audit.js',
+            'om_account_accountant/static/src/journal_audit/journal_audit.xml',
+            'om_account_accountant/static/src/journal_audit/journal_audit.scss',
+        ],
+    },
     'data': [
         'security/group.xml',
         'views/menu.xml',
