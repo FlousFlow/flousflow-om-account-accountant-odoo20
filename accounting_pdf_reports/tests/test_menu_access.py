@@ -46,10 +46,23 @@ class TestMenuAccess(AccountTestInvoicingCommon):
             with self.subTest(group=group):
                 self.assertEqual(self._visible(user, FINANCIAL_MENUS + PARTNER_MENUS),
                                  set(FINANCIAL_MENUS + PARTNER_MENUS))
+                self.assertEqual(
+                    self.env.ref('accounting_pdf_reports.menu_general_balance_report').action._name,
+                    'ir.actions.client',
+                )
+                # The interactive destination retains the original printable wizard.
+                balance_wizard = self.env['account.balance.report'].with_user(user).create({})
+                balance_wizard = balance_wizard.with_context(
+                    active_model=balance_wizard._name,
+                    active_id=balance_wizard.id,
+                    active_ids=balance_wizard.ids,
+                )
+                self.assertEqual(balance_wizard.check_report()['type'], 'ir.actions.report')
                 for xmlid in ('accounting_pdf_reports.menu_general_balance_report',
                               'accounting_pdf_reports.menu_aged_trial_balance',
                               'accounting_pdf_reports.menu_partner_ledger'):
-                    self.assertEqual(self._run(user, xmlid)['type'], 'ir.actions.report', xmlid)
+                    if xmlid != 'accounting_pdf_reports.menu_general_balance_report':
+                        self.assertEqual(self._run(user, xmlid)['type'], 'ir.actions.report', xmlid)
 
     def test_invoicing_user_sees_the_partner_reports(self):
         user = self._user('report_billing', 'account.group_account_invoice')
