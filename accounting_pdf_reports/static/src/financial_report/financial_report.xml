@@ -55,8 +55,34 @@
                             <i class="fa fa-chevron-right"/>
                         </button>
                     </div>
-                    <button class="btn btn-outline-secondary" t-att-class="this.state.comparison ? 'btn-primary' : 'btn-outline-secondary'"
-                            t-on-click="() => { this.state.comparison = !this.state.comparison; this.loadReport(); }">Comparison</button>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" t-att-class="this.state.comparison ? 'btn-primary' : 'btn-outline-secondary'"
+                                type="button" data-bs-toggle="dropdown">Comparison</button>
+                        <div class="dropdown-menu p-3 ff_fr_comparison_menu">
+                            <button class="dropdown-item" type="button" t-on-click="() => this.setComparisonMode('none')">No Comparison</button>
+                            <button class="dropdown-item" type="button" t-on-click="() => this.setComparisonMode('previous_period')">Previous Period</button>
+                            <button class="dropdown-item" type="button" t-on-click="() => this.setComparisonMode('same_period_last_year')">Same Period Last Year</button>
+                            <button class="dropdown-item" type="button" t-on-click="() => this.setComparisonMode('custom')">Custom Dates</button>
+                            <div t-if="this.state.comparisonMode === 'custom'" class="px-2 py-2">
+                                <label class="form-label">Comparison Start Date
+                                    <input class="form-control" type="date" t-att-value="this.state.comparisonDateFrom"
+                                           t-on-change="(ev) => this.onComparisonDateChange('comparisonDateFrom', ev)"/>
+                                </label>
+                                <label class="form-label mb-0">Comparison End Date
+                                    <input class="form-control" type="date" t-att-value="this.state.comparisonDateTo"
+                                           t-on-change="(ev) => this.onComparisonDateChange('comparisonDateTo', ev)"/>
+                                </label>
+                            </div>
+                            <div t-if="this.state.comparison" class="mt-2">
+                                <label class="form-label mb-1">Comparison in</label>
+                                <select class="form-select" t-att-value="this.state.comparisonDisplay"
+                                        t-on-change="(ev) => this.state.comparisonDisplay = ev.target.value">
+                                    <option value="percentage">Percentage</option>
+                                    <option value="amount">Amount</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                     <div class="dropdown">
                         <button class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
                             <i class="fa fa-sliders me-1"/><t t-if="this.state.targetMove === 'posted'">Posted Entries</t><t t-else="">All Entries</t>, Accrual Basis
@@ -97,7 +123,7 @@
                 <div t-if="this.state.loading" class="text-center p-5"><i class="fa fa-spinner fa-spin me-2"/>Loading…</div>
                 <div t-else="" class="ff_fr_report_wrap">
                     <table class="table ff_fr_table">
-                        <thead><tr><th aria-label="Account"/><th t-if="this.state.debitCredit" class="text-end">Debit</th><th t-if="this.state.debitCredit" class="text-end">Credit</th><th class="text-end">Balance</th><th t-if="this.state.comparison" class="text-end">Previous Period</th><th class="ff_fr_info_column" aria-label="Formula details"/></tr></thead>
+                        <thead><tr><th aria-label="Account"/><th t-if="this.state.debitCredit" class="text-end">Debit</th><th t-if="this.state.debitCredit" class="text-end">Credit</th><th class="text-end">Balance</th><th t-if="this.state.comparison" class="text-end"><t t-out="this.comparisonLabel"/><t t-if="this.state.comparisonDisplay === 'percentage'"> (%)</t></th><th class="ff_fr_info_column" aria-label="Formula details"/></tr></thead>
                         <tbody>
                         <tr t-if="!this.visibleLines.length"><td colspan="4" class="text-center text-muted py-5">No data found</td></tr>
                         <tr t-foreach="this.visibleLines" t-as="line" t-key="line.row_key || (line.report_id + '-' + (line.account_id || 'section'))"
@@ -115,7 +141,7 @@
                                 <button t-if="line.show_amount !== false and (line.account_id || line.account_ids?.length)" class="btn btn-link p-0 ff_fr_amount_link" t-on-click="() => this.openLineDetails(line)" t-out="this.formatAmount(line.balance)"/>
                                 <t t-elif="line.show_amount !== false" t-out="this.formatAmount(line.balance)"/>
                             </td>
-                            <td t-if="this.state.comparison" class="text-end ff_fr_amount"><t t-if="line.show_amount !== false" t-out="this.formatAmount(line.balance_cmp)"/></td>
+                            <td t-if="this.state.comparison" class="text-end ff_fr_amount"><t t-if="line.show_amount !== false" t-out="this.comparisonValue(line)"/></td>
                             <td class="ff_fr_info_cell">
                                 <button type="button" class="btn btn-link ff_fr_info_button" title="Show formula details"
                                         t-att-aria-expanded="this.state.formulaInfoKey === this.formulaInfoKey(line)"

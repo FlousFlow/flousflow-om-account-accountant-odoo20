@@ -185,7 +185,9 @@ class ReportFinancial(models.AbstractModel):
     @api.model
     def get_interactive_data(self, report_id, date_from, date_to, target_move='posted',
                              journal_ids=None, comparison=False, debit_credit=False,
-                             comparison_context=None, period_type=None):
+                             comparison_context=None, period_type=None,
+                             comparison_mode='previous_period', comparison_date_from=None,
+                             comparison_date_to=None):
         """Return the native financial-report hierarchy for the Odoo web client."""
         if not self.env.user.has_group('account.group_account_readonly'):
             from odoo.exceptions import AccessError
@@ -226,14 +228,26 @@ class ReportFinancial(models.AbstractModel):
         elif comparison:
             start = fields.Date.to_date(date_from) if date_from else False
             end = fields.Date.to_date(date_to) if date_to else fields.Date.context_today(self)
-            if start:
-                if period_type == 'fiscal_year' or (start.month == 1 and start.day == 1 and period_type is None):
+            if comparison_mode == 'custom':
+                comparison_start = fields.Date.to_date(comparison_date_from) if comparison_date_from else False
+                comparison_end = fields.Date.to_date(comparison_date_to) if comparison_date_to else False
+                if not comparison_start or not comparison_end or comparison_start > comparison_end:
+                    raise UserError(_('Select a valid comparison date range.'))
+            elif start:
+                if comparison_mode == 'same_period_last_year':
+                    comparison_start = start - relativedelta(years=1)
+                    comparison_end = end - relativedelta(years=1)
+                elif period_type == 'fiscal_year' or (start.month == 1 and start.day == 1 and period_type is None):
                     comparison_start = start - relativedelta(years=1)
                     comparison_end = end - relativedelta(years=1)
                 else:
                     days = (end - start).days + 1
                     comparison_start = start - relativedelta(days=days)
                     comparison_end = start - relativedelta(days=1)
+            else:
+                comparison_start = False
+                comparison_end = end - relativedelta(years=1)
+            if comparison_start:
                 data['comparison_context'] = dict(context, date_from=comparison_start.isoformat(),
                                                   date_to=comparison_end.isoformat(), strict_range=True)
             else:

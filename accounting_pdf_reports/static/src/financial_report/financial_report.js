@@ -33,6 +33,10 @@ export class FinancialReport extends Component {
             periodAnchor: serializeDate(today),
             targetMove: "posted",
             comparison: false,
+            comparisonMode: "previous_period",
+            comparisonDateFrom: "",
+            comparisonDateTo: "",
+            comparisonDisplay: "amount",
             comparisonContext: false,
             debitCredit: false,
             scale: "unit",
@@ -92,6 +96,16 @@ export class FinancialReport extends Component {
             return `${_t("Fiscal Year")} ${years}`;
         }
         return `${start.toLocaleString(DateTime.DATE_MED)} – ${end.toLocaleString(DateTime.DATE_MED)}`;
+    }
+
+    get comparisonLabel() {
+        if (this.state.comparisonMode === "same_period_last_year") {
+            return _t("Same Period Last Year");
+        }
+        if (this.state.comparisonMode === "custom") {
+            return _t("Custom Dates");
+        }
+        return _t("Previous Period");
     }
 
     async selectPeriod(periodType) {
@@ -186,7 +200,9 @@ export class FinancialReport extends Component {
                 "get_interactive_data",
                 [this.state.reportId, this.state.dateFrom || false, this.state.dateTo,
                     this.state.targetMove, this.state.journalIds, this.state.comparison,
-                    this.state.debitCredit, null, this.isProfitLoss ? this.state.periodType : false]
+                    this.state.debitCredit, null, this.isProfitLoss ? this.state.periodType : false,
+                    this.state.comparisonMode, this.state.comparisonDateFrom || false,
+                    this.state.comparisonDateTo || false]
             );
             if (this.isProfitLoss && this.state.periodType === "fiscal_year" &&
                     !this.state.dateFrom && !this.state.dateTo) {
@@ -218,6 +234,42 @@ export class FinancialReport extends Component {
     onDateChange(field, event) {
         this.state[field] = event.target.value;
         return this.loadReport();
+    }
+
+    setComparisonMode(mode) {
+        this.state.comparisonMode = mode;
+        this.state.comparison = mode !== "none";
+        if (mode === "custom" && !this.state.comparisonDateFrom) {
+            const from = this.state.dateFrom ? DateTime.fromISO(this.state.dateFrom) : false;
+            const to = DateTime.fromISO(this.state.dateTo);
+            this.state.comparisonDateFrom = from ? serializeDate(from.minus({ years: 1 })) : "";
+            this.state.comparisonDateTo = serializeDate(to.minus({ years: 1 }));
+        }
+        return this.loadReport();
+    }
+
+    onComparisonDateChange(field, event) {
+        this.state[field] = event.target.value;
+        if (this.state.comparisonDateFrom && this.state.comparisonDateTo &&
+                this.state.comparisonDateFrom > this.state.comparisonDateTo) {
+            this.notification.add(_t("The comparison start date must be on or before its end date."), {
+                type: "warning",
+            });
+            return;
+        }
+        if (this.state.comparisonDateFrom && this.state.comparisonDateTo) {
+            return this.loadReport();
+        }
+    }
+
+    comparisonValue(line) {
+        const current = Number(line.balance || 0);
+        const previous = Number(line.balance_cmp || 0);
+        if (this.state.comparisonDisplay === "percentage") {
+            return Math.abs(previous) < 0.005 ? (Math.abs(current) < 0.005 ? "0.00%" : "—")
+                : `${((current - previous) / Math.abs(previous) * 100).toFixed(2)}%`;
+        }
+        return this.formatAmount(previous);
     }
 
     onJournalsChange(event) {
@@ -293,6 +345,7 @@ export class FinancialReport extends Component {
 
     async openPrintOptions() {
         const action = await this.action.loadAction(this.state.printActionXmlid);
+        const comparisonContext = this.state.comparisonContext || {};
         action.context = {
             ...action.context,
             default_date_from: this.state.dateFrom || false,
@@ -300,6 +353,12 @@ export class FinancialReport extends Component {
             default_target_move: this.state.targetMove,
             default_journal_ids: this.state.journalIds,
             default_enable_filter: this.state.comparison,
+            default_label_filter: this.state.comparisonMode === "same_period_last_year"
+                ? _t("Same Period Last Year") : this.state.comparisonMode === "custom"
+                    ? _t("Custom Dates") : _t("Previous Period"),
+            default_filter_cmp: this.state.comparison ? "filter_date" : "filter_no",
+            default_date_from_cmp: comparisonContext.date_from || false,
+            default_date_to_cmp: comparisonContext.date_to || false,
             default_debit_credit: this.state.debitCredit,
         };
         return this.action.doAction(action);
@@ -316,7 +375,9 @@ export class FinancialReport extends Component {
                 journal_ids: [[6, 0, this.state.journalIds || []]],
                 target_move: this.state.targetMove,
                 enable_filter: this.state.comparison,
-                label_filter: _t("Previous Period"),
+                label_filter: this.state.comparisonMode === "same_period_last_year"
+                    ? _t("Same Period Last Year") : this.state.comparisonMode === "custom"
+                        ? _t("Custom Dates") : _t("Previous Period"),
                 filter_cmp: this.state.comparison ? "filter_date" : "filter_no",
                 date_from_cmp: comparisonContext.date_from || false,
                 date_to_cmp: comparisonContext.date_to || false,
