@@ -82,6 +82,34 @@ class TestBalanceSheet(AccountTestInvoicingCommon):
         self.assertEqual(equity, ['Capital and Reserves', 'Profit (Loss) to report'],
                          'the profit of the period belongs to the owners')
 
+    def test_interactive_xlsx_export_preserves_comparison_period(self):
+        report = self.env.ref('accounting_pdf_reports.account_financial_report_balancesheet0')
+        interactive_data = self.env['report.accounting_pdf_reports.report_financial'].get_interactive_data(
+            report.id, '2026-01-01', '2026-06-30', 'posted', [], True, False,
+        )
+        comparison_context = interactive_data['comparison_context']
+        self.assertEqual(comparison_context['date_from'], '2025-01-01')
+        self.assertEqual(comparison_context['date_to'], '2025-06-30')
+
+        wizard = self.env['accounting.report'].create({
+            'account_report_id': report.id,
+            'date_from': '2026-01-01',
+            'date_to': '2026-06-30',
+            'journal_ids': [(6, 0, self.env['account.journal'].search([
+                ('company_id', 'child_of', self.env.company.id),
+            ]).ids)],
+            'enable_filter': True,
+            'filter_cmp': 'filter_date',
+            'date_from_cmp': comparison_context['date_from'],
+            'date_to_cmp': comparison_context['date_to'],
+            'target_move': 'posted',
+        })
+        action = wizard.action_export_xlsx()
+
+        self.assertEqual(action['type'], 'ir.actions.act_url')
+        self.assertEqual(wizard.xlsx_filename, 'Balance Sheet.xlsx')
+        self.assertTrue(wizard.xlsx_file)
+
     def test_the_equity_is_not_among_the_liabilities(self):
         equity_types = self.env.ref('accounting_pdf_reports.account_financial_report_equity_accounts0')\
             .account_type_ids.mapped('type')

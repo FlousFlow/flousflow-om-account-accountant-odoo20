@@ -620,6 +620,7 @@ class ReportFinancial(models.AbstractModel):
             'draft_count': self.env['account.move'].search_count(drafts_domain),
             'journal_ids': journals.ids,
             'journals': [{'id': journal.id, 'name': journal.display_name} for journal in journals],
+            'comparison_context': data.get('comparison_context') or False,
         }
 
     @api.model

@@ -30,6 +30,7 @@ export class FinancialReport extends Component {
             dateTo: serializeDate(today),
             targetMove: "posted",
             comparison: false,
+            comparisonContext: false,
             debitCredit: false,
             scale: "unit",
             loading: true,
@@ -116,6 +117,7 @@ export class FinancialReport extends Component {
             );
             this.state.title = data.name;
             this.state.lines = data.lines;
+            this.state.comparisonContext = data.comparison_context || false;
             this.state.expanded = [...data.expanded_report_ids, ...data.expanded_group_keys];
             this.state.journals = data.journals;
             if (this.state.journalIds === false) {
@@ -223,6 +225,34 @@ export class FinancialReport extends Component {
             default_debit_credit: this.state.debitCredit,
         };
         return this.action.doAction(action);
+    }
+
+    async exportXlsx() {
+        try {
+            const comparisonContext = this.state.comparisonContext || {};
+            const wizardIds = await this.orm.create("accounting.report", [{
+                account_report_id: this.state.reportId,
+                company_id: this.state.companyId,
+                date_from: this.state.dateFrom || false,
+                date_to: this.state.dateTo,
+                journal_ids: [[6, 0, this.state.journalIds || []]],
+                target_move: this.state.targetMove,
+                enable_filter: this.state.comparison,
+                label_filter: _t("Previous Period"),
+                filter_cmp: this.state.comparison ? "filter_date" : "filter_no",
+                date_from_cmp: comparisonContext.date_from || false,
+                date_to_cmp: comparisonContext.date_to || false,
+                debit_credit: this.state.debitCredit,
+            }]);
+            const action = await this.orm.call(
+                "accounting.report", "action_export_xlsx", [[wizardIds[0]]]
+            );
+            return this.action.doAction(action);
+        } catch (error) {
+            this.notification.add(error.message || _t("The Excel report could not be exported."), {
+                type: "danger",
+            });
+        }
     }
 
     async printReport() {

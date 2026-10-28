@@ -54,6 +54,14 @@ ASSETS and verified that the popover shows Engine, Label, Formula, and Value,
 including the expected aggregate formula. Numeric parity still requires
 matching company data and report dates.
 
+The Enterprise report settings menu contains XLSX, Send to Documents, and
+Insert in Article. The Community settings button previously opened the print
+options wizard instead. It now opens an output menu with XLSX, using the
+existing report exporter and current company, dates, journals, move state,
+comparison period, and debit/credit selection. The print button remains a
+separate action. Documents and Knowledge integrations remain unavailable in
+this Community addon environment.
+
 ## Deferred Expenses and Deferred Revenues
 
 The live Deferred Expenses report has month, quarter, fiscal-year, and custom

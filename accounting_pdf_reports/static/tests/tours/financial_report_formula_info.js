@@ -37,5 +37,21 @@ registry.category("web_tour.tours").add("ff_balance_sheet_formula_info", {
                 }
             },
         },
+        {
+            trigger: ".ff_fr_toolbar .ff_fr_title button[aria-label='Report actions']",
+            run: "click",
+        },
+        {
+            trigger: ".ff_fr_toolbar .dropdown-menu .dropdown-item",
+            run: "click",
+        },
+        {
+            trigger: ".ff_fr_table",
+            run() {
+                if (!document.querySelector(".ff_fr_toolbar .ff_fr_title button[aria-label='Report actions']")) {
+                    throw new Error("The financial report output menu was not restored after XLSX export.");
+                }
+            },
+        },
     ],
 });

@@ -4,7 +4,19 @@
         <div class="o_action ff_financial_report">
             <div class="ff_fr_toolbar">
                 <button class="btn btn-primary" t-on-click="this.openPrintOptions">Print</button>
-                <h2><t t-out="this.state.title"/> <button class="btn btn-link" title="Report options" t-on-click="this.openPrintOptions"><i class="fa fa-cog"/></button></h2>
+                <div class="ff_fr_title">
+                    <h2><t t-out="this.state.title"/></h2>
+                    <div class="dropdown d-inline-block">
+                        <button class="btn btn-link" title="Report actions" data-bs-toggle="dropdown" aria-label="Report actions">
+                            <i class="fa fa-cog"/>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end">
+                            <button class="dropdown-item" type="button" t-on-click="this.exportXlsx">
+                                <i class="fa fa-file-excel-o me-2"/>XLSX
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 <div class="ff_fr_controls">
                     <label class="btn btn-outline-secondary"><i class="fa fa-calendar me-1"/>As of
                         <input type="date" t-att-value="this.state.dateTo" t-on-change="(ev) => this.onDateChange('dateTo', ev)"/>

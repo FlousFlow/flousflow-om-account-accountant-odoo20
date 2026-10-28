@@ -1,7 +1,8 @@
 .ff_financial_report {
     background:#f0f4fa;
     .ff_fr_toolbar { display:flex; align-items:center; gap:.75rem; padding:.75rem 1.5rem; background:#fff; border-bottom:1px solid #dee2e6; }
-    .ff_fr_toolbar h2 { margin:0 auto 0 0; font-size:1.35rem; white-space:nowrap; }
+    .ff_fr_toolbar .ff_fr_title { display:flex; align-items:center; gap:.25rem; margin-right:auto; }
+    .ff_fr_toolbar h2 { margin:0; font-size:1.35rem; white-space:nowrap; }
     .ff_fr_controls { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:.5rem; }
     .ff_fr_controls input[type="date"] { border:0; background:transparent; font-weight:600; }
     .ff_fr_scale { width:7.5rem; }
@@ -40,7 +41,7 @@
     .ff_fr_formula_row code { color:#d63384; white-space:normal; overflow-wrap:anywhere; font-size:.95em; }
     @media (max-width: 768px) {
         .ff_fr_toolbar { align-items:flex-start; flex-wrap:wrap; }
-        .ff_fr_toolbar h2 { margin-right:0; }
+        .ff_fr_toolbar .ff_fr_title { margin-right:0; }
         .ff_fr_controls { justify-content:flex-start; width:100%; }
         .ff_fr_report_wrap { width:100%; padding:.75rem; overflow-x:auto; }
     }
