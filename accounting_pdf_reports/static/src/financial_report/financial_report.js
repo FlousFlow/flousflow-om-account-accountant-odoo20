@@ -35,6 +35,7 @@ export class FinancialReport extends Component {
             comparison: false,
             comparisonMode: "previous_period",
             comparisonPeriods: 1,
+            comparisonSort: "descending",
             comparisonDateFrom: "",
             comparisonDateTo: "",
             comparisonDisplay: "amount",
@@ -117,6 +118,30 @@ export class FinancialReport extends Component {
         );
     }
 
+    get periodColumns() {
+        const columns = [{
+            key: "current",
+            date_from: this.state.dateFrom,
+            date_to: this.state.dateTo,
+            index: -1,
+        }];
+        if (this.state.comparison && this.state.comparisonMode !== "percentage_of") {
+            columns.push(...this.state.comparisonContexts.map((context, index) => ({
+                key: `comparison-${index}`,
+                date_from: context.date_from,
+                date_to: context.date_to,
+                index,
+            })));
+            columns.sort((left, right) => {
+                const leftDate = left.date_from || left.date_to || "";
+                const rightDate = right.date_from || right.date_to || "";
+                const order = leftDate.localeCompare(rightDate);
+                return this.state.comparisonSort === "ascending" ? order : -order;
+            });
+        }
+        return columns;
+    }
+
     get percentageOfBaseLine() {
         return this.comparisonBaseLines.find((line) =>
             String(this.formulaInfoKey(line)) === String(this.state.percentageOfRowKey)
@@ -140,12 +165,6 @@ export class FinancialReport extends Component {
             return start.year === end.year ? String(end.year) : `${start.year}–${end.year}`;
         }
         return `${start.toLocaleString(DateTime.DATE_MED)} – ${end.toLocaleString(DateTime.DATE_MED)}`;
-    }
-
-    get currentPeriodColumnLabel() {
-        return this.isProfitLoss
-            ? this.formatPeriodRange(this.state.dateFrom, this.state.dateTo, this.state.periodType)
-            : _t("Balance");
     }
 
     async selectPeriod(periodType) {
@@ -335,6 +354,10 @@ export class FinancialReport extends Component {
 
     comparisonAmount(line, index) {
         return Number(line.balance_cmp_list?.[index] ?? (index === 0 ? line.balance_cmp : 0) ?? 0);
+    }
+
+    periodColumnAmount(line, column) {
+        return column.index < 0 ? Number(line.balance || 0) : this.comparisonAmount(line, column.index);
     }
 
     onJournalsChange(event) {

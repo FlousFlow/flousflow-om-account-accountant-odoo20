@@ -9,10 +9,11 @@ Baseline database: `flousflow_om_accountant_dev20_20261028`; Odoo 20.0; last inv
 | Enterprise destination / function | Standard Community or suite support | Actual gap | Proposed solution |
 | --- | --- | --- | --- |
 | Balance Sheet | The menu opens a full-page in-app report with As of date, comparison, posted/all entries, debit/credit columns, journal filters, amount scaling, draft warning, expandable report rows, account-to-journal-item links and Print options | Browser comparison confirms the asset, liability and equity labels/order, plus formula-info icons. Live-value parity is unproven because the databases contain different data | Continue comparing formulas, options, drill-downs and equivalent fixtures |
-| Profit and Loss | Full-page report with month, quarter, fiscal-year and custom periods, previous/next period navigation, previous period (N periods), same period last year, custom dates, percentage-of report line, comparison amount/percentage, sorting, entry state, debit/credit, journal filters, scaling and Print options | The local code now provides the comparison ranges, period count, separate columns for each comparison period, change amount/percentage, and percentage-of-base line. Print/XLSX still exports only one comparison period. Comparison sorting, budget selection, cash/accrual parity and full P&L hierarchy still need direct comparison | Verify the local layout visually, then inspect Enterprise sort behavior and reconcile the report hierarchy and accounting formulas |
+| Profit and Loss | Full-page report with month, quarter, fiscal-year and custom periods, previous/next period navigation, previous period (N periods), same period last year, custom dates, percentage-of report line, comparison amount/percentage, period-column sorting, entry state, debit/credit, journal filters, scaling and Print options | The local code now provides comparison ranges and multi-period columns, percentage-of-base and chronological column sorting. Print/XLSX still exports only one comparison period. Budget selection, cash/accrual parity and full P&L hierarchy still need direct comparison | Verify the local layout visually and reconcile the report hierarchy and accounting formulas |
 | Cash Flow Statement | `accounting_pdf_reports` action/menu exists and is installed | Enterprise layout and interaction parity not fully verified | Reconcile report lines, filters and export behavior |
 | Annual Report | `accounting_pdf_reports` and suite annual-report menu exist | Enterprise template/configuration behavior needs runtime comparison | Test template setup, period selection and output |
 | General Ledger | Interactive full-page report with account search, expandable journal items, month/quarter/fiscal-year/custom dates, posting/cash-basis filters, scaling, Print, XLSX and CSV | Report controls and date presets now align with observed Enterprise behavior. Documents and Knowledge actions remain absent; export output still needs direct live-file comparison | Validate exports against matched records; consider Documents and Knowledge integrations where available |
+| Audit Trail | Searchable audit log with Journal Entry, Account, Taxes, Partners, Company, Restricted and Date filters; grouping and export; Enterprise also exposes Spreadsheet and Knowledge actions plus custom-field editing | Review menu destination and filters match locally. Enterprise additionally offers Link/Insert List in Spreadsheet, Insert View/Template in Knowledge, and Studio custom fields; local actions show Export only. Row counts differ because the databases have different audit data | Keep core Review destinations equivalent; consider optional integrations only when compatible apps are installed |
 | Trial Balance | Full-page interactive report with opening balance, period debit/credit, ending balance, previous-period comparison, period presets, journal and entry filters, accrual/cash-basis selection, search, scaling, drill-down, and Print | Core table and filters now match the observed Enterprise Trial Balance screen. Export/settings actions and matched live-value comparison remain open | Verify export/settings behavior and reconcile figures on matched entries |
 | Journal Audit | Period presets, entry filters, payment toggle, scale, per-journal audit action, tax summary, print, XLSX export, Send to Documents and Insert in Article | Local Community report supports the core report and XLSX. Send to Documents and Insert in Article are absent; Documents is not available in the local addons path and Knowledge is uninstallable in this Community database | Keep the core report independent of Enterprise apps; add these two actions only through a compatible optional-app integration |
 | Partner Ledger and Aged Partner reports | Partner Ledger, Aged Partner Balance, Aged Receivable and Aged Payable are installed | Enterprise interaction and export parity needs runtime proof | Validate filters, partner drill-down and exports |
@@ -31,7 +32,7 @@ Baseline database: `flousflow_om_accountant_dev20_20261028`; Odoo 20.0; last inv
 The database currently has the following integrated modules installed:
 
 - `om_account_accountant` `20.0.1.33.0`
-- `accounting_pdf_reports` `20.0.2.0.13`
+- `accounting_pdf_reports` `20.0.2.0.16`
 - `ff_account_transfer` `20.0.1.0.0`
 - `flousflow_branch_analytic` `20.0.1.0.0`
 
@@ -45,9 +46,11 @@ General Ledger and other destinations remain in progress.
 The P&L comparison control now supports no comparison, previous period (with
 an adjustable period count), the same period last year, custom comparison
 dates, and a percentage-of selected report line. Period comparison displays
-current amount, comparison amount, and change (amount or percentage) in separate
-columns, matching the live Enterprise table. Percentage changes display N/A
-when the comparison amount is zero. Custom ranges are validated server-side.
+current amount, one column per comparison period, and a change (amount or
+percentage) column for a single comparison period, matching the live Enterprise
+table. Multiple comparison periods sort chronologically ascending or
+descending. Percentage changes display N/A when the comparison amount is zero.
+Custom ranges are validated server-side.
 Print and XLSX wizard defaults receive the first selected period-comparison
 date range and label; multiple comparison columns and percentage-of selection
 remain interactive-only options.
@@ -56,14 +59,18 @@ The live Enterprise P&L was observed with columns for current period, prior
 period, and Change (%). Selecting a percentage-of base line replaces the prior
 period column with the percentage-of value; a zero base displays N/A. The local
 8077 database was backed up before upgrade and now reports
-`accounting_pdf_reports` `20.0.2.0.14`. Odoo runtime smoke checks verified
+`accounting_pdf_reports` `20.0.2.0.16`. Runtime smoke checks on 2.0.15 verified
 previous-period, multi-period quarter, same-year and custom date ranges, plus
-percentage-of mode disabling period-comparison aggregation. A two-period query
+percentage-of mode disabling period-comparison aggregation. Version 2.0.16 was
+upgraded successfully and its regenerated browser asset includes the Balance
+Sheet-safe chronological sort fallback. A two-period query
 returned two comparison contexts and two distinct comparison values on each
 report line. The local HTTP
-login endpoint returned 200. Browser interaction remains unverified because
-the local browser session is expired. Comparison sorting, budget selection,
-cash/accrual parity and full P&L hierarchy remain open gaps.
+login endpoint returned 200. The live Enterprise ascending selection was
+observed ordering periods oldest-to-newest; the local interface now sorts its
+period columns the same way. The local browser session is active again and the
+Review menu and Audit Trail page were rechecked on 2026-10-29. Budget selection, cash/accrual parity,
+full P&L hierarchy and multi-period print/XLSX remain open gaps.
 
 ## Verified parity increment
 
@@ -288,3 +295,10 @@ The Enterprise report showed three documents and $10,031.50 in October 2026;
 the local 8077 database has one posted move and zero debit/credit for that
 period. These are different datasets, so matching report structure does not
 establish numeric parity.
+
+
+## Live Review parity recheck — 2026-10-29
+
+Enterprise and local Review menus expose the same ordered groups and entries: Control (Journal Items, Audit Trail, Journal Audit), Audit (Working Files, Annual Report), Inventory (Inventory Valuation), Regulatory (Unrealized Currencies, Deferred Revenues, Deferred Expenses), Purchases (Bills To Receive, Billed Not Received), and Sales (Invoices To Be Issued, Invoiced Not Delivered). No Review destination is missing in the current local database.
+
+The Audit Trail list also exposes the same core filter and grouping choices locally: Journal Entry, Account, Taxes, Partners, Company, Restricted, Date, Date grouping, Custom Group, and Favorites. The live Enterprise action menu additionally shows Link List in Spreadsheet, Insert List in Spreadsheet, Insert View in Article, and Insert Template in Article. Enterprise's column menu has Add Custom Field; local Odoo has no `web_studio` module. These are Enterprise Spreadsheet/Knowledge/Studio integrations, not missing core Review destinations. The Community database has `spreadsheet` installed but `can_insert_in_spreadsheet` remains false, and Knowledge is uninstallable. Preserve compatibility by treating these as optional integrations; do not make the accounting suite depend on unavailable Enterprise modules. Audit row totals differ (local 5, Enterprise 182) and cannot be compared as the databases contain different records.

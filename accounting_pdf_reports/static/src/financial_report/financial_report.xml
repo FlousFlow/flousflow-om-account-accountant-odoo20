@@ -70,6 +70,14 @@
                                        t-att-value="this.state.comparisonPeriods"
                                        t-on-change="this.onComparisonPeriodsChange"/>
                             </div>
+                            <div t-if="this.state.comparison and this.state.comparisonMode !== 'percentage_of'" class="mt-2">
+                                <label class="form-label mb-1">Sort by</label>
+                                <select class="form-select" t-att-value="this.state.comparisonSort"
+                                        t-on-change="(ev) => this.state.comparisonSort = ev.target.value">
+                                    <option value="ascending">Ascending</option>
+                                    <option value="descending">Descending</option>
+                                </select>
+                            </div>
                             <div t-if="this.state.comparisonMode === 'custom'" class="px-2 py-2">
                                 <label class="form-label">Comparison Start Date
                                     <input class="form-control" type="date" t-att-value="this.state.comparisonDateFrom"
@@ -144,13 +152,10 @@
                             <th aria-label="Account"/>
                             <th t-if="this.state.debitCredit" class="text-end">Debit</th>
                             <th t-if="this.state.debitCredit" class="text-end">Credit</th>
-                            <th class="text-end"><t t-out="this.currentPeriodColumnLabel"/></th>
-                            <th t-if="this.state.comparison &amp;&amp; this.state.comparisonMode !== 'percentage_of'"
-                                t-foreach="this.state.comparisonContexts" t-as="comparisonContext"
-                                t-key="comparisonContext.date_from" class="text-end">
-                                <t t-out="this.formatPeriodRange(comparisonContext.date_from, comparisonContext.date_to, this.state.periodType)"/>
+                            <th t-foreach="this.periodColumns" t-as="periodColumn" t-key="periodColumn.key" class="text-end">
+                                <t t-out="this.formatPeriodRange(periodColumn.date_from, periodColumn.date_to, this.state.periodType)"/>
                             </th>
-                            <th t-if="this.state.comparison" class="text-end">
+                            <th t-if="this.state.comparison and (this.state.comparisonMode === 'percentage_of' or this.state.comparisonContexts.length === 1)" class="text-end">
                                 <t t-if="this.state.comparisonMode === 'percentage_of'">% of <t t-out="this.percentageOfBaseLine?.name || ''"/></t>
                                 <t t-elif="this.state.comparisonDisplay === 'percentage'">Change (%)</t>
                                 <t t-else="">Change</t>
@@ -158,7 +163,7 @@
                             <th class="ff_fr_info_column" aria-label="Formula details"/>
                         </tr></thead>
                         <tbody>
-                        <tr t-if="!this.visibleLines.length"><td t-att-colspan="3 + (this.state.debitCredit ? 2 : 0) + (this.state.comparison ? (this.state.comparisonMode === 'percentage_of' ? 1 : this.state.comparisonContexts.length + 1) : 0)" class="text-center text-muted py-5">No data found</td></tr>
+                        <tr t-if="!this.visibleLines.length"><td t-att-colspan="2 + (this.state.debitCredit ? 2 : 0) + this.periodColumns.length + (this.state.comparison and (this.state.comparisonMode === 'percentage_of' or this.state.comparisonContexts.length === 1) ? 1 : 0)" class="text-center text-muted py-5">No data found</td></tr>
                         <tr t-foreach="this.visibleLines" t-as="line" t-key="line.row_key || (line.report_id + '-' + (line.account_id || 'section'))"
                             t-att-class="line.type === 'report' ? (line.level &lt;= 1 ? 'ff_fr_section' : 'ff_fr_subsection') : (line.type === 'total' ? 'ff_fr_total' : (line.type === 'group' ? 'ff_fr_group' : 'ff_fr_account'))">
                             <td t-att-style="'padding-inline-start: ' + (18 + line.level * 16) + 'px'">
@@ -170,16 +175,11 @@
                             </td>
                             <td t-if="this.state.debitCredit" class="text-end ff_fr_amount"><t t-if="line.show_amount !== false" t-out="this.formatAmount(line.debit)"/></td>
                             <td t-if="this.state.debitCredit" class="text-end ff_fr_amount"><t t-if="line.show_amount !== false" t-out="this.formatAmount(line.credit)"/></td>
-                            <td class="text-end ff_fr_amount">
-                                <button t-if="line.show_amount !== false and (line.account_id || line.account_ids?.length)" class="btn btn-link p-0 ff_fr_amount_link" t-on-click="() => this.openLineDetails(line)" t-out="this.formatAmount(line.balance)"/>
-                                <t t-elif="line.show_amount !== false" t-out="this.formatAmount(line.balance)"/>
+                            <td t-foreach="this.periodColumns" t-as="periodColumn" t-key="periodColumn.key" class="text-end ff_fr_amount">
+                                <button t-if="line.show_amount !== false and (line.account_id || line.account_ids?.length)" class="btn btn-link p-0 ff_fr_amount_link" t-on-click="() => this.openLineDetails({...line, detail_date_from: periodColumn.date_from, detail_date_to: periodColumn.date_to})" t-out="this.formatAmount(this.periodColumnAmount(line, periodColumn))"/>
+                                <t t-elif="line.show_amount !== false" t-out="this.formatAmount(this.periodColumnAmount(line, periodColumn))"/>
                             </td>
-                            <td t-if="this.state.comparison &amp;&amp; this.state.comparisonMode !== 'percentage_of'"
-                                t-foreach="this.state.comparisonContexts" t-as="comparisonContext"
-                                t-key="comparisonContext.date_from" class="text-end ff_fr_amount">
-                                <t t-if="line.show_amount !== false" t-out="this.formatAmount(this.comparisonAmount(line, comparisonContext_index))"/>
-                            </td>
-                            <td t-if="this.state.comparison" class="text-end ff_fr_amount"><t t-if="line.show_amount !== false" t-out="this.comparisonChange(line)"/></td>
+                            <td t-if="this.state.comparison and (this.state.comparisonMode === 'percentage_of' or this.state.comparisonContexts.length === 1)" class="text-end ff_fr_amount"><t t-if="line.show_amount !== false" t-out="this.comparisonChange(line)"/></td>
                             <td class="ff_fr_info_cell">
                                 <button type="button" class="btn btn-link ff_fr_info_button" title="Show formula details"
                                         t-att-aria-expanded="this.state.formulaInfoKey === this.formulaInfoKey(line)"
