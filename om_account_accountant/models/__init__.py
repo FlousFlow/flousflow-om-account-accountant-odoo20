@@ -2,6 +2,7 @@ from . import account_move
 from . import account_journal_audit_report
 from . import account_deferred_schedule_report
 from . import account_asset_source_line
+from . import purchase_order_line_review_date
 from . import sale_order_line_review_cost
 from . import account_working_file
 from . import res_company

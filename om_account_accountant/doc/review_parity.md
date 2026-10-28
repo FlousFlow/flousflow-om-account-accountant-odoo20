@@ -50,8 +50,7 @@ independent As of date control. Purchase rows show order, partner, product,
 quantity, received, billed, unit price, and amount. Sales rows add description,
 salesperson, Unit Cost, and Total Cost. In the observed Invoices To Be Issued
 report, Total Cost equals the stored Unit Cost multiplied by the delivered
-quantity at the selected report date. The current Community columns use current
-quantities because they do not yet expose Enterprise's independent As of date.
+quantity at the selected report date.
 
 The Community module already had all four destinations and used Odoo's native
 accrual search methods, but its views opened ungrouped, omitted the default
@@ -59,20 +58,19 @@ last-365-days filter, and lacked the sales cost columns. These queues now open
 grouped by Vendor or Customer with the same default order-date filter. Sales
 Unit Cost is stored using the product cost, company, sales currency/date, and
 unit-of-measure conversion; Total Cost multiplies that unit cost by the delivered
-quantity for Invoices To Be Issued and invoiced quantity for Invoiced Not
-Delivered. These totals are stored and database-aggregatable, so customer group
-totals work. The cost fields are limited to accounting read groups. No journal
-entries are created by these reports.
+or invoiced quantity at the selected As of date. The independent date picker
+passes the date into Odoo's accrual context and reloads the same report. The
+purchase queue uses that date to select eligible lines; both purchase and sales
+group totals recalculate date-sensitive quantities and amounts. Grouped cost
+totals remain available. The cost fields are limited to accounting read groups.
+No journal entries are created by these reports.
 
-Remaining differences: the Community list actions still do not expose
-Enterprise's independent As of date control. Their native accrual quantities
-and stored cost totals use current values, so users cannot reproduce a
-historical cut-off from the list.
-The Unit Cost/Total Cost columns on Invoiced Not Delivered were observed, but
-that live report contained no rows during this comparison; its total-cost
-quantity basis therefore remains inferred from the report's deferred-revenue
-workflow and needs a matched nonzero validation. Enterprise also exposes a
-Knowledge action from the report menu; the local Knowledge app is unavailable.
+The date picker and grouped historical quantities are covered by Odoo model and
+browser-tour tests. Remaining differences: the live Invoiced Not Delivered
+report contained no rows during comparison; its Total Cost quantity basis is
+inferred from the deferred-revenue workflow and still needs a matched nonzero
+validation. Enterprise also exposes a Knowledge action from the report menu;
+the local Knowledge app is unavailable.
 
 ## Balance Sheet and Profit and Loss
 

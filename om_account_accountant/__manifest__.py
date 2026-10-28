@@ -1,6 +1,6 @@
 {
     'name': 'FlousFlow Community Accounting Suite',
-    'version': '20.0.1.22.0',
+    'version': '20.0.1.23.0',
     'category': 'Accounting',
     'summary': 'Annual Report, Bank Reconciliation Statement, Accounting Reports, '
                'Asset Management and Budget, Recurring Payments, '
@@ -47,6 +47,8 @@
     ],
     'assets': {
         'web.assets_backend': [
+            'om_account_accountant/static/src/review_accrual/review_accrual_list.js',
+            'om_account_accountant/static/src/review_accrual/review_accrual_list.xml',
             'om_account_accountant/static/src/journal_audit/journal_audit.js',
             'om_account_accountant/static/src/journal_audit/journal_audit.xml',
             'om_account_accountant/static/src/journal_audit/journal_audit.scss',
@@ -66,6 +68,7 @@
             'om_account_accountant/static/src/working_file_spreadsheet/working_file_spreadsheet.xml',
         ],
         'web.assets_tests': [
+            'om_account_accountant/static/tests/tours/review_accrual_date_picker.js',
             'om_account_accountant/static/tests/tours/journal_audit_period_filter.js',
             'om_account_accountant/static/tests/tours/deferred_schedule_periods.js',
             'om_account_accountant/static/tests/tours/working_file_spreadsheet.js',

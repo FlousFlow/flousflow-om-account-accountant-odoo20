@@ -48,7 +48,7 @@
         <field name="name">purchase.order.line.bill.to.receive.list</field>
         <field name="model">purchase.order.line</field>
         <field name="arch" type="xml">
-            <list string="Bills To Receive" create="false" delete="false">
+            <list string="Bills To Receive" create="false" delete="false" js_class="review_accrual_list">
                 <field name="order_id" string="PO Reference"/>
                 <field name="partner_id"/>
                 <field name="product_id"/>
@@ -121,7 +121,7 @@
         <field name="name">sale.order.line.invoice.to.be.issued.list</field>
         <field name="model">sale.order.line</field>
         <field name="arch" type="xml">
-            <list string="Invoices To Be Issued" create="false" delete="false">
+            <list string="Invoices To Be Issued" create="false" delete="false" js_class="review_accrual_list">
                 <field name="order_id" string="Order Ref"/>
                 <field name="order_partner_id" string="Customer"/>
                 <field name="name" string="Description"/>
