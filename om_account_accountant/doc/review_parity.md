@@ -41,6 +41,39 @@ position as Enterprise. Its pre-existing Entries to Review action remains as
 an additional destination after the three Enterprise entries; the journal-item
 action also remains available under Accounting > Transactions.
 
+## Purchase and Sales Accrual Review Queues
+
+The live Enterprise Review menu exposes Bills To Receive, Billed Not Received,
+Invoices To Be Issued, and Invoiced Not Delivered. The live queues are grouped
+by Vendor or Customer and default to the last 365 days; each also has an
+independent As of date control. Purchase rows show order, partner, product,
+quantity, received, billed, unit price, and amount. Sales rows add description,
+salesperson, Unit Cost, and Total Cost. In the observed Invoices To Be Issued
+report, Total Cost equals the stored Unit Cost multiplied by the delivered
+quantity at the selected report date. The current Community columns use current
+quantities because they do not yet expose Enterprise's independent As of date.
+
+The Community module already had all four destinations and used Odoo's native
+accrual search methods, but its views opened ungrouped, omitted the default
+last-365-days filter, and lacked the sales cost columns. These queues now open
+grouped by Vendor or Customer with the same default order-date filter. Sales
+Unit Cost is stored using the product cost, company, sales currency/date, and
+unit-of-measure conversion; Total Cost multiplies that unit cost by the delivered
+quantity for Invoices To Be Issued and invoiced quantity for Invoiced Not
+Delivered. These totals are stored and database-aggregatable, so customer group
+totals work. The cost fields are limited to accounting read groups. No journal
+entries are created by these reports.
+
+Remaining differences: the Community list actions still do not expose
+Enterprise's independent As of date control. Their native accrual quantities
+and stored cost totals use current values, so users cannot reproduce a
+historical cut-off from the list.
+The Unit Cost/Total Cost columns on Invoiced Not Delivered were observed, but
+that live report contained no rows during this comparison; its total-cost
+quantity basis therefore remains inferred from the report's deferred-revenue
+workflow and needs a matched nonzero validation. Enterprise also exposes a
+Knowledge action from the report menu; the local Knowledge app is unavailable.
+
 ## Balance Sheet and Profit and Loss
 
 Enterprise shows an information icon for each report line. Its popover exposes
