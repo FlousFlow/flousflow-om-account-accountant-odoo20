@@ -79,8 +79,10 @@ company-dependent product cost, matching Odoo's native sales margin cost
 calculation; a two-company regression test verifies this behavior. Remaining
 differences: the live Invoiced Not Delivered report contained no rows during
 comparison; its Total Cost quantity basis is inferred from the deferred-revenue
-workflow and still needs matched nonzero validation. Enterprise also exposes a
-Knowledge action from the report menu;
+workflow and still needs matched nonzero validation. The live Billed Not Received
+report also returned no rows during the latest check, so line-level parity for
+that queue remains unverified. Enterprise also exposes a Knowledge action from
+the report menu;
 the local Knowledge app is unavailable.
 
 ## Balance Sheet and Profit and Loss
