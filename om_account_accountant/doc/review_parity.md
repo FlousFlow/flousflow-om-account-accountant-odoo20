@@ -66,19 +66,24 @@ records.
 ## Working Files
 
 Enterprise exposes Working Files from Review as an audit dossier, not as a
-Documents folder. The live record has Cycles, Balances, and Spreadsheet tabs;
-its audit checklist contains 52 checks grouped by accounting area, with review
-states, notes, evidence uploads, and activity history.
+Documents folder. The current live cycle screen exposes Cycle and Balances
+navigation. Its audit checklist contains 52 checks grouped by accounting area,
+with review states, notes, evidence uploads, and activity history. A Spreadsheet
+tab was not visible in the selected cycle detail, so its Enterprise location and
+behavior remain unverified.
 
 The Community suite now exposes Working Files under Review with a cycle kanban,
-checklist cards labeled by accounting area, and a Balances tab. A file is tied
-to a company and a user-entered date range and starts with a generic checklist;
-reviewers can mark checks Pending Review or Reviewed, add notes and multiple
+checklist cards labeled by accounting area, and a Balances tab. New files use the
+52 check names and eight sections observed on the live Enterprise 2025 cycle.
+Reviewers can mark checks Pending Review or Reviewed, add notes and multiple
 supporting files per check, and use chatter. Existing single-file evidence remains
 available for records created before multi-file evidence was added. Evidence upload
-and removal are blocked after the working file is validated. The list view remains
-available alongside the cycle cards.
-The embedded Spreadsheet tab is still missing.
+and removal are blocked after the working file is validated. The old generic starter
+templates are archived, not deleted; administrator-created active templates remain
+available and are added to future files. Existing working-file snapshots are not
+rewritten when templates change. The list view remains available alongside the
+cycle cards. Spreadsheet parity remains unverified until the Enterprise surface
+that exposes it is identified.
 Accounting managers can validate or reopen a file, and validation is blocked
 until every checklist item is reviewed. Company-scoped access is applied.
 
@@ -90,8 +95,11 @@ opening balances are calculated through the period end, while income and
 expense accounts use the selected date range. A Refresh Accounts action adds
 new company accounts without replacing comments or review statuses.
 
-Parity remains partial: the local checklist has 9 items versus 52 in the
-observed Enterprise file. The live Enterprise balance table had 52 accounts; the local company
+Parity remains partial because Spreadsheet behavior is unverified. Several
+Enterprise checklist prompts refer to Belgian GAAP or account numbers 17/42; those
+jurisdiction-specific instructions were observed in the Enterprise company and need
+review before applying them to Egyptian entities. The live Enterprise balance table
+had 52 accounts; the local company
 has 50 active accounts and only two posted journal-item rows. Its balance view
 therefore needs a non-zero fixture and matched-period comparison before numeric
 parity is established. The local database has no fiscal-year records, so the

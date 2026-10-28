@@ -1,6 +1,6 @@
 {
     'name': 'FlousFlow Community Accounting Suite',
-    'version': '20.0.1.7.0',
+    'version': '20.0.1.8.0',
     'category': 'Accounting',
     'summary': 'Annual Report, Bank Reconciliation Statement, Accounting Reports, '
                'Asset Management and Budget, Recurring Payments, '
@@ -58,6 +58,7 @@
         'security/group.xml',
         'security/ir.access.csv',
         'data/working_file_template.xml',
+        'data/working_file_enterprise_templates.xml',
         'views/working_file_views.xml',
         'views/menu.xml',
         'views/review_menu.xml',
