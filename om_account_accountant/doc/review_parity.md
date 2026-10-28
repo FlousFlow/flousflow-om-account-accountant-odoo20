@@ -8,8 +8,8 @@ Review menu and report screens. Financial totals must be compared only on matche
 company data and period.
 
 The local Review menu follows the live grouping and order: Control (Journal
-Items, Audit Trail, Journal Audit, then the suite-specific Entries to Review
-queue), Audit (Working Files, Annual Report), Inventory Valuation, Regulatory
+Items, Audit Trail, Journal Audit), Audit (Working Files, Annual Report),
+Inventory Valuation, Regulatory
 (Unrealized Currencies, Deferred Revenues, Deferred Expenses), Purchases, then
 Sales. Inventory Valuation is a direct Review destination to match Enterprise.
 `Draft Entries` remains an additional community work queue under Accounting.
@@ -18,7 +18,7 @@ Sales. Inventory Valuation is a direct Review destination to match Enterprise.
 
 | Capability | Enterprise | Community | Status |
 | --- | --- | --- | --- |
-| Review menu hierarchy | Control: Journal Items, Audit Trail, Journal Audit | Same order, then suite-specific Entries to Review; Draft Entries remains under Accounting | Implemented and verified by Odoo menu tests |
+| Review menu hierarchy | Control: Journal Items, Audit Trail, Journal Audit | Same destinations and order; suite-specific Entries to Review and Draft Entries remain under Accounting > Work Queues | Implemented and verified by Odoo menu tests |
 | Review menu entry and interactive report | Yes | Yes | Implemented |
 | Period, posted/draft/all entries | Month, Quarter, Fiscal Year and custom dates; posted, draft, or all | Month, Quarter, Fiscal Year and custom dates; posted, draft, or all | Browser tour verified period selection, quarter navigation, and custom date entry |
 | Include payments | Yes | Yes | Implemented |
@@ -36,10 +36,10 @@ Purchases balance. The local development database showed one posted
 Miscellaneous Operations entry with no review pending and zero balance. These
 are different databases and are not evidence of a report-calculation mismatch.
 
-The local Review menu exposes the native Journal Items action at the same
-position as Enterprise. Its pre-existing Entries to Review action remains as
-an additional destination after the three Enterprise entries; the journal-item
-action also remains available under Accounting > Transactions.
+The local Review > Control menu now contains only the three Enterprise
+destinations. The suite-specific Entries to Review queue remains accessible
+under Accounting > Work Queues; Journal Items also remains available under
+Accounting > Transactions.
 
 ## Purchase and Sales Accrual Review Queues
 

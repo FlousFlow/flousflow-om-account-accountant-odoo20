@@ -64,9 +64,20 @@ class TestMenus(TransactionCase):
             self.env.ref('om_account_accountant.menu_review_journal_items'),
             self.env.ref('account.account_audit_trail_menu'),
             self.env.ref('om_account_accountant.menu_review_journal_audit'),
-            self.env.ref('om_account_accountant.menu_review_moves_to_review'),
         ]
         self.assertEqual(actual.ids, [menu.id for menu in expected])
+        self.assertEqual(
+            self.env.ref('om_account_accountant.menu_review_moves_to_review').parent_id,
+            self.env.ref('om_account_accountant.menu_review_work_queues'),
+        )
+        work_queues = self.env.ref('om_account_accountant.menu_review_work_queues')
+        self.assertEqual(
+            work_queues.child_id.filtered('active').sorted(key=lambda menu: (menu.sequence, menu.id)),
+            self.env['ir.ui.menu'].browse([
+                self.env.ref('om_account_accountant.menu_review_moves_to_review').id,
+                self.env.ref('om_account_accountant.menu_review_moves_unposted').id,
+            ]),
+        )
         journal_items_action = self.env.ref('om_account_accountant.menu_review_journal_items').action
         self.assertEqual(journal_items_action, self.env.ref('account.action_account_moves_all'))
         self.assertEqual(journal_items_action.res_model, 'account.move.line')
