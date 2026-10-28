@@ -5,3 +5,4 @@ from . import test_journal_audit_periods
 from . import test_deferred_schedule_periods
 from . import test_journal_audit_period_filter_tour
 from . import test_working_file_spreadsheet
+from . import test_working_file_balances

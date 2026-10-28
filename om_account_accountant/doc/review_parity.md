@@ -131,13 +131,21 @@ opening balances are calculated through the period end, while income and
 expense accounts use the selected date range. A Refresh Accounts action adds
 new company accounts without replacing comments or review statuses.
 
+The balance arithmetic now has isolated posted-entry coverage: a balance-sheet
+account carries its historical opening balance through the selected end date,
+and a revenue account includes only activity inside the current and prior-year
+periods. The fixture also verifies variation and percentage calculations. Both
+tests pass on the local Odoo 20 database; this confirms the Community rules, not
+numeric equality with the live Enterprise company's ledger.
+
 Parity remains partial because browser save/reload has not yet been exercised.
 Several Enterprise checklist prompts refer to Belgian
 GAAP or account numbers 17/42; those
 jurisdiction-specific instructions were observed in the Enterprise company and need
 review before applying them to Egyptian entities. The live Enterprise balance table
 had 52 accounts; the local company
-has 50 active accounts and only two posted journal-item rows. Its balance view
-therefore needs a non-zero fixture and matched-period comparison before numeric
-parity is established. The local database has no fiscal-year records, so the
+has 50 active accounts and only two posted journal-item rows. The local balance
+view therefore still needs a matched-period comparison against the Enterprise
+ledger before numeric parity is established. The local database has no
+fiscal-year records, so the
 Community date range does not depend on a configured fiscal year.
