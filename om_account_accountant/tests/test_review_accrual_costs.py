@@ -151,6 +151,41 @@ class TestReviewAccrualCosts(AccountTestInvoicingCommon):
         self.assertEqual(sale_context["search_default_review_order_date_last_year"], 1)
         self.assertEqual(sale_context["search_default_review_groupby_customer"], 1)
 
+    def test_review_accrual_reports_use_their_own_list_views(self):
+        report_mappings = (
+            (
+                "action_purchase_bill_to_receive_list",
+                "action_purchase_bill_to_receive",
+                "view_purchase_bill_to_receive_list",
+            ),
+            (
+                "action_purchase_billed_not_received_list",
+                "action_purchase_billed_not_received",
+                "view_purchase_billed_not_received_list",
+            ),
+            (
+                "action_sale_invoice_to_be_issued_list",
+                "action_sale_invoice_to_be_issued",
+                "view_sale_invoice_to_be_issued_list",
+            ),
+            (
+                "action_sale_invoiced_not_delivered_list",
+                "action_sale_invoiced_not_delivered",
+                "view_sale_invoiced_not_delivered_list",
+            ),
+        )
+        for mapping_xmlid, action_xmlid, view_xmlid in report_mappings:
+            with self.subTest(mapping=mapping_xmlid):
+                mapping = self.env.ref(f"om_account_accountant.{mapping_xmlid}")
+                self.assertEqual(
+                    mapping.act_window_id,
+                    self.env.ref(f"om_account_accountant.{action_xmlid}"),
+                )
+                self.assertEqual(
+                    mapping.view_id,
+                    self.env.ref(f"om_account_accountant.{view_xmlid}"),
+                )
+
 
 @tagged("post_install", "-at_install")
 class TestReviewAccrualDatePicker(HttpCase):
