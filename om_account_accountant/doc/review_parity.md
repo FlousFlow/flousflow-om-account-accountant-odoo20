@@ -66,7 +66,11 @@ totals remain available. The cost fields are limited to accounting read groups.
 No journal entries are created by these reports.
 
 The date picker and grouped historical quantities are covered by Odoo model and
-browser-tour tests. Remaining differences: the live Invoiced Not Delivered
+browser-tour tests. The four report actions now each open a dedicated matching
+list view: Bills To Receive, Billed Not Received, Invoices To Be Issued, and
+Invoiced Not Delivered. A regression test verifies each action-to-view mapping;
+the local database was upgraded to module version 20.0.1.24.0 and its four
+stored mappings were queried after the upgrade. Remaining differences: the live Invoiced Not Delivered
 report contained no rows during comparison; its Total Cost quantity basis is
 inferred from the deferred-revenue workflow and still needs a matched nonzero
 validation. Enterprise also exposes a Knowledge action from the report menu;
