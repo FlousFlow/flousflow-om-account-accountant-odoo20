@@ -14,7 +14,7 @@ Baseline database: `flousflow_om_accountant_dev20_20261028`; Odoo 20.0; last inv
 | Annual Report | `accounting_pdf_reports` and suite annual-report menu exist | Enterprise template/configuration behavior needs runtime comparison | Test template setup, period selection and output |
 | General Ledger | Interactive full-page report with account search, expandable journal items, month/quarter/fiscal-year/custom dates, posting/cash-basis filters, scaling, Print, XLSX and CSV | Report controls and date presets now align with observed Enterprise behavior. Documents and Knowledge actions remain absent; export output still needs direct live-file comparison | Validate exports against matched records; consider Documents and Knowledge integrations where available |
 | Trial Balance | Full-page interactive report with opening balance, period debit/credit, ending balance, previous-period comparison, period presets, journal and entry filters, accrual/cash-basis selection, search, scaling, drill-down, and Print | Core table and filters now match the observed Enterprise Trial Balance screen. Export/settings actions and matched live-value comparison remain open | Verify export/settings behavior and reconcile figures on matched entries |
-| Journal Audit | Period presets, entry filters, payment toggle, scale, per-journal audit action, tax summary, print, XLSX export, Send to Documents and Insert in Article | Main report, date presets and per-journal action visibility are browser-tested; Send to Documents and Insert in Article are missing because Documents and Knowledge are unavailable in local Community | Preserve native report flow; investigate optional integrations when compatible platform modules exist |
+| Journal Audit | Period presets, entry filters, payment toggle, scale, per-journal audit action, tax summary, print, XLSX export, Send to Documents and Insert in Article | Local Community report supports the core report and XLSX. Send to Documents and Insert in Article are absent; Documents is not available in the local addons path and Knowledge is uninstallable in this Community database | Keep the core report independent of Enterprise apps; add these two actions only through a compatible optional-app integration |
 | Partner Ledger and Aged Partner reports | Partner Ledger, Aged Partner Balance, Aged Receivable and Aged Payable are installed | Enterprise interaction and export parity needs runtime proof | Validate filters, partner drill-down and exports |
 | Tax Report | Tax Report menu/action is installed | Enterprise localization and period-lock behavior needs comparison | Reuse native tax engine; close verified gaps only |
 | Daily reports | Day Book, Cash Book and Bank Book are installed | Enterprise grouping and export behavior needs comparison | Compare output and filters |
@@ -30,7 +30,7 @@ Baseline database: `flousflow_om_accountant_dev20_20261028`; Odoo 20.0; last inv
 
 The database currently has the following integrated modules installed:
 
-- `om_account_accountant` `20.0.1.32.0`
+- `om_account_accountant` `20.0.1.33.0`
 - `accounting_pdf_reports` `20.0.2.0.11`
 - `ff_account_transfer` `20.0.1.0.0`
 - `flousflow_branch_analytic` `20.0.1.0.0`
@@ -228,3 +228,34 @@ wizard and uses the tax-exigibility context consistently with General Ledger.
 The local test browser completed the period, comparison, and entry-basis tour.
 Enterprise export/settings actions and numeric equivalence across the two
 databases are still unverified.
+
+## Verified Review and Journal Audit recheck — 2026-10-29
+
+The live Enterprise Review drawer was inspected from the accounting app. Its
+tree is Control (Journal Items, Audit Trail, Journal Audit), Audit (Working
+Files, Annual Report), Inventory (Inventory Valuation), Regulatory (Unrealized
+Currencies, Deferred Revenues, Deferred Expenses), Purchases (Bills To Receive,
+Billed Not Received), and Sales (Invoices To Be Issued, Invoiced Not Delivered).
+The local 8077 database was queried by external menu ID, parent, sequence and
+action. Control and the other Review groups matched, but Inventory Valuation
+was directly under Review locally while Enterprise nests it under Inventory.
+The local menu now reuses the Inventory folder and nests Inventory Valuation
+inside it. Work Queues and Reconciliation remain under Accounting entries, so
+they do not add destinations to Review. The Review menu tests passed (0 failures)
+after the upgrade, and the 8077 database now reports `om_account_accountant`
+`20.0.1.33.0` installed with the matching parent/child menu records.
+
+The Enterprise Journal Audit report exposes Documents, To Review, Debit,
+Credit and Balance; its filters include period, posted/draft/all entries and
+Include Payments. Its Tax Summary has an Audit link that opens Taxes Applied,
+grouped by tax and account. The local report implements the same core filters,
+table, tax summary and grouped account.move.line action with company, period,
+posting state and payment scope. The Enterprise settings menu additionally
+shows XLSX, Send to Documents and Insert in Article; the local menu currently
+shows XLSX only because the compatible Documents and Knowledge apps are not
+available in this Community runtime.
+
+The Enterprise report showed three documents and $10,031.50 in October 2026;
+the local 8077 database has one posted move and zero debit/credit for that
+period. These are different datasets, so matching report structure does not
+establish numeric parity.
