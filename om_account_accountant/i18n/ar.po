@@ -3,6 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 20.0\n"
 "Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: 2026-10-28 04:55+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: ar\n"
@@ -549,3 +550,104 @@ msgstr "طريقة المقارنة غير مدعومة."
 #. module: om_account_accountant
 msgid "Unsupported report sort order."
 msgstr "ترتيب فرز التقرير غير مدعوم."
+
+#. module: om_account_accountant
+#: model:ir.actions.act_window,name:om_account_accountant.action_account_working_file
+#: model:ir.ui.menu,name:om_account_accountant.menu_review_working_files
+msgid "Working Files"
+msgstr "ملفات العمل"
+
+#. module: om_account_accountant
+#: model:ir.ui.view,arch_db:om_account_accountant.view_account_working_file_form
+msgid "Review Checks"
+msgstr "قوائم الفحص"
+
+#. module: om_account_accountant
+#: model:ir.ui.view,arch_db:om_account_accountant.view_account_working_file_form
+#: model:ir.ui.view,arch_db:om_account_accountant.view_account_working_file_balance_list
+msgid "Balances"
+msgstr "الأرصدة"
+
+#. module: om_account_accountant
+msgid "Review Balances"
+msgstr "مراجعة الأرصدة"
+
+#. module: om_account_accountant
+msgid "Refresh Accounts"
+msgstr "تحديث الحسابات"
+
+#. module: om_account_accountant
+msgid "Start Date"
+msgstr "تاريخ البداية"
+
+#. module: om_account_accountant
+msgid "End Date"
+msgstr "تاريخ النهاية"
+
+#. module: om_account_accountant
+msgid "Balance N-1"
+msgstr "رصيد السنة السابقة"
+
+#. module: om_account_accountant
+msgid "Var N-1"
+msgstr "التغير عن السنة السابقة"
+
+#. module: om_account_accountant
+msgid "Var %"
+msgstr "نسبة التغير"
+
+#. module: om_account_accountant
+msgid "Last Comment"
+msgstr "آخر تعليق"
+
+#. module: om_account_accountant
+msgid "Pending Review"
+msgstr "بانتظار المراجعة"
+
+#. module: om_account_accountant
+msgid "Reviewed"
+msgstr "تمت المراجعة"
+
+#. module: om_account_accountant
+msgid "Accounts"
+msgstr "الحسابات"
+
+#. module: om_account_accountant
+msgid "checks reviewed"
+msgstr "بند تمت مراجعته"
+
+#. module: om_account_accountant
+msgid "Last Comment:"
+msgstr "آخر تعليق:"
+
+#. module: om_account_accountant
+msgid "Open Checklist List"
+msgstr "فتح قائمة الفحص"
+
+#. module: om_account_accountant
+msgid "Save this working file to load the company's active account balances."
+msgstr "احفظ ملف المراجعة لتحميل أرصدة الحسابات النشطة للشركة."
+
+#. module: om_account_accountant
+msgid "Account"
+msgstr "الحساب"
+
+#. module: om_account_accountant
+msgid "Code"
+msgstr "الرمز"
+
+#. module: om_account_accountant
+msgid "Type"
+msgstr "النوع"
+
+#. module: om_account_accountant
+msgid "The end date cannot be earlier than the start date."
+msgstr "لا يمكن أن يسبق تاريخ النهاية تاريخ البداية."
+
+#. module: om_account_accountant
+msgid "Only accounting users can refresh working-file balances."
+msgstr "يقتصر تحديث أرصدة ملف المراجعة على مستخدمي المحاسبة."
+
+#. module: om_account_accountant
+msgid "Reopen the working file before changing its balance reviews."
+msgstr "أعد فتح ملف المراجعة قبل تعديل مراجعات الأرصدة."

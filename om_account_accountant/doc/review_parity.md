@@ -7,6 +7,10 @@ Odoo 20 database. Menu names and report options are observations from the live
 Review menu and report screens. Financial totals must be compared only on matched
 company data and period.
 
+The local Review menu now follows the live grouping and order: Audit (Working
+Files, Annual Report), Inventory, Regulatory (Unrealized Currencies, Deferred
+Revenues, Deferred Expenses), Purchases, then Sales.
+
 ## Journal Audit
 
 | Capability | Enterprise | Community | Status |
@@ -66,18 +70,28 @@ Documents folder. The live record has Cycles, Balances, and Spreadsheet tabs;
 its audit checklist contains 52 checks grouped by accounting area, with review
 states, notes, evidence uploads, and activity history.
 
-The Community suite now exposes a Working Files destination under Review. A
-file is tied to a company and a user-entered date range and starts with a generic checklist;
+The Community suite now exposes Working Files under Review with a cycle kanban,
+checklist cards labeled by accounting area, and a Balances tab. A file is tied
+to a company and a user-entered date range and starts with a generic checklist;
 reviewers can mark checks Pending Review or Reviewed, add notes and one evidence
-attachment per check, and use chatter. Accounting managers can validate or
-reopen a file, and validation is blocked until every check is reviewed. Company
-rules and accounting-role access are applied. The starter checklist has 9
-generic checks and is not the Enterprise 52-check template.
+attachment per check, and use chatter. The list view remains available alongside
+the cycle cards.
+The embedded Spreadsheet tab is still missing.
+Accounting managers can validate or reopen a file, and validation is blocked
+until every checklist item is reviewed. Company-scoped access is applied.
 
-Parity remains partial: Cycles and balances are not implemented, there is no
-Spreadsheet tab, the checklist taxonomy and depth differ, and evidence storage
-supports one attachment per check rather than the observed Enterprise upload
-workflow. Local runtime verification confirmed the Review menu, action,
-empty-state list, and form load. The database has no fiscal-year records, so the
-file uses explicit start/end dates rather than depending on configured fiscal
-years. The new destination does not claim Enterprise parity for these gaps.
+The Balances tab creates one line for each active account in the file's company.
+It shows current-period balance, the corresponding prior-year balance,
+variation, variation percentage, last comment, and review status, with account
+type filters. Posted `account.move.line` data is used; accounts that carry
+opening balances are calculated through the period end, while income and
+expense accounts use the selected date range. A Refresh Accounts action adds
+new company accounts without replacing comments or review statuses.
+
+Parity remains partial: the local checklist has 9 items versus 52 in the
+observed Enterprise file, and each Community check accepts one evidence
+attachment. The live Enterprise balance table had 52 accounts; the local company
+has 50 active accounts and only two posted journal-item rows. Its balance view
+therefore needs a non-zero fixture and matched-period comparison before numeric
+parity is established. The local database has no fiscal-year records, so the
+Community date range does not depend on a configured fiscal year.

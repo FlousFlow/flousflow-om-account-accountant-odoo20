@@ -161,6 +161,9 @@
 
     <menuitem id="menu_review_audit" name="Audit" parent="account.account_audit_menu"
               groups="account.group_account_readonly" sequence="30"/>
+    <menuitem id="menu_review_working_files" name="Working Files"
+              action="action_account_working_file" parent="menu_review_audit"
+              groups="account.group_account_readonly" sequence="10"/>
     <record id="action_deferred_expense_report" model="ir.actions.client">
         <field name="name">Deferred Expenses</field>
         <field name="tag">om_account_accountant.deferred_schedule</field>
@@ -171,15 +174,9 @@
         <field name="tag">om_account_accountant.deferred_schedule</field>
         <field name="params" eval="{'report_type': 'revenue'}"/>
     </record>
-    <menuitem id="menu_review_deferred_expenses" name="Deferred Expenses"
-              action="action_deferred_expense_report" parent="menu_review_audit"
-              groups="account.group_account_readonly" sequence="20"/>
-    <menuitem id="menu_review_deferred_revenues" name="Deferred Revenues"
-              action="action_deferred_revenue_report" parent="menu_review_audit"
-              groups="account.group_account_readonly" sequence="30"/>
     <record id="accounting_pdf_reports.menu_account_report_annual" model="ir.ui.menu">
         <field name="parent_id" ref="menu_review_audit"/>
-        <field name="sequence" eval="10"/>
+        <field name="sequence" eval="20"/>
     </record>
 
     <menuitem id="menu_review_inventory" name="Inventory" parent="account.account_audit_menu"
@@ -193,6 +190,12 @@
     <menuitem id="menu_review_unrealized_currencies" name="Unrealized Currencies"
               action="om_currency_revaluation.action_currency_revaluation" parent="menu_review_regularization"
               groups="account.group_account_manager" sequence="10"/>
+    <menuitem id="menu_review_deferred_revenues" name="Deferred Revenues"
+              action="action_deferred_revenue_report" parent="menu_review_regularization"
+              groups="account.group_account_readonly" sequence="20"/>
+    <menuitem id="menu_review_deferred_expenses" name="Deferred Expenses"
+              action="action_deferred_expense_report" parent="menu_review_regularization"
+              groups="account.group_account_readonly" sequence="30"/>
 
     <menuitem id="menu_review_purchases" name="Purchases" parent="account.account_audit_menu"
               groups="account.group_account_readonly" sequence="60"/>

@@ -1,5 +1,6 @@
 from odoo import api, fields, models, _
 from odoo.exceptions import AccessError, UserError, ValidationError
+from dateutil.relativedelta import relativedelta
 
 
 class AccountWorkingFileTemplate(models.Model):
@@ -40,9 +41,13 @@ class AccountWorkingFile(models.Model):
     check_ids = fields.One2many(
         "account.working.file.check", "file_id", string="Review Checks", copy=True,
     )
+    balance_line_ids = fields.One2many(
+        "account.working.file.balance", "file_id", string="Balances", copy=False,
+    )
     check_count = fields.Integer(compute="_compute_progress", store=True)
     reviewed_count = fields.Integer(compute="_compute_progress", store=True)
     progress = fields.Float(compute="_compute_progress", store=True)
+    balance_line_count = fields.Integer(compute="_compute_balance_line_count")
     currency_id = fields.Many2one(related="company_id.currency_id")
 
     @api.depends("check_ids", "check_ids.state")
@@ -53,6 +58,11 @@ class AccountWorkingFile(models.Model):
             record.check_count = len(checks)
             record.reviewed_count = len(completed)
             record.progress = 100.0 * len(completed) / len(checks) if checks else 0.0
+
+    @api.depends("balance_line_ids")
+    def _compute_balance_line_count(self):
+        for record in self:
+            record.balance_line_count = len(record.balance_line_ids)
 
     @api.constrains("date_from", "date_to")
     def _check_dates(self):
@@ -79,12 +89,43 @@ class AccountWorkingFile(models.Model):
             ]
         return values
 
+    def _sync_balance_lines(self):
+        BalanceLine = self.env["account.working.file.balance"]
+        Account = self.env["account.account"]
+        for file_record in self:
+            accounts = Account.with_company(file_record.company_id).search(
+                [("company_ids", "in", file_record.company_id.id), ("active", "=", True)],
+                order="code, id",
+            )
+            existing_account_ids = set(file_record.balance_line_ids.account_id.ids)
+            missing_accounts = accounts.filtered(lambda account: account.id not in existing_account_ids)
+            if missing_accounts:
+                BalanceLine.create([
+                    {
+                        "file_id": file_record.id,
+                        "account_id": account.id,
+                        "sequence": sequence * 10,
+                    }
+                    for sequence, account in enumerate(missing_accounts, start=1)
+                ])
+
+    def action_refresh_balance_lines(self):
+        if not (
+            self.env.user.has_group("account.group_account_user")
+            or self.env.user.has_group("account.group_account_manager")
+        ):
+            raise AccessError(_("Only accounting users can refresh working-file balances."))
+        if any(file_record.state == "validated" for file_record in self):
+            raise UserError(_("Reopen the working file before refreshing its account list."))
+        self._sync_balance_lines()
+        return True
+
     @api.model_create_multi
     def create(self, vals_list):
         files = super().create(vals_list)
         templates = self.env["account.working.file.template"].search([("active", "=", True)])
         for vals, file_record in zip(vals_list, files):
-            if "check_ids" not in vals:
+            if "check_ids" not in vals and not file_record.check_ids:
                 file_record.check_ids = [
                     fields.Command.create({
                         "sequence": template.sequence,
@@ -95,6 +136,8 @@ class AccountWorkingFile(models.Model):
                     })
                     for template in templates
                 ]
+            if "balance_line_ids" not in vals:
+                file_record._sync_balance_lines()
             file_record.message_post(body=_("Working file created for %(name)s.", name=file_record.name))
         return files
 
@@ -126,6 +169,8 @@ class AccountWorkingFile(models.Model):
     def write(self, vals):
         if "state" in vals:
             raise UserError(_("Use the Validate or Reopen action to change the working file status."))
+        if "company_id" in vals and any(file_record.balance_line_ids for file_record in self):
+            raise UserError(_("The company cannot be changed after account balances have been added."))
         if any(file_record.state == "validated" for file_record in self):
             raise UserError(_("Reopen the working file before changing it."))
         return super().write(vals)
@@ -134,6 +179,31 @@ class AccountWorkingFile(models.Model):
         if any(file_record.state == "validated" for file_record in self):
             raise UserError(_("Reopen the working file before deleting it."))
         return super().unlink()
+
+    def action_open_balances(self):
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Balances"),
+            "res_model": "account.working.file.balance",
+            "view_mode": "list,form",
+            "search_view_id": self.env.ref(
+                "om_account_accountant.view_account_working_file_balance_search"
+            ).id,
+            "domain": [("file_id", "=", self.id)],
+            "context": {"default_file_id": self.id},
+        }
+
+    def action_open_checks(self):
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Review Checks"),
+            "res_model": "account.working.file.check",
+            "view_mode": "list,form",
+            "domain": [("file_id", "=", self.id)],
+            "context": {"default_file_id": self.id},
+        }
 
 
 class AccountWorkingFileCheck(models.Model):
@@ -168,6 +238,145 @@ class AccountWorkingFileCheck(models.Model):
     def write(self, vals):
         if any(check.file_id.state == "validated" for check in self):
             raise UserError(_("Reopen the working file before changing its review checks."))
+        if vals.get("file_id"):
+            target_file = self.env["account.working.file"].browse(vals["file_id"])
+            if target_file.state == "validated":
+                raise UserError(_("Reopen the working file before moving review checks into it."))
+        if vals.get("state") == "reviewed":
+            vals = {**vals, "reviewer_id": self.env.user.id, "reviewed_on": fields.Datetime.now()}
+        elif vals.get("state") == "pending":
+            vals = {**vals, "reviewer_id": False, "reviewed_on": False}
+        return super().write(vals)
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        file_ids = {vals.get("file_id") for vals in vals_list if vals.get("file_id")}
+        files = self.env["account.working.file"].browse(file_ids)
+        if any(file_record.state == "validated" for file_record in files):
+            raise UserError(_("Reopen the working file before adding review checks."))
+        for vals in vals_list:
+            if vals.get("state") == "reviewed":
+                vals.update(reviewer_id=self.env.user.id, reviewed_on=fields.Datetime.now())
+        return super().create(vals_list)
+
+    def unlink(self):
+        if any(check.file_id.state == "validated" for check in self):
+            raise UserError(_("Reopen the working file before removing its review checks."))
+        return super().unlink()
+
+
+class AccountWorkingFileBalance(models.Model):
+    _name = "account.working.file.balance"
+    _description = "Accounting Working File Account Balance"
+    _inherit = ["mail.thread"]
+    _order = "sequence, account_id"
+    _check_company_auto = True
+
+    _file_account_unique = models.Constraint(
+        "UNIQUE(file_id, account_id)",
+        "An account can only appear once in a working file balance review.",
+    )
+
+    file_id = fields.Many2one(
+        "account.working.file", required=True, ondelete="cascade", index=True,
+        check_company=True,
+    )
+    company_id = fields.Many2one(related="file_id.company_id", store=True, index=True)
+    currency_id = fields.Many2one(related="file_id.currency_id")
+    account_id = fields.Many2one(
+        "account.account", required=True, index=True, check_company=True,
+    )
+    account_code = fields.Char(compute="_compute_account_display")
+    account_name = fields.Char(related="account_id.name")
+    account_type = fields.Selection(related="account_id.account_type", store=True, index=True)
+    sequence = fields.Integer(default=10)
+    balance = fields.Monetary(compute="_compute_balances", currency_field="currency_id")
+    balance_previous = fields.Monetary(compute="_compute_balances", currency_field="currency_id")
+    variation = fields.Monetary(compute="_compute_variation", currency_field="currency_id")
+    variation_percent = fields.Float(compute="_compute_variation", digits=(16, 2))
+    last_comment = fields.Text(tracking=True)
+    state = fields.Selection(
+        [("pending", "Pending Review"), ("reviewed", "Reviewed")],
+        default="pending", required=True, tracking=True, index=True,
+    )
+    reviewer_id = fields.Many2one("res.users", readonly=True, copy=False, tracking=True)
+    reviewed_on = fields.Datetime(readonly=True, copy=False, tracking=True)
+
+    @api.depends("account_id", "company_id")
+    def _compute_account_display(self):
+        for line in self:
+            account = line.account_id.with_company(line.company_id) if line.company_id else line.account_id
+            line.account_code = account.code
+
+    @api.depends("file_id.date_from", "file_id.date_to", "account_id", "company_id")
+    def _compute_balances(self):
+        for line in self:
+            line.balance = 0.0
+            line.balance_previous = 0.0
+        lines_by_file = {}
+        for line in self:
+            if line.file_id and line.account_id:
+                lines_by_file.setdefault(line.file_id, []).append(line)
+
+        for file_record, lines in lines_by_file.items():
+            company = file_record.company_id
+            accounts = self.env["account.account"].with_company(company).browse(
+                [line.account_id.id for line in lines]
+            )
+            opening_ids = accounts.filtered("include_initial_balance").ids
+            period_ids = accounts.filtered(lambda account: not account.include_initial_balance).ids
+            prior_from = file_record.date_from - relativedelta(years=1)
+            prior_to = file_record.date_to - relativedelta(years=1)
+            MoveLine = self.env["account.move.line"].with_company(company)
+
+            def sum_balances(date_from, date_to):
+                totals = {}
+                common_domain = [
+                    ("company_id", "=", company.id),
+                    ("parent_state", "=", "posted"),
+                    ("date", "<=", date_to),
+                ]
+                if opening_ids:
+                    groups = MoveLine._read_group(
+                        common_domain + [("account_id", "in", opening_ids)],
+                        ["account_id"], ["balance:sum"],
+                    )
+                    totals.update({account.id: balance or 0.0 for account, balance in groups if account})
+                if period_ids:
+                    groups = MoveLine._read_group(
+                        common_domain + [
+                            ("account_id", "in", period_ids),
+                            ("date", ">=", date_from),
+                        ],
+                        ["account_id"], ["balance:sum"],
+                    )
+                    totals.update({account.id: balance or 0.0 for account, balance in groups if account})
+                return totals
+
+            current_totals = sum_balances(file_record.date_from, file_record.date_to)
+            previous_totals = sum_balances(prior_from, prior_to)
+            for line in lines:
+                line.balance = company.currency_id.round(current_totals.get(line.account_id.id, 0.0))
+                line.balance_previous = company.currency_id.round(previous_totals.get(line.account_id.id, 0.0))
+
+    @api.depends("balance", "balance_previous")
+    def _compute_variation(self):
+        for line in self:
+            line.variation = line.balance - line.balance_previous
+            line.variation_percent = (
+                (line.variation / abs(line.balance_previous) * 100.0)
+                if line.balance_previous else 0.0
+            )
+
+    @api.constrains("company_id", "account_id")
+    def _check_account_company(self):
+        for line in self:
+            if line.company_id and line.account_id and line.company_id not in line.account_id.company_ids:
+                raise ValidationError(_("The account must be available to the working file company."))
+
+    def write(self, vals):
+        if any(line.file_id.state == "validated" for line in self):
+            raise UserError(_("Reopen the working file before changing its balance reviews."))
         if vals.get("state") == "reviewed":
             vals = {**vals, "reviewer_id": self.env.user.id, "reviewed_on": fields.Datetime.now()}
         elif vals.get("state") == "pending":
@@ -182,6 +391,6 @@ class AccountWorkingFileCheck(models.Model):
         return super().create(vals_list)
 
     def unlink(self):
-        if any(check.file_id.state == "validated" for check in self):
-            raise UserError(_("Reopen the working file before removing its review checks."))
+        if any(line.file_id.state == "validated" for line in self):
+            raise UserError(_("Reopen the working file before removing its balance reviews."))
         return super().unlink()

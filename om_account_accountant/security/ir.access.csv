@@ -10,3 +10,6 @@ access_account_working_file_check_manager,account.working.file.check manager,acc
 access_account_working_file_template_readonly,account.working.file.template readonly,account.working.file.template,account.group_account_readonly,r,
 access_account_working_file_template_user,account.working.file.template accountant,account.working.file.template,account.group_account_user,r,
 access_account_working_file_template_manager,account.working.file.template manager,account.working.file.template,account.group_account_manager,crud,
+access_account_working_file_balance_readonly,account.working.file.balance readonly,account.working.file.balance,account.group_account_readonly,r,"[('company_id', 'in', company_ids)]"
+access_account_working_file_balance_user,account.working.file.balance accountant,account.working.file.balance,account.group_account_user,cru,"[('company_id', 'in', company_ids)]"
+access_account_working_file_balance_manager,account.working.file.balance manager,account.working.file.balance,account.group_account_manager,crud,"[('company_id', 'in', company_ids)]"

@@ -1,18 +1,19 @@
 {
     'name': 'FlousFlow Community Accounting Suite',
-    'version': '20.0.1.4.0',
+    'version': '20.0.1.6.0',
     'category': 'Accounting',
     'summary': 'Annual Report, Bank Reconciliation Statement, Accounting Reports, '
                'Asset Management and Budget, Recurring Payments, '
                'Lock Dates, Fiscal Year, Period Closing, Accounting Dashboard, Financial Reports, '
                'Cash Flow Statement, Cash Forecast, Customer Follow up Management, Bank Reconciliation, '
                'Cheque Printing, Automatic Currency Rates, Currency Revaluation, Bank Statement Import, '
-               'Vendor Bill OCR',
+               'Vendor Bill OCR, Working File Balance Review',
     'description': 'Odoo 20 Financial Reports, Asset Management and '
                    'Budget, Financial Reports, Cash Flow Statement, Cash Forecast, '
                    'Recurring Payments, Bank Reconciliation, Customer Follow Up Management, '
                    'Account Lock Date, Fiscal Year and Period Closing, Cheque Printing, '
-                   'Automatic Currency Rates, Accounting Dashboard, Vendor Bill OCR',
+                   'Automatic Currency Rates, Accounting Dashboard, Vendor Bill OCR, '
+                   'Working File Audit Checklist and Comparative Account Balances',
     'live_test_url': 'https://www.youtube.com/c/OdooMates',
     'sequence': '1',
     'author': 'FlousFlow (based on Odoo Community modules)',
