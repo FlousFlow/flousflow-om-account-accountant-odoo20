@@ -180,7 +180,11 @@
                     </div>
 
                     <div class="ff_journal_audit_tax_summary">
-                        <h3>Tax Summary</h3>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <h3>Tax Summary</h3>
+                            <button class="btn btn-link ff_journal_audit_tax_audit"
+                                    t-on-click="() => this.openAppliedTaxes()">Audit</button>
+                        </div>
                         <table class="table table-sm mb-0">
                             <thead>
                                 <tr><th>Tax</th><th class="text-end">Base Amount</th><th class="text-end">Tax Amount</th></tr>

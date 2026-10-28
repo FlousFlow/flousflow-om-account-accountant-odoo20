@@ -127,5 +127,21 @@ registry.category("web_tour.tours").add("ff_journal_audit_period_filter", {
                 }
             },
         },
+        { trigger: ".ff_journal_audit_tax_audit", run: "click" },
+        {
+            trigger: ".o_list_view",
+            async run() {
+                if (!document.body.innerText.includes("Taxes Applied")) {
+                    throw new Error("The Journal Audit tax action did not open the Taxes Applied list.");
+                }
+                await waitFor(() => {
+                    const groupByText = [...document.querySelectorAll(".o_searchview_facet")]
+                        .filter((facet) => facet.querySelector(".o_facet_groupby"))
+                        .map((facet) => facet.innerText)
+                        .join(" ");
+                    return groupByText.includes("Taxes") && groupByText.includes("Account");
+                }, "Taxes Applied should be grouped by tax and account.");
+            },
+        },
     ],
 });

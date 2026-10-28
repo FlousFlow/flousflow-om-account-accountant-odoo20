@@ -75,6 +75,17 @@ msgid "Bank and Cash"
 msgstr "البنك والنقد"
 
 #. module: om_account_accountant
+#: om_account_accountant/static/src/journal_audit/journal_audit.xml
+msgid "Audit"
+msgstr "تدقيق"
+
+#. odoo-javascript
+#: om_account_accountant/static/src/journal_audit/journal_audit.js
+msgid "Taxes Applied"
+msgstr "الضرائب المطبقة"
+
+
+#. module: om_account_accountant
 #: model:ir.model.fields,field_description:om_account_accountant.field_res_company__credit_limit_block
 #: model:ir.model.fields,field_description:om_account_accountant.field_res_config_settings__credit_limit_block
 msgid "Block Over the Credit Limit"

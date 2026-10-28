@@ -306,8 +306,13 @@ export class JournalAudit extends Component {
         ];
         if (this.state.targetMove === "posted") {
             domain.push(["parent_state", "=", "posted"]);
+        } else if (this.state.targetMove === "draft") {
+            domain.push(["parent_state", "=", "draft"]);
         } else {
             domain.push(["parent_state", "!=", "cancel"]);
+        }
+        if (!this.state.includePayments) {
+            domain.push(["move_id.origin_payment_id", "=", false]);
         }
         return this.action.doAction({
             type: "ir.actions.act_window",
@@ -315,6 +320,36 @@ export class JournalAudit extends Component {
             res_model: "account.move.line",
             views: [[false, "list"], [false, "form"]],
             domain,
+            target: "current",
+        });
+    }
+
+    async openAppliedTaxes() {
+        const domain = [
+            ["company_id", "=", this.state.companyId],
+            ["date", ">=", this.dateFrom],
+            ["date", "<=", this.dateTo],
+        ];
+        if (this.state.targetMove === "posted") {
+            domain.push(["parent_state", "=", "posted"]);
+        } else if (this.state.targetMove === "draft") {
+            domain.push(["parent_state", "=", "draft"]);
+        } else {
+            domain.push(["parent_state", "!=", "cancel"]);
+        }
+        if (!this.state.includePayments) {
+            domain.push(["move_id.origin_payment_id", "=", false]);
+        }
+        return this.action.doAction({
+            type: "ir.actions.act_window",
+            name: _t("Taxes Applied"),
+            res_model: "account.move.line",
+            views: [[false, "list"], [false, "form"]],
+            domain,
+            context: {
+                search_default_ff_group_by_taxes: 1,
+                search_default_ff_group_by_account: 2,
+            },
             target: "current",
         });
     }
