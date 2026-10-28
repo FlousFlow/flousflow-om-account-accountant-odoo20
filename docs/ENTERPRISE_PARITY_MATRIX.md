@@ -103,7 +103,8 @@ native Journal Items action is now also linked from Review > Control, ahead of
 the existing suite-specific Entries to Review queue. The extra queue remains
 available after the three Enterprise destinations. This closes the menu/action
 gap without removing existing functionality. Odoo menu tests passed, including
-the native `account.move.line` action and visibility for an accounting user.
+the entire ordered Review group tree, the native `account.move.line` action,
+and visibility for an accounting user.
 
 The live Enterprise **Journal Audit** date menu also exposes Month, Quarter,
 Fiscal Year, and Custom Dates, with previous/next controls for each period.

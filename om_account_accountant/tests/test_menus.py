@@ -71,6 +71,45 @@ class TestMenus(TransactionCase):
         self.assertEqual(journal_items_action, self.env.ref('account.action_account_moves_all'))
         self.assertEqual(journal_items_action.res_model, 'account.move.line')
 
+    def test_review_menu_tree_matches_enterprise_destinations(self):
+        expected_tree = {
+            'account.account_audit_menu': [
+                'account.account_audit_control_menu',
+                'om_account_accountant.menu_review_audit',
+                'om_account_accountant.menu_review_inventory',
+                'om_account_accountant.menu_review_regularization',
+                'om_account_accountant.menu_review_purchases',
+                'om_account_accountant.menu_review_sales',
+            ],
+            'om_account_accountant.menu_review_audit': [
+                'om_account_accountant.menu_review_working_files',
+                'accounting_pdf_reports.menu_account_report_annual',
+            ],
+            'om_account_accountant.menu_review_inventory': [
+                'om_account_accountant.menu_review_inventory_valuation',
+            ],
+            'om_account_accountant.menu_review_regularization': [
+                'om_account_accountant.menu_review_unrealized_currencies',
+                'om_account_accountant.menu_review_deferred_revenues',
+                'om_account_accountant.menu_review_deferred_expenses',
+            ],
+            'om_account_accountant.menu_review_purchases': [
+                'om_account_accountant.menu_review_bill_to_receive',
+                'om_account_accountant.menu_review_billed_not_received',
+            ],
+            'om_account_accountant.menu_review_sales': [
+                'om_account_accountant.menu_review_invoice_to_be_issued',
+                'om_account_accountant.menu_review_invoiced_not_delivered',
+            ],
+        }
+        for parent_xmlid, child_xmlids in expected_tree.items():
+            with self.subTest(menu=parent_xmlid):
+                actual = self.env.ref(parent_xmlid).child_id.filtered('active').sorted(
+                    key=lambda menu: (menu.sequence, menu.id)
+                )
+                expected_ids = [self.env.ref(xmlid).id for xmlid in child_xmlids]
+                self.assertEqual(actual.ids, expected_ids)
+
     def test_no_two_menus_share_a_place(self):
         """ Menus with the same sequence under the same parent come in no given order. """
         roots = self.env.ref('account.menu_finance')
