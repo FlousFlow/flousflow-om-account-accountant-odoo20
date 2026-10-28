@@ -26,6 +26,7 @@ async function fillDateAndWait(input, value) {
 
 registry.category("web_tour.tours").add("ff_deferred_schedule_periods", {
     steps: () => [
+        { trigger: ".ff_deferred_options button", run: "click" },
         { trigger: ".ff_deferred_unfold_all", run: "click" },
         {
             trigger: ".ff_deferred_unfold_all",

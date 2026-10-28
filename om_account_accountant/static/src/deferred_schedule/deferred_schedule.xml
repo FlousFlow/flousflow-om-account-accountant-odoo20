@@ -128,18 +128,25 @@
                         <option value="desc">Descending</option>
                         <option value="asc">Ascending</option>
                     </select>
-                    <label class="form-check d-flex align-items-center gap-1 mb-0 text-nowrap">
-                        <input class="form-check-input mt-0" type="checkbox"
-                               t-att-checked="this.state.hideZero"
-                               t-on-change="(ev) => this.onFilterChange('hideZero', ev.target.checked)"/>
-                        <span>Hide Zero Lines</span>
-                    </label>
-                    <label class="form-check d-flex align-items-center gap-1 mb-0 text-nowrap">
-                        <input class="form-check-input mt-0 ff_deferred_unfold_all" type="checkbox"
-                               t-att-checked="this.state.unfoldAll"
-                               t-on-change="(ev) => this.toggleUnfoldAll(ev)"/>
-                        <span>Unfold All</span>
-                    </label>
+                    <div class="dropdown ff_deferred_options">
+                        <button class="btn btn-secondary dropdown-toggle" type="button"
+                                t-att-aria-expanded="this.state.optionsOpen"
+                                t-on-click="() => this.toggleOptions()">Options</button>
+                        <div t-if="this.state.optionsOpen" class="dropdown-menu show p-2">
+                            <label class="dropdown-item d-flex align-items-center gap-2">
+                                <input class="form-check-input mt-0" type="checkbox"
+                                       t-att-checked="this.state.hideZero"
+                                       t-on-change="(ev) => this.onFilterChange('hideZero', ev.target.checked)"/>
+                                <span>Hide lines at 0</span>
+                            </label>
+                            <label class="dropdown-item d-flex align-items-center gap-2">
+                                <input class="form-check-input mt-0 ff_deferred_unfold_all" type="checkbox"
+                                       t-att-checked="this.state.unfoldAll"
+                                       t-on-change="(ev) => this.toggleUnfoldAll(ev)"/>
+                                <span>Unfold All</span>
+                            </label>
+                        </div>
+                    </div>
                     <label for="ff_deferred_scale" class="visually-hidden">Display Amounts</label>
                     <select id="ff_deferred_scale" class="form-select ff_deferred_scale"
                             t-att-value="this.state.scale" t-on-change="(ev) => this.onScaleChange(ev)">

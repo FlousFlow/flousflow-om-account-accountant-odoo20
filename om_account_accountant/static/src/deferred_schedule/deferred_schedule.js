@@ -39,6 +39,7 @@ export class DeferredScheduleReport extends Component {
             unfoldAll: false,
             expandedRows: [],
             scale: 1,
+            optionsOpen: false,
             settingsOpen: false,
             search: "",
             journals: [],
@@ -283,6 +284,10 @@ export class DeferredScheduleReport extends Component {
 
     toggleSettings() {
         this.state.settingsOpen = !this.state.settingsOpen;
+    }
+
+    toggleOptions() {
+        this.state.optionsOpen = !this.state.optionsOpen;
     }
 
     exportXlsx() {

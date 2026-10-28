@@ -134,13 +134,14 @@ drill-down to the matching journal entries. Their XLSX export includes Schedule
 and Entries worksheets and preserves period and comparison filters. New assets
 retain their source invoice line so product grouping can use the actual product.
 
-The Deferred schedule now offers an `Unfold All` toggle and expandable asset
-detail rows beneath each account, category, or product total. The parent-row
-amounts remain the report totals; child assets show their own recognized amounts
-and comparison values. Existing row clicks still open the matching journal
-entries. An isolated accounting fixture verifies that child detail amounts and
-comparisons reconcile to the parent, and the browser tour checks that Unfold All
-can be enabled and disabled. A live nonempty Enterprise schedule is still
+The Deferred schedule now offers an `Options` dropdown with `Unfold All` and
+`Hide lines at 0`, matching the Enterprise option-menu placement. It also shows
+expandable asset detail rows beneath each account, category, or product total.
+The parent-row amounts remain the report totals; child assets show their own
+recognized amounts and comparison values. Existing row clicks still open the
+matching journal entries. An isolated accounting fixture verifies that child
+detail amounts and comparisons reconcile to the parent, and the browser tour
+checks the option-menu toggle. A live nonempty Enterprise schedule is still
 needed to confirm its exact hierarchy and presentation.
 
 Remaining differences: the Enterprise actions to send the report to Documents

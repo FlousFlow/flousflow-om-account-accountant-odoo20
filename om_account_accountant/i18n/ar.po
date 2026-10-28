@@ -435,6 +435,16 @@ msgstr "إخفاء البنود الصفرية"
 msgid "Unfold All"
 msgstr "فتح الكل"
 
+#. module: om_account_accountant
+#: om_account_accountant/static/src/deferred_schedule/deferred_schedule.xml
+msgid "Options"
+msgstr "الخيارات"
+
+#. module: om_account_accountant
+#: om_account_accountant/static/src/deferred_schedule/deferred_schedule.xml
+msgid "Hide lines at 0"
+msgstr "إخفاء البنود عند الصفر"
+
 #. odoo-javascript
 #: om_account_accountant/static/src/deferred_schedule/deferred_schedule.js
 msgid "Expand row"
