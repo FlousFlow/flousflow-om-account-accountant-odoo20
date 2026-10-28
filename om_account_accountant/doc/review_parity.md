@@ -128,6 +128,10 @@ Enterprise card: reviewed balance accounts / total balance accounts, followed
 by reviewed checks / total checks. A test verifies that reviewing a balance
 line updates the card's balance count and percentage.
 
+Opening a file from the Enterprise list lands on Cycles. The local dossier now
+opens on its Cycles checklist tab, followed by Balances and Spreadsheet, rather
+than landing on Balances first. A view-order test protects this navigation order.
+
 The Balances tab creates one line for each active account in the file's company.
 It shows current-period balance, the corresponding prior-year balance,
 variation, variation percentage, last comment, and review status, with account

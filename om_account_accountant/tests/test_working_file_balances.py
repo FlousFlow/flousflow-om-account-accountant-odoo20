@@ -1,3 +1,4 @@
+from lxml import etree
 from odoo.addons.account.tests.common import AccountTestInvoicingCommon
 from odoo.tests import tagged
 
@@ -108,3 +109,13 @@ class TestWorkingFileBalances(AccountTestInvoicingCommon):
             working_file.balance_progress,
             100.0 / working_file.balance_line_count,
         )
+
+    def test_working_file_opens_on_cycles_before_balances(self):
+        view = self.env.ref("om_account_accountant.view_account_working_file_form")
+        arch = etree.fromstring(view.arch_db.encode())
+        page_names = [
+            page.get("name") for page in arch.xpath(".//notebook/page")
+        ]
+
+        self.assertEqual(page_names, ["checks", "balances", "spreadsheet"])
+        self.assertEqual(arch.xpath(".//notebook/page")[0].get("string"), "Cycles")

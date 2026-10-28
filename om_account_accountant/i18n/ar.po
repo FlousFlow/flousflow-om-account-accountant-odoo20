@@ -599,6 +599,11 @@ msgid "Working Files"
 msgstr "ملفات العمل"
 
 #. module: om_account_accountant
+#: model_terms:ir.ui.view,arch_db:om_account_accountant.view_account_working_file_form
+msgid "Cycles"
+msgstr "الدورات"
+
+#. module: om_account_accountant
 #: model:ir.ui.view,arch_db:om_account_accountant.view_account_working_file_form
 msgid "Review Checks"
 msgstr "قوائم الفحص"

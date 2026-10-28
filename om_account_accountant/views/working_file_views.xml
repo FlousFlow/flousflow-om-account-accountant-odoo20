@@ -206,36 +206,7 @@
                         </group>
                     </group>
                     <notebook>
-                        <page string="Balances" name="balances">
-                            <group>
-                                <field name="balance_line_count" string="Accounts" readonly="1"/>
-                            </group>
-                            <div class="d-flex align-items-center gap-2 mb-3">
-                                <button name="action_open_balances" type="object" string="Review Balances"
-                                        class="btn-primary" invisible="not id"/>
-                                <button name="action_refresh_balance_lines" type="object" string="Refresh Accounts"
-                                        groups="account.group_account_user,account.group_account_manager"
-                                        invisible="not id or state == 'validated'"/>
-                            </div>
-                            <p class="text-muted" invisible="id">Save this working file to load the company's active account balances.</p>
-                            <field name="balance_line_ids" readonly="state == 'validated'">
-                                <list editable="bottom" create="false" delete="false" default_order="sequence,account_id">
-                                    <field name="sequence" widget="handle" optional="hide"/>
-                                    <field name="account_code" string="Code" readonly="1"/>
-                                    <field name="account_name" string="Account" readonly="1"/>
-                                    <field name="account_type" string="Type" optional="hide" readonly="1"/>
-                                    <field name="balance" string="Balance" readonly="1"/>
-                                    <field name="balance_previous" string="Balance N-1" readonly="1"/>
-                                    <field name="variation" string="Var N-1" readonly="1"/>
-                                    <field name="variation_percent" string="Var %" readonly="1"/>
-                                    <field name="last_comment" string="Last Comment" optional="show"/>
-                                    <field name="state" string="Status" widget="badge"/>
-                                    <field name="reviewer_id" optional="hide" readonly="1"/>
-                                    <field name="reviewed_on" optional="hide" readonly="1"/>
-                                </list>
-                            </field>
-                        </page>
-                        <page string="Review Checks" name="checks">
+                        <page string="Cycles" name="checks">
                             <div class="d-flex align-items-center gap-2 mb-3">
                                 <button name="action_open_checks" type="object" string="Open Checklist List"
                                         icon="fa-list" invisible="not id"/>
@@ -310,6 +281,35 @@
                                         </group>
                                     </sheet>
                                 </form>
+                            </field>
+                        </page>
+                        <page string="Balances" name="balances">
+                            <group>
+                                <field name="balance_line_count" string="Accounts" readonly="1"/>
+                            </group>
+                            <div class="d-flex align-items-center gap-2 mb-3">
+                                <button name="action_open_balances" type="object" string="Review Balances"
+                                        class="btn-primary" invisible="not id"/>
+                                <button name="action_refresh_balance_lines" type="object" string="Refresh Accounts"
+                                        groups="account.group_account_user,account.group_account_manager"
+                                        invisible="not id or state == 'validated'"/>
+                            </div>
+                            <p class="text-muted" invisible="id">Save this working file to load the company's active account balances.</p>
+                            <field name="balance_line_ids" readonly="state == 'validated'">
+                                <list editable="bottom" create="false" delete="false" default_order="sequence,account_id">
+                                    <field name="sequence" widget="handle" optional="hide"/>
+                                    <field name="account_code" string="Code" readonly="1"/>
+                                    <field name="account_name" string="Account" readonly="1"/>
+                                    <field name="account_type" string="Type" optional="hide" readonly="1"/>
+                                    <field name="balance" string="Balance" readonly="1"/>
+                                    <field name="balance_previous" string="Balance N-1" readonly="1"/>
+                                    <field name="variation" string="Var N-1" readonly="1"/>
+                                    <field name="variation_percent" string="Var %" readonly="1"/>
+                                    <field name="last_comment" string="Last Comment" optional="show"/>
+                                    <field name="state" string="Status" widget="badge"/>
+                                    <field name="reviewer_id" optional="hide" readonly="1"/>
+                                    <field name="reviewed_on" optional="hide" readonly="1"/>
+                                </list>
                             </field>
                         </page>
                         <page string="Spreadsheet" name="spreadsheet">
