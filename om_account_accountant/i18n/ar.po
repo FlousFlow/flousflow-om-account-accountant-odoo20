@@ -328,3 +328,164 @@ msgstr "فروق العملات غير المحققة"
 #: model:ir.model.fields,field_description:om_account_accountant.field_res_config_settings__anglo_saxon_accounting
 msgid "Use anglo-saxon accounting"
 msgstr "استخدام طريقة المحاسبة الأنجلو-ساكسونية"
+
+#. module: om_account_accountant
+#: model:ir.actions.client,name:om_account_accountant.action_deferred_expense_report
+#: model:ir.ui.menu,name:om_account_accountant.menu_review_deferred_expenses
+msgid "Deferred Expenses"
+msgstr "النفقات المؤجلة"
+
+#. module: om_account_accountant
+#: model:ir.actions.client,name:om_account_accountant.action_deferred_revenue_report
+#: model:ir.ui.menu,name:om_account_accountant.menu_review_deferred_revenues
+msgid "Deferred Revenues"
+msgstr "الإيرادات المؤجلة"
+
+#. module: om_account_accountant
+msgid "Period"
+msgstr "الفترة"
+
+#. module: om_account_accountant
+msgid "Group By"
+msgstr "التجميع حسب"
+
+#. module: om_account_accountant
+msgid "Group by Account"
+msgstr "التجميع حسب الحساب"
+
+#. module: om_account_accountant
+msgid "Group by Product Category"
+msgstr "التجميع حسب فئة المنتج"
+
+#. module: om_account_accountant
+msgid "Group by Product"
+msgstr "التجميع حسب المنتج"
+
+#. module: om_account_accountant
+msgid "Product Category"
+msgstr "فئة المنتج"
+
+#. module: om_account_accountant
+msgid "Product"
+msgstr "المنتج"
+
+#. module: om_account_accountant
+msgid "Target Moves"
+msgstr "القيود المستهدفة"
+
+#. module: om_account_accountant
+msgid "Posted Entries"
+msgstr "القيود المُرحّلة"
+
+#. module: om_account_accountant
+msgid "All Entries"
+msgstr "كل القيود"
+
+#. module: om_account_accountant
+msgid "Compare Previous Period"
+msgstr "مقارنة بالفترة السابقة"
+
+#. module: om_account_accountant
+msgid "Hide Zero Lines"
+msgstr "إخفاء البنود الصفرية"
+
+#. module: om_account_accountant
+msgid "Display Amounts"
+msgstr "عرض المبالغ"
+
+#. module: om_account_accountant
+msgid "In Currency"
+msgstr "بعملة الشركة"
+
+#. module: om_account_accountant
+msgid "In Thousands"
+msgstr "بالآلاف"
+
+#. module: om_account_accountant
+msgid "In Millions"
+msgstr "بالملايين"
+
+#. module: om_account_accountant
+msgid "Entries"
+msgstr "القيود"
+
+#. module: om_account_accountant
+msgid "Recognized Amount"
+msgstr "المبلغ المعترف به"
+
+#. module: om_account_accountant
+msgid "Previous Period"
+msgstr "الفترة السابقة"
+
+#. module: om_account_accountant
+msgid "Change"
+msgstr "التغير"
+
+#. module: om_account_accountant
+msgid "Total"
+msgstr "الإجمالي"
+
+#. module: om_account_accountant
+msgid "Print"
+msgstr "طباعة"
+
+#. module: om_account_accountant
+msgid "Loading report…"
+msgstr "جارٍ تحميل التقرير…"
+
+#. module: om_account_accountant
+msgid "No data found for the selected period."
+msgstr "لا توجد بيانات للفترة المحددة."
+
+#. module: om_account_accountant
+msgid "The deferred report could not be loaded."
+msgstr "تعذر تحميل تقرير التأجيل."
+
+#. module: om_account_accountant
+msgid "The selected schedule entries could not be opened."
+msgstr "تعذر فتح قيود الجدول المحدد."
+
+#. module: om_account_accountant
+msgid "Choose a valid reporting month."
+msgstr "اختر شهر تقرير صحيحًا."
+
+#. module: om_account_accountant
+msgid "Unsupported deferred report."
+msgstr "تقرير التأجيل غير مدعوم."
+
+#. module: om_account_accountant
+msgid "Unsupported grouping."
+msgstr "طريقة التجميع غير مدعومة."
+
+#. module: om_account_accountant
+msgid "Unsupported journal entry filter."
+msgstr "مرشح القيود غير مدعوم."
+
+#. module: om_account_accountant
+msgid "You are not allowed to read deferred schedule reports."
+msgstr "ليس لديك صلاحية قراءة تقارير جداول التأجيل."
+
+#. module: om_account_accountant
+#: model:ir.model.fields,field_description:om_account_accountant.field_account_asset_asset__invoice_line_id
+msgid "Source Invoice Line"
+msgstr "بند الفاتورة المصدر"
+
+#. module: om_account_accountant
+msgid "Search"
+msgstr "بحث"
+
+#. module: om_account_accountant
+msgid "Search..."
+msgstr "بحث..."
+
+#. module: om_account_accountant
+msgid "All Journals"
+msgstr "كل اليوميات"
+
+#. module: om_account_accountant
+msgid "Choose valid journals."
+msgstr "اختر يوميات صحيحة."
+
+#. module: om_account_accountant
+msgid "One or more selected journals are outside the active company."
+msgstr "يومية واحدة أو أكثر من اليوميات المحددة لا تخص الشركة الحالية."

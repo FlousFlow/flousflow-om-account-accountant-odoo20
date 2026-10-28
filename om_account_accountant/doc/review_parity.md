@@ -36,13 +36,25 @@ or product, options for all entries and hiding zero lines, a currency scale,
 and print. The live screen currently has no rows. Deferred Revenues is also
 available under Review.
 
-The local suite has the `om_account_asset` asset and revenue-recognition board,
-but no equivalent period-based interactive reports or Review entries. At the
-time of comparison, the local database had zero assets, asset categories,
-asset schedule moves, and invoice lines assigned to asset categories. The next
-implementation must use the local asset recognition schedules and preserve
-company currency, journal state, and company boundaries; an empty local result
-alone cannot validate nonzero schedule arithmetic.
+The local suite has `om_account_asset` asset and revenue-recognition boards.
+Review now exposes separate Deferred Expenses and Deferred Revenues interactive
+reports. They use the monthly asset schedule moves and their actual recognition
+account lines, with posted/all entries, account/category/product grouping,
+the journal selector, previous-period comparison, hide-zero, company-currency
+scaling, print, and drill-down to the matching journal entries. Their XLSX
+export includes Schedule and Entries worksheets. New assets retain their source
+invoice line so product grouping can use the actual product.
+
+Remaining differences: Enterprise can compare a requested period and switch
+comparison between amount and percentage; the local report currently compares
+only the immediately previous period and displays the absolute change. Existing
+assets created before the source-invoice-line field was added have no product
+link and fall back to the asset name for product grouping. The Enterprise
+options to send the report to Documents or insert it into an article are not
+available locally. At the time of comparison, the local database had zero
+assets, asset categories, asset schedule moves, and invoice lines assigned to
+asset categories. The live Enterprise report also had no rows, so nonzero
+schedule arithmetic has not yet been validated against matched records.
 
 ## Working Files
 

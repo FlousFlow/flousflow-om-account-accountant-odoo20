@@ -161,6 +161,22 @@
 
     <menuitem id="menu_review_audit" name="Audit" parent="account.account_audit_menu"
               groups="account.group_account_readonly" sequence="30"/>
+    <record id="action_deferred_expense_report" model="ir.actions.client">
+        <field name="name">Deferred Expenses</field>
+        <field name="tag">om_account_accountant.deferred_schedule</field>
+        <field name="params" eval="{'report_type': 'expense'}"/>
+    </record>
+    <record id="action_deferred_revenue_report" model="ir.actions.client">
+        <field name="name">Deferred Revenues</field>
+        <field name="tag">om_account_accountant.deferred_schedule</field>
+        <field name="params" eval="{'report_type': 'revenue'}"/>
+    </record>
+    <menuitem id="menu_review_deferred_expenses" name="Deferred Expenses"
+              action="action_deferred_expense_report" parent="menu_review_audit"
+              groups="account.group_account_readonly" sequence="20"/>
+    <menuitem id="menu_review_deferred_revenues" name="Deferred Revenues"
+              action="action_deferred_revenue_report" parent="menu_review_audit"
+              groups="account.group_account_readonly" sequence="30"/>
     <record id="accounting_pdf_reports.menu_account_report_annual" model="ir.ui.menu">
         <field name="parent_id" ref="menu_review_audit"/>
         <field name="sequence" eval="10"/>

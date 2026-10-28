@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="om_account_accountant.DeferredScheduleReport" owl="1">
+        <div class="o_action_manager o_ff_deferred_schedule">
+            <div class="o_control_panel d-flex flex-wrap justify-content-between align-items-center gap-2 px-3 py-2">
+                <div>
+                    <h2 class="mb-0" t-out="this.title"/>
+                    <span class="text-muted" t-out="this.state.companyName"/>
+                    <div class="dropdown d-inline-block ms-2">
+                        <button class="btn btn-light btn-sm" title="Report options"
+                                t-att-aria-expanded="this.state.settingsOpen"
+                                t-on-click="() => this.toggleSettings()">
+                            <i class="fa fa-cog"/>
+                        </button>
+                        <div t-if="this.state.settingsOpen" class="dropdown-menu show">
+                            <button class="dropdown-item" t-on-click="() => this.exportXlsx()">
+                                <i class="fa fa-file-excel-o me-2"/>XLSX
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <label class="ff_deferred_search d-flex align-items-center gap-2 mb-0">
+                    <i class="fa fa-search"/>
+                    <span class="visually-hidden">Search</span>
+                    <input class="form-control" type="search" placeholder="Search..."
+                           t-att-value="this.state.search" t-on-input="(ev) => this.onSearchInput(ev)"/>
+                </label>
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle" type="button"
+                                t-on-click="() => this.toggleJournalPicker()">
+                            <t t-if="this.state.journalIds.length === 0">All Journals</t>
+                            <t t-else=""><t t-out="this.state.journalIds.length"/> Journals</t>
+                        </button>
+                        <div t-if="this.state.journalPickerOpen" class="dropdown-menu show ff_deferred_journals">
+                            <label t-foreach="this.state.journals" t-as="journal" t-key="journal.id"
+                                   class="dropdown-item d-flex align-items-center gap-2">
+                                <input type="checkbox" class="form-check-input mt-0"
+                                       t-att-checked="this.isJournalSelected(journal.id)"
+                                       t-on-change="(ev) => this.onJournalToggle(journal.id, ev)"/>
+                                <span t-out="journal.name"/>
+                            </label>
+                        </div>
+                    </div>
+                    <label for="ff_deferred_period" class="visually-hidden">Period</label>
+                    <input id="ff_deferred_period" class="form-control ff_deferred_period" type="month"
+                           t-att-value="this.state.period"
+                           t-on-change="(ev) => this.onFilterChange('period', ev.target.value)"/>
+                    <label for="ff_deferred_group" class="visually-hidden">Group By</label>
+                    <select id="ff_deferred_group" class="form-select ff_deferred_group"
+                            t-att-value="this.state.groupBy"
+                            t-on-change="(ev) => this.onFilterChange('groupBy', ev.target.value)">
+                        <option value="account">Group by Account</option>
+                        <option value="category">Group by Product Category</option>
+                        <option value="product">Group by Product</option>
+                    </select>
+                    <label for="ff_deferred_target" class="visually-hidden">Target Moves</label>
+                    <select id="ff_deferred_target" class="form-select ff_deferred_target"
+                            t-att-value="this.state.targetMove"
+                            t-on-change="(ev) => this.onFilterChange('targetMove', ev.target.value)">
+                        <option value="posted">Posted Entries</option>
+                        <option value="all">All Entries</option>
+                    </select>
+                    <label class="form-check d-flex align-items-center gap-1 mb-0 text-nowrap">
+                        <input class="form-check-input mt-0" type="checkbox"
+                               t-att-checked="this.state.comparePrevious"
+                               t-on-change="(ev) => this.onFilterChange('comparePrevious', ev.target.checked)"/>
+                        <span>Compare Previous Period</span>
+                    </label>
+                    <label class="form-check d-flex align-items-center gap-1 mb-0 text-nowrap">
+                        <input class="form-check-input mt-0" type="checkbox"
+                               t-att-checked="this.state.hideZero"
+                               t-on-change="(ev) => this.onFilterChange('hideZero', ev.target.checked)"/>
+                        <span>Hide Zero Lines</span>
+                    </label>
+                    <label for="ff_deferred_scale" class="visually-hidden">Display Amounts</label>
+                    <select id="ff_deferred_scale" class="form-select ff_deferred_scale"
+                            t-att-value="this.state.scale" t-on-change="(ev) => this.onScaleChange(ev)">
+                        <option value="1">In Currency</option>
+                        <option value="1000">In Thousands</option>
+                        <option value="1000000">In Millions</option>
+                    </select>
+                    <button class="btn btn-primary" t-on-click="() => this.printReport()">
+                        <i class="fa fa-print me-1"/>Print
+                    </button>
+                </div>
+            </div>
+            <div t-if="this.state.loading" class="text-center p-5">
+                <i class="fa fa-spinner fa-spin me-2"/>Loading report…
+            </div>
+            <div t-else="" class="o_content p-3">
+                <div class="card shadow-sm ff_deferred_schedule_card">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th t-out="this.state.groupBy === 'account' ? 'Account' : (this.state.groupBy === 'category' ? 'Product Category' : 'Product')"/>
+                                    <th class="text-end">Entries</th>
+                                    <th class="text-end">Recognized Amount</th>
+                                    <th t-if="this.state.comparePrevious" class="text-end">Previous Period</th>
+                                    <th t-if="this.state.comparePrevious" class="text-end">Change</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-if="!this.visibleRows.length">
+                                    <td t-att-colspan="this.state.comparePrevious ? 5 : 3"
+                                        class="text-center text-muted py-5">No data found for the selected period.</td>
+                                </tr>
+                                <tr t-foreach="this.visibleRows" t-as="row" t-key="row.key">
+                                    <td>
+                                        <button class="btn btn-link p-0" t-on-click="() => this.openGroup(row)"
+                                                t-out="row.name"/>
+                                    </td>
+                                    <td class="text-end" t-out="row.entries"/>
+                                    <td class="text-end" t-out="this.formatAmount(row.amount)"/>
+                                    <td t-if="this.state.comparePrevious" class="text-end"
+                                        t-out="this.formatAmount(row.previous_amount)"/>
+                                    <td t-if="this.state.comparePrevious" class="text-end"
+                                        t-out="this.formatAmount(row.amount - row.previous_amount)"/>
+                                </tr>
+                                <tr t-if="this.visibleRows.length" class="ff_deferred_total">
+                                    <td>Total</td>
+                                    <td class="text-end" t-out="this.totals.entries"/>
+                                    <td class="text-end" t-out="this.formatAmount(this.totals.amount)"/>
+                                    <td t-if="this.state.comparePrevious" class="text-end"
+                                        t-out="this.formatAmount(this.totals.previous)"/>
+                                    <td t-if="this.state.comparePrevious" class="text-end"
+                                        t-out="this.formatAmount(this.totals.amount - this.totals.previous)"/>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>
