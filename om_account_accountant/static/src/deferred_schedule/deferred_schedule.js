@@ -23,7 +23,9 @@ export class DeferredScheduleReport extends Component {
             period: DateTime.now().toFormat("yyyy-MM"),
             groupBy: "account",
             targetMove: "posted",
-            comparePrevious: false,
+            comparisonPeriods: 0,
+            comparisonMode: "percentage",
+            sortOrder: "desc",
             hideZero: false,
             scale: 1,
             settingsOpen: false,
@@ -34,6 +36,7 @@ export class DeferredScheduleReport extends Component {
             loading: true,
             companyName: "",
             currencyId: false,
+            periods: [],
             rows: [],
         });
         onWillStart(() => this.loadReport());
@@ -47,8 +50,7 @@ export class DeferredScheduleReport extends Component {
         return this.visibleRows.reduce((result, row) => ({
             entries: result.entries + row.entries,
             amount: result.amount + row.amount,
-            previous: result.previous + row.previous_amount,
-        }), { entries: 0, amount: 0, previous: 0 });
+        }), { entries: 0, amount: 0 });
     }
 
     get visibleRows() {
@@ -66,13 +68,15 @@ export class DeferredScheduleReport extends Component {
                 "account.deferred.schedule.report",
                 "get_report_data",
                 [this.state.reportType, this.state.period, this.state.groupBy,
-                    this.state.targetMove, this.state.comparePrevious, this.state.hideZero,
-                    this.state.journalIds]
+                    this.state.targetMove, this.state.comparisonPeriods > 0, this.state.hideZero,
+                    this.state.journalIds, this.state.comparisonPeriods,
+                    this.state.comparisonMode, this.state.sortOrder]
             );
             this.state.companyName = data.company_name;
             this.state.currencyId = data.currency_id;
             this.state.rows = data.rows;
             this.state.journals = data.journals;
+            this.state.periods = data.periods;
         } catch (error) {
             this.notification.add(error.message || _t("The deferred report could not be loaded."), {
                 type: "danger",
@@ -91,6 +95,50 @@ export class DeferredScheduleReport extends Component {
 
     onScaleChange(ev) {
         this.state.scale = Number(ev.target.value) || 1;
+    }
+
+    async onComparisonToggle(ev) {
+        await this.onFilterChange(
+            "comparisonPeriods",
+            ev.target.value === "previous" ? Math.max(this.state.comparisonPeriods, 1) : 0
+        );
+    }
+
+    async onComparisonPeriodCount(ev) {
+        await this.onFilterChange("comparisonPeriods", Number(ev.target.value) || 1);
+    }
+
+    async onComparisonOptionChange(key, ev) {
+        await this.onFilterChange(key, ev.target.value);
+    }
+
+    comparisonValue(row, periodKey) {
+        return row.comparison_values[periodKey];
+    }
+
+    totalComparisonValue(periodKey) {
+        if (this.state.comparisonMode === "percentage") {
+            const comparedAmount = this.visibleRows.reduce(
+                (total, row) => total + row.period_values[periodKey], 0
+            );
+            if (comparedAmount === 0) {
+                return this.totals.amount === 0 ? 0 : null;
+            }
+            return ((this.totals.amount - comparedAmount) / Math.abs(comparedAmount)) * 100;
+        }
+        return this.visibleRows.reduce(
+            (total, row) => total + row.comparison_values[periodKey], 0
+        );
+    }
+
+    formatComparison(value) {
+        if (value === null || value === undefined) {
+            return "—";
+        }
+        if (this.state.comparisonMode === "percentage") {
+            return `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value)}%`;
+        }
+        return this.formatAmount(value);
     }
 
     onSearchInput(ev) {
@@ -127,7 +175,10 @@ export class DeferredScheduleReport extends Component {
             period: this.state.period,
             group_by: this.state.groupBy,
             target_move: this.state.targetMove,
-            compare_previous: this.state.comparePrevious ? "1" : "0",
+            compare_previous: this.state.comparisonPeriods > 0 ? "1" : "0",
+            comparison_periods: String(this.state.comparisonPeriods),
+            comparison_mode: this.state.comparisonMode,
+            sort_order: this.state.sortOrder,
             hide_zero: this.state.hideZero ? "1" : "0",
             scale: String(this.state.scale),
             journal_ids: this.state.journalIds.join(","),
@@ -143,12 +194,12 @@ export class DeferredScheduleReport extends Component {
         return formatMonetary((value || 0) / this.state.scale, { currencyId: this.state.currencyId });
     }
 
-    async openGroup(row) {
+    async openGroup(row, period = this.state.period) {
         try {
             const domain = await this.orm.call(
                 "account.deferred.schedule.report",
                 "get_group_move_domain",
-                [this.state.reportType, this.state.period, this.state.groupBy,
+                [this.state.reportType, period, this.state.groupBy,
                     row.group_id, this.state.targetMove, row.group_model, this.state.journalIds]
             );
             return this.action.doAction({

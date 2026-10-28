@@ -21,7 +21,8 @@ class DeferredScheduleController(Controller):
     @route("/om_account_accountant/deferred_schedule/xlsx", type="http", auth="user")
     def deferred_schedule_xlsx(
         self, report_type=None, period=None, group_by="account", target_move="posted",
-        compare_previous="0", hide_zero="0", scale="1", journal_ids="", **kwargs,
+        compare_previous="0", hide_zero="0", scale="1", journal_ids="",
+        comparison_periods=None, comparison_mode="amount", sort_order="desc", **kwargs,
     ):
         if not any(request.env.user.has_group(group) for group in READ_GROUPS):
             raise Forbidden()
@@ -36,13 +37,24 @@ class DeferredScheduleController(Controller):
 
         compare_previous = compare_previous in ("1", "true", "True")
         hide_zero = hide_zero in ("1", "true", "True")
+        if comparison_periods in (None, ""):
+            comparison_periods = 1 if compare_previous else 0
+        try:
+            comparison_periods = int(comparison_periods)
+        except (TypeError, ValueError):
+            raise NotFound()
+        if not 0 <= comparison_periods <= 120:
+            raise NotFound()
+        if comparison_mode not in ("amount", "percentage") or sort_order not in ("asc", "desc"):
+            raise NotFound()
         journal_tokens = [value for value in journal_ids.split(",") if value]
         if any(not value.isdigit() for value in journal_tokens):
             raise NotFound()
         journal_ids = [int(value) for value in journal_tokens]
         report = request.env["account.deferred.schedule.report"]
         data = report.get_report_data(
-            report_type, period, group_by, target_move, compare_previous, hide_zero, journal_ids
+            report_type, period, group_by, target_move, compare_previous, hide_zero, journal_ids,
+            comparison_periods, comparison_mode, sort_order,
         )
         currency = request.env.company.currency_id
         unit = currency.name if scale == 1 else f"{'k' if scale == 1000 else 'M'}{currency.name}"
@@ -53,21 +65,30 @@ class DeferredScheduleController(Controller):
         title_format = workbook.add_format({"bold": True, "font_size": 14})
         header = workbook.add_format({"bold": True, "bg_color": "#D9E0E7", "border": 1})
         amount_format = workbook.add_format({"num_format": "#,##0.00;[Red](#,##0.00)"})
+        percentage_format = workbook.add_format({"num_format": "0.00%;[Red](0.00%)"})
 
         summary = workbook.add_worksheet("Schedule")
         summary.write(0, 0, f"{title} — {data['company_name']} — {period}", title_format)
         summary_headers = ["Group", "Entries", f"Recognized Amount ({unit})"]
-        if compare_previous:
-            summary_headers.extend([f"Previous Period ({unit})", f"Change ({unit})"])
+        if comparison_periods:
+            summary_headers.extend(
+                f"{period_key} Comparison ({'%' if comparison_mode == 'percentage' else unit})"
+                for period_key in data["periods"][1:]
+            )
         for column, label in enumerate(summary_headers):
             summary.write(2, column, label, header)
         for row_index, row in enumerate(data["rows"], start=3):
             summary.write_string(row_index, 0, row["name"])
             summary.write_number(row_index, 1, row["entries"])
             summary.write_number(row_index, 2, row["amount"] / scale, amount_format)
-            if compare_previous:
-                summary.write_number(row_index, 3, row["previous_amount"] / scale, amount_format)
-                summary.write_number(row_index, 4, (row["amount"] - row["previous_amount"]) / scale, amount_format)
+            for column, period_key in enumerate(data["periods"][1:], start=3):
+                comparison_value = row["comparison_values"][period_key]
+                if comparison_value is not None:
+                    summary.write_number(
+                        row_index, column,
+                        comparison_value / 100 if comparison_mode == "percentage" else comparison_value / scale,
+                        percentage_format if comparison_mode == "percentage" else amount_format,
+                    )
         summary.set_column(0, 0, 40)
         summary.set_column(1, 1, 14)
         summary.set_column(2, len(summary_headers) - 1, 24)
@@ -75,16 +96,27 @@ class DeferredScheduleController(Controller):
         summary.autofilter(2, 0, max(2, len(data["rows"]) + 2), len(summary_headers) - 1)
 
         entries = workbook.add_worksheet("Entries")
-        entry_headers = ["Date", "Journal", "Entry", "Reference", "Deferred Item", "State", f"Recognized Amount ({unit})"]
+        entry_headers = ["Period", "Date", "Journal", "Entry", "Reference", "Deferred Item", "State", f"Recognized Amount ({unit})"]
         for column, label in enumerate(entry_headers):
             entries.write(0, column, label, header)
-        move_ids = list(dict.fromkeys(
-            move_id for row in data["rows"] for move_id in row.get("move_ids", [])
+        period_move_pairs = list(dict.fromkeys(
+            (period_key, move_id)
+            for row in data["rows"]
+            for period_key in data["periods"]
+            for move_id in row["period_move_ids"].get(period_key, [])
         ))
+        move_ids = list(dict.fromkeys(move_id for _period_key, move_id in period_move_pairs))
         moves = request.env["account.move"].browse(move_ids).exists()
+        move_by_id = {move.id: move for move in moves}
         sign = 1 if report_type == "expense" else -1
         row_index = 1
-        for move in moves.sorted(lambda item: (item.date, item.name, item.id)):
+        for period_key, move_id in sorted(
+            period_move_pairs,
+            key=lambda pair: (
+                pair[0], move_by_id[pair[1]].date, move_by_id[pair[1]].name, pair[1]
+            ),
+        ):
+            move = move_by_id[move_id]
             asset = move.depreciation_asset_id
             account = (
                 asset.category_id.account_depreciation_expense_id
@@ -96,15 +128,16 @@ class DeferredScheduleController(Controller):
                 for line in move.line_ids
                 if line.account_id == account
             )
-            entries.write_string(row_index, 0, str(move.date or ""))
-            entries.write_string(row_index, 1, move.journal_id.display_name or "")
-            entries.write_string(row_index, 2, move.name or "")
-            entries.write_string(row_index, 3, move.ref or "")
-            entries.write_string(row_index, 4, asset.name or "")
-            entries.write_string(row_index, 5, move.state or "")
-            entries.write_number(row_index, 6, amount / scale, amount_format)
+            entries.write_string(row_index, 0, period_key)
+            entries.write_string(row_index, 1, str(move.date or ""))
+            entries.write_string(row_index, 2, move.journal_id.display_name or "")
+            entries.write_string(row_index, 3, move.name or "")
+            entries.write_string(row_index, 4, move.ref or "")
+            entries.write_string(row_index, 5, asset.name or "")
+            entries.write_string(row_index, 6, move.state or "")
+            entries.write_number(row_index, 7, amount / scale, amount_format)
             row_index += 1
-        for column, width in enumerate((13, 30, 24, 32, 40, 12, 24)):
+        for column, width in enumerate((12, 13, 30, 24, 32, 40, 12, 24)):
             entries.set_column(column, column, width)
         entries.freeze_panes(1, 0)
         entries.autofilter(0, 0, max(0, row_index - 1), len(entry_headers) - 1)

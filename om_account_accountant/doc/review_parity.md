@@ -31,30 +31,33 @@ are different databases and are not evidence of a report-calculation mismatch.
 ## Deferred Expenses and Deferred Revenues
 
 The live Deferred Expenses report has a monthly period selector, period
-comparison (including previous period), grouping by account, product category,
-or product, options for all entries and hiding zero lines, a currency scale,
-and print. The live screen currently has no rows. Deferred Revenues is also
-available under Review.
+comparison (none or a selected number of previous periods), ascending or
+descending ordering, comparison by amount or percentage, grouping by account,
+product category, or product, options for all entries and hiding zero lines, a
+currency scale, and print. The live screen currently has no rows. Deferred
+Revenues is also available under Review.
 
 The local suite has `om_account_asset` asset and revenue-recognition boards.
 Review now exposes separate Deferred Expenses and Deferred Revenues interactive
 reports. They use the monthly asset schedule moves and their actual recognition
 account lines, with posted/all entries, account/category/product grouping,
-the journal selector, previous-period comparison, hide-zero, company-currency
+the journal selector, a selected count of previous-month comparisons, amount or
+percentage changes, ascending/descending ordering, hide-zero, company-currency
 scaling, print, and drill-down to the matching journal entries. Their XLSX
-export includes Schedule and Entries worksheets. New assets retain their source
-invoice line so product grouping can use the actual product.
+export includes Schedule and Entries worksheets and preserves comparison
+filters. New assets retain their source invoice line so product grouping can
+use the actual product.
 
-Remaining differences: Enterprise can compare a requested period and switch
-comparison between amount and percentage; the local report currently compares
-only the immediately previous period and displays the absolute change. Existing
-assets created before the source-invoice-line field was added have no product
-link and fall back to the asset name for product grouping. The Enterprise
-options to send the report to Documents or insert it into an article are not
-available locally. At the time of comparison, the local database had zero
-assets, asset categories, asset schedule moves, and invoice lines assigned to
-asset categories. The live Enterprise report also had no rows, so nonzero
-schedule arithmetic has not yet been validated against matched records.
+Remaining differences: the Community report compares the current month with
+consecutive previous months; a distinct custom comparison-date range has not
+been implemented. Existing assets created before the source-invoice-line field
+was added have no product link and fall back to the asset name for product
+grouping. The Enterprise options to send the report to Documents or insert it
+into an article are not available locally. At the time of comparison, the local
+database had zero assets, asset categories, asset schedule moves, and invoice
+lines assigned to asset categories. The live Enterprise report also had no
+rows, so nonzero schedule arithmetic has not yet been validated against matched
+records.
 
 ## Working Files
 

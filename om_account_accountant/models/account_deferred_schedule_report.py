@@ -67,15 +67,16 @@ class AccountDeferredScheduleReport(models.AbstractModel):
         return f"{group_by}:{group_model}:{group.id}", group.id, group.display_name, group_model
 
     @api.model
-    def _collect_period(self, report_type, period, group_by, target_move, journal_ids):
-        date_from, date_to = self._get_period_dates(period)
-        domain = self._get_move_domain(report_type, date_from, date_to, target_move)
+    def _collect_periods(self, report_type, periods, group_by, target_move, journal_ids):
+        oldest_start, _oldest_end = self._get_period_dates(periods[-1])
+        _current_start, current_end = self._get_period_dates(periods[0])
+        domain = self._get_move_domain(report_type, oldest_start, current_end, target_move)
         if journal_ids:
             domain.append(("journal_id", "in", journal_ids))
         moves = self.env["account.move"].search(domain, order="date, name, id")
-        rows = {}
+        rows_by_period = {period: {} for period in periods}
         if not moves:
-            return rows
+            return rows_by_period
 
         asset_by_id = {asset.id: asset for asset in moves.depreciation_asset_id}
         if report_type == "expense":
@@ -112,6 +113,10 @@ class AccountDeferredScheduleReport(models.AbstractModel):
             key, group_id, name, group_model = self._get_group(report_type, group_by, asset, account)
             if not key:
                 continue
+            period = fields.Date.to_string(move.date)[:7]
+            if period not in rows_by_period:
+                continue
+            rows = rows_by_period[period]
             row = rows.setdefault(key, {
                 "key": key,
                 "group_id": group_id,
@@ -124,34 +129,77 @@ class AccountDeferredScheduleReport(models.AbstractModel):
             row["amount"] += recognized_by_move.get(move.id, 0.0)
             row["entries"] += 1
             row["move_ids"].append(move.id)
-        return rows
+        return rows_by_period
 
     @api.model
     def get_report_data(
         self, report_type, period, group_by="account", target_move="posted",
         compare_previous=False, hide_zero=False, journal_ids=None,
+        comparison_periods=None, comparison_mode="amount", sort_order="desc",
     ):
         """Aggregate the local asset/revenue-recognition board using posted journal amounts."""
         self._check_report_access()
         self._validate_filters(report_type, group_by, target_move)
         journal_ids = self._validate_journals(journal_ids)
+        if comparison_periods is None:
+            comparison_periods = 1 if compare_previous else 0
+        try:
+            comparison_periods = int(comparison_periods)
+        except (TypeError, ValueError):
+            raise ValidationError(_("Choose a valid number of comparison periods."))
+        if not 0 <= comparison_periods <= 120:
+            raise ValidationError(_("The number of comparison periods must be between 0 and 120."))
+        if comparison_mode not in ("amount", "percentage"):
+            raise ValidationError(_("Unsupported comparison method."))
+        if sort_order not in ("asc", "desc"):
+            raise ValidationError(_("Unsupported report sort order."))
         date_from, _date_to = self._get_period_dates(period)
-        current = self._collect_period(report_type, period, group_by, target_move, journal_ids)
-        previous_period = fields.Date.to_string(date_from - relativedelta(months=1))[:7]
-        previous = (
-            self._collect_period(report_type, previous_period, group_by, target_move, journal_ids)
-            if compare_previous else {}
+        period_keys = [
+            fields.Date.to_string(date_from - relativedelta(months=offset))[:7]
+            for offset in range(comparison_periods + 1)
+        ]
+        period_rows = self._collect_periods(
+            report_type, period_keys, group_by, target_move, journal_ids
         )
+        current = period_rows[period]
         currency = self.env.company.currency_id
         rows = []
-        for key in current.keys() | previous.keys():
+        all_keys = set().union(*(period_data.keys() for period_data in period_rows.values()))
+        for key in all_keys:
             now = current.get(key, {})
-            before = previous.get(key, {})
+            before = period_rows.get(period_keys[1], {}).get(key, {}) if comparison_periods else {}
             amount = now.get("amount", 0.0)
             previous_amount = before.get("amount", 0.0)
-            if hide_zero and currency.is_zero(amount) and currency.is_zero(previous_amount):
+            period_values = {
+                period_key: period_rows[period_key].get(key, {}).get("amount", 0.0)
+                for period_key in period_keys
+            }
+            period_move_ids = {
+                period_key: period_rows[period_key].get(key, {}).get("move_ids", [])
+                for period_key in period_keys
+            }
+            if hide_zero and all(currency.is_zero(value) for value in period_values.values()):
                 continue
-            base = now or before
+            base = now or next(
+                period_rows[period_key][key]
+                for period_key in period_keys[1:]
+                if key in period_rows[period_key]
+            )
+            comparison_values = {}
+            for period_key in period_keys[1:]:
+                compared_amount = period_values[period_key]
+                if comparison_mode == "percentage":
+                    comparison_values[period_key] = (
+                        ((amount - compared_amount) / abs(compared_amount)) * 100
+                        if not currency.is_zero(compared_amount)
+                        else (0.0 if currency.is_zero(amount) else None)
+                    )
+                else:
+                    comparison_values[period_key] = amount - compared_amount
+            sort_value = (
+                comparison_values.get(period_keys[1], amount)
+                if comparison_periods else amount
+            )
             rows.append({
                 "key": key,
                 "group_id": base["group_id"],
@@ -160,13 +208,27 @@ class AccountDeferredScheduleReport(models.AbstractModel):
                 "entries": now.get("entries", 0),
                 "amount": amount,
                 "previous_amount": previous_amount,
-                "move_ids": now.get("move_ids", []),
+                "period_values": period_values,
+                "period_move_ids": period_move_ids,
+                "comparison_values": comparison_values,
+                "sort_value": sort_value,
+                "move_ids": period_move_ids.get(period, []),
             })
-        rows.sort(key=lambda row: row["name"].casefold())
+        rows.sort(key=lambda row: (
+            row["sort_value"] is None,
+            (
+                -row["sort_value"] if sort_order == "desc" else row["sort_value"]
+            ) if row["sort_value"] is not None else 0.0,
+            row["name"].casefold(),
+        ))
         return {
             "report_type": report_type,
             "period": period,
-            "previous_period": previous_period,
+            "periods": period_keys,
+            "comparison_periods": comparison_periods,
+            "comparison_mode": comparison_mode,
+            "sort_order": sort_order,
+            "previous_period": period_keys[1] if comparison_periods else False,
             "group_by": group_by,
             "rows": rows,
             "currency_id": currency.id,

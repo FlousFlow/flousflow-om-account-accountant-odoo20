@@ -61,12 +61,35 @@
                         <option value="posted">Posted Entries</option>
                         <option value="all">All Entries</option>
                     </select>
-                    <label class="form-check d-flex align-items-center gap-1 mb-0 text-nowrap">
-                        <input class="form-check-input mt-0" type="checkbox"
-                               t-att-checked="this.state.comparePrevious"
-                               t-on-change="(ev) => this.onFilterChange('comparePrevious', ev.target.checked)"/>
-                        <span>Compare Previous Period</span>
-                    </label>
+                    <label for="ff_deferred_comparison" class="visually-hidden">Comparison</label>
+                    <select id="ff_deferred_comparison" class="form-select ff_deferred_comparison"
+                            t-att-value="this.state.comparisonPeriods ? 'previous' : 'none'"
+                            t-on-change="(ev) => this.onComparisonToggle(ev)">
+                        <option value="none">No Comparison</option>
+                        <option value="previous">Previous Period</option>
+                    </select>
+                    <label t-if="this.state.comparisonPeriods" for="ff_deferred_period_count"
+                           class="visually-hidden">Number of Comparison Periods</label>
+                    <input t-if="this.state.comparisonPeriods" id="ff_deferred_period_count"
+                           class="form-control ff_deferred_period_count" type="number" min="1" max="120"
+                           t-att-value="this.state.comparisonPeriods"
+                           t-on-change="(ev) => this.onComparisonPeriodCount(ev)"/>
+                    <label t-if="this.state.comparisonPeriods" for="ff_deferred_comparison_mode"
+                           class="visually-hidden">Comparison in</label>
+                    <select t-if="this.state.comparisonPeriods" id="ff_deferred_comparison_mode"
+                            class="form-select ff_deferred_comparison_mode"
+                            t-att-value="this.state.comparisonMode"
+                            t-on-change="(ev) => this.onComparisonOptionChange('comparisonMode', ev)">
+                        <option value="percentage">Percentage</option>
+                        <option value="amount">Amount</option>
+                    </select>
+                    <label for="ff_deferred_sort_order" class="visually-hidden">Sort Order</label>
+                    <select id="ff_deferred_sort_order" class="form-select ff_deferred_sort_order"
+                            t-att-value="this.state.sortOrder"
+                            t-on-change="(ev) => this.onComparisonOptionChange('sortOrder', ev)">
+                        <option value="desc">Descending</option>
+                        <option value="asc">Ascending</option>
+                    </select>
                     <label class="form-check d-flex align-items-center gap-1 mb-0 text-nowrap">
                         <input class="form-check-input mt-0" type="checkbox"
                                t-att-checked="this.state.hideZero"
@@ -96,14 +119,20 @@
                                 <tr>
                                     <th t-out="this.state.groupBy === 'account' ? 'Account' : (this.state.groupBy === 'category' ? 'Product Category' : 'Product')"/>
                                     <th class="text-end">Entries</th>
-                                    <th class="text-end">Recognized Amount</th>
-                                    <th t-if="this.state.comparePrevious" class="text-end">Previous Period</th>
-                                    <th t-if="this.state.comparePrevious" class="text-end">Change</th>
+                                    <th t-foreach="this.state.periods" t-as="reportPeriod" t-key="reportPeriod"
+                                        class="text-end">
+                                        <t t-if="reportPeriod === this.state.period">
+                                            <t t-out="reportPeriod"/> <span>Recognized Amount</span>
+                                        </t>
+                                        <t t-else="">
+                                            <t t-out="reportPeriod"/> <span t-out="this.state.comparisonMode === 'percentage' ? 'Change (%)' : 'Change Amount'"/>
+                                        </t>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr t-if="!this.visibleRows.length">
-                                    <td t-att-colspan="this.state.comparePrevious ? 5 : 3"
+                                    <td t-att-colspan="1 + this.state.periods.length + 1"
                                         class="text-center text-muted py-5">No data found for the selected period.</td>
                                 </tr>
                                 <tr t-foreach="this.visibleRows" t-as="row" t-key="row.key">
@@ -112,20 +141,23 @@
                                                 t-out="row.name"/>
                                     </td>
                                     <td class="text-end" t-out="row.entries"/>
-                                    <td class="text-end" t-out="this.formatAmount(row.amount)"/>
-                                    <td t-if="this.state.comparePrevious" class="text-end"
-                                        t-out="this.formatAmount(row.previous_amount)"/>
-                                    <td t-if="this.state.comparePrevious" class="text-end"
-                                        t-out="this.formatAmount(row.amount - row.previous_amount)"/>
+                                    <td t-foreach="this.state.periods" t-as="reportPeriod" t-key="reportPeriod"
+                                        class="text-end">
+                                        <button class="btn btn-link p-0" t-on-click="() => this.openGroup(row, reportPeriod)"
+                                                t-att-title="'Open entries for ' + reportPeriod">
+                                            <t t-if="reportPeriod === this.state.period" t-out="this.formatAmount(row.amount)"/>
+                                            <t t-else="" t-out="this.formatComparison(this.comparisonValue(row, reportPeriod))"/>
+                                        </button>
+                                    </td>
                                 </tr>
                                 <tr t-if="this.visibleRows.length" class="ff_deferred_total">
                                     <td>Total</td>
                                     <td class="text-end" t-out="this.totals.entries"/>
-                                    <td class="text-end" t-out="this.formatAmount(this.totals.amount)"/>
-                                    <td t-if="this.state.comparePrevious" class="text-end"
-                                        t-out="this.formatAmount(this.totals.previous)"/>
-                                    <td t-if="this.state.comparePrevious" class="text-end"
-                                        t-out="this.formatAmount(this.totals.amount - this.totals.previous)"/>
+                                    <td t-foreach="this.state.periods" t-as="reportPeriod" t-key="reportPeriod"
+                                        class="text-end">
+                                        <t t-if="reportPeriod === this.state.period" t-out="this.formatAmount(this.totals.amount)"/>
+                                        <t t-else="" t-out="this.formatComparison(this.totalComparisonValue(reportPeriod))"/>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>

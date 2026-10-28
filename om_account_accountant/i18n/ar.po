@@ -489,3 +489,63 @@ msgstr "اختر يوميات صحيحة."
 #. module: om_account_accountant
 msgid "One or more selected journals are outside the active company."
 msgstr "يومية واحدة أو أكثر من اليوميات المحددة لا تخص الشركة الحالية."
+
+#. module: om_account_accountant
+msgid "Comparison"
+msgstr "مقارنة"
+
+#. module: om_account_accountant
+msgid "No Comparison"
+msgstr "بدون مقارنة"
+
+#. module: om_account_accountant
+msgid "Number of Comparison Periods"
+msgstr "عدد فترات المقارنة"
+
+#. module: om_account_accountant
+msgid "Comparison in"
+msgstr "المقارنة بـ"
+
+#. module: om_account_accountant
+msgid "Percentage"
+msgstr "النسبة المئوية"
+
+#. module: om_account_accountant
+msgid "Amount"
+msgstr "المبلغ"
+
+#. module: om_account_accountant
+msgid "Sort Order"
+msgstr "ترتيب الفرز"
+
+#. module: om_account_accountant
+msgid "Descending"
+msgstr "تنازلي"
+
+#. module: om_account_accountant
+msgid "Ascending"
+msgstr "تصاعدي"
+
+#. module: om_account_accountant
+msgid "Change (%)"
+msgstr "التغير (٪)"
+
+#. module: om_account_accountant
+msgid "Change Amount"
+msgstr "مبلغ التغير"
+
+#. module: om_account_accountant
+msgid "Choose a valid number of comparison periods."
+msgstr "اختر عددًا صحيحًا لفترات المقارنة."
+
+#. module: om_account_accountant
+msgid "The number of comparison periods must be between 0 and 120."
+msgstr "يجب أن يكون عدد فترات المقارنة بين 0 و120."
+
+#. module: om_account_accountant
+msgid "Unsupported comparison method."
+msgstr "طريقة المقارنة غير مدعومة."
+
+#. module: om_account_accountant
+msgid "Unsupported report sort order."
+msgstr "ترتيب فرز التقرير غير مدعوم."
