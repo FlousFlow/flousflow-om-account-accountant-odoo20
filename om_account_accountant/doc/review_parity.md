@@ -7,14 +7,17 @@ Odoo 20 database. Menu names and report options are observations from the live
 Review menu and report screens. Financial totals must be compared only on matched
 company data and period.
 
-The local Review menu now follows the live grouping and order: Audit (Working
-Files, Annual Report), Inventory, Regulatory (Unrealized Currencies, Deferred
-Revenues, Deferred Expenses), Purchases, then Sales.
+The local Review menu follows the live grouping and order: Control (Entries to
+Review, Audit Trail, Journal Audit), Audit (Working Files, Annual Report),
+Inventory, Regulatory (Unrealized Currencies, Deferred Revenues, Deferred
+Expenses), Purchases, then Sales. `Draft Entries` remains an additional
+community work queue under Accounting.
 
 ## Journal Audit
 
 | Capability | Enterprise | Community | Status |
 | --- | --- | --- | --- |
+| Review menu hierarchy | Control: Entries to Review, Audit Trail, Journal Audit | Same; Draft Entries remains under Accounting | Implemented and checked in the local database |
 | Review menu entry and interactive report | Yes | Yes | Implemented |
 | Period, posted/draft/all entries | Year selector; posted, draft, or all | Year selector; posted, draft, or all | Implemented |
 | Include payments | Yes | Yes | Implemented |
