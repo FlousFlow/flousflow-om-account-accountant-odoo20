@@ -131,6 +131,8 @@
                         <field name="comparison_period_ranges" invisible="True"/>
                         <field name="comparison_sort" invisible="True"/>
                         <field name="comparison_display" invisible="True"/>
+                        <field name="comparison_mode" invisible="True"/>
+                        <field name="percentage_of_row_key" invisible="True"/>
                     </page>
                 </notebook>
             </field>

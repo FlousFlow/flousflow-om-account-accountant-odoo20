@@ -44,6 +44,8 @@ class AccountingReport(models.TransientModel):
         [('amount', 'Amount'), ('percentage', 'Percentage')],
         default='amount',
     )
+    comparison_mode = fields.Char(default='none')
+    percentage_of_row_key = fields.Char()
 
     def _build_comparison_context(self, data):
         result = {}
@@ -64,6 +66,7 @@ class AccountingReport(models.TransientModel):
             'account_report_id', 'date_from_cmp', 'date_to_cmp', 'journal_ids',
             'filter_cmp', 'target_move', 'comparison_period_ranges',
             'comparison_sort', 'comparison_display', 'enable_filter',
+            'comparison_mode', 'percentage_of_row_key',
         ])[0]}
         for field in ['account_report_id']:
             if isinstance(data['form'][field], tuple):
@@ -78,6 +81,7 @@ class AccountingReport(models.TransientModel):
             'date_from_cmp', 'debit_credit', 'date_to_cmp', 'filter_cmp',
             'account_report_id', 'enable_filter', 'label_filter', 'target_move',
             'comparison_period_ranges', 'comparison_sort', 'comparison_display',
+            'comparison_mode', 'percentage_of_row_key',
         ])[0])
         return self.env.ref('accounting_pdf_reports.action_report_financial').report_action(
             self, data=data, config=False)
@@ -101,6 +105,7 @@ class AccountingReport(models.TransientModel):
             bool(form.get('enable_filter')),
             bool(form.get('debit_credit')),
             form.get('comparison_context'),
+            comparison_mode=form.get('comparison_mode') or 'previous_period',
             comparison_period_ranges=form.get('comparison_period_ranges') or None,
         )
 
@@ -142,13 +147,31 @@ class AccountingReport(models.TransientModel):
             )) if column['date_from'] or column['date_to'] else '',
             reverse=form.get('comparison_sort', 'descending') != 'ascending',
         )
-        show_change = bool(form.get('enable_filter')) and len(comparison_contexts) == 1
-        comparison_display = form.get('comparison_display', 'amount')
+        comparison_mode = form.get('comparison_mode') or 'none'
+        percentage_base_key = form.get('percentage_of_row_key') if comparison_mode == 'percentage_of' else False
+        percentage_base = next((line for line in report_data['lines']
+                                if (line.get('row_key') or f"report-{line.get('report_id') or line.get('name')}")
+                                == percentage_base_key), None)
+        if percentage_base_key and not percentage_base:
+            raise UserError(_('The selected Percentage of base line is no longer available.'))
+        if comparison_mode == 'percentage_of' and not percentage_base_key:
+            raise UserError(_('Select a base line for the Percentage of report.'))
+        show_percentage_of = bool(percentage_base)
+        show_change = (bool(form.get('enable_filter')) and len(comparison_contexts) == 1) or show_percentage_of
+        comparison_display = 'percentage' if show_percentage_of else form.get('comparison_display', 'amount')
         for line in report_data['lines']:
             line['comparison_change'] = False
             if not show_change:
                 continue
             current = float(line.get('balance') or 0.0)
+            if show_percentage_of:
+                base = float(percentage_base.get('balance') or 0.0)
+                line['comparison_change'] = (
+                    'N/A' if abs(base) < 0.005 and abs(current) >= 0.005
+                    else '0.00%' if abs(base) < 0.005
+                    else f"{current / base * 100:.2f}%"
+                ) if line.get('show_amount', True) else False
+                continue
             previous = float((line.get('balance_cmp_list') or [line.get('balance_cmp') or 0.0])[0])
             if comparison_display == 'percentage':
                 if abs(previous) < 0.005:
@@ -162,7 +185,10 @@ class AccountingReport(models.TransientModel):
             'period_columns': columns,
             'show_comparison_change': show_change,
             'comparison_display': comparison_display,
+            'comparison_mode': comparison_mode,
             'comparison_change_label': (
+                _('Percentage of %s') % percentage_base.get('name') if show_percentage_of
+                else
                 _('Change (%)') if comparison_display == 'percentage' else _('Change')
             ),
         }
@@ -181,6 +207,7 @@ class AccountingReport(models.TransientModel):
             'account_report_id', 'date_from_cmp', 'date_to_cmp', 'filter_cmp',
             'enable_filter', 'label_filter', 'debit_credit',
             'comparison_period_ranges', 'comparison_sort', 'comparison_display',
+            'comparison_mode', 'percentage_of_row_key',
         ])[0]
         if self.enable_filter:
             form['comparison_context'] = self._build_comparison_context({'form': form})

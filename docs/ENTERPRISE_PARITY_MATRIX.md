@@ -9,7 +9,7 @@ Baseline database: `flousflow_om_accountant_dev20_20261028`; Odoo 20.0; last inv
 | Enterprise destination / function | Standard Community or suite support | Actual gap | Proposed solution |
 | --- | --- | --- | --- |
 | Balance Sheet | The menu opens a full-page in-app report with As of date, comparison, posted/all entries, debit/credit columns, journal filters, amount scaling, draft warning, expandable report rows, account-to-journal-item links and Print options | Browser comparison confirms the asset, liability and equity labels/order, plus formula-info icons. Live-value parity is unproven because the databases contain different data | Continue comparing formulas, options, drill-downs and equivalent fixtures |
-| Profit and Loss | Full-page report with month, quarter, fiscal-year and custom periods, previous/next period navigation, previous period (N periods), same period last year, custom dates, percentage-of report line, comparison amount/percentage, period-column sorting, entry state, debit/credit, journal filters, scaling and Print options | The local code provides comparison ranges and multi-period columns, percentage-of-base and chronological sorting. PDF/XLSX now preserve all selected comparison periods and column order; percentage-of-base remains interactive-only. Budget selection, cash/accrual parity and full P&L hierarchy still need direct comparison | Verify the local layout visually and reconcile the report hierarchy and accounting formulas |
+| Profit and Loss | Full-page report with month, quarter, fiscal-year and custom periods, previous/next period navigation, previous period (N periods), same period last year, custom dates, percentage-of report line, comparison amount/percentage, period-column sorting, entry state, debit/credit, journal filters, scaling and Print options | PDF/XLSX preserve comparison periods/order and the selected Percentage of base line; budget selection, cash/accrual parity and full P&L hierarchy still need direct comparison | Verify local layout and hierarchy; compare budget and cash/accrual behavior |
 | Cash Flow Statement | `accounting_pdf_reports` action/menu exists and is installed | Enterprise layout and interaction parity not fully verified | Reconcile report lines, filters and export behavior |
 | Annual Report | `accounting_pdf_reports` and suite annual-report menu exist | Enterprise template/configuration behavior needs runtime comparison | Test template setup, period selection and output |
 | General Ledger | Interactive full-page report with account search, expandable journal items, month/quarter/fiscal-year/custom dates, posting/cash-basis filters, scaling, Print, XLSX and CSV | Report controls and date presets now align with observed Enterprise behavior. Documents and Knowledge actions remain absent; export output still needs direct live-file comparison | Validate exports against matched records; consider Documents and Knowledge integrations where available |
@@ -32,7 +32,7 @@ Baseline database: `flousflow_om_accountant_dev20_20261028`; Odoo 20.0; last inv
 The database currently has the following integrated modules installed:
 
 - `om_account_accountant` `20.0.1.33.0`
-- `accounting_pdf_reports` `20.0.2.0.17`
+- `accounting_pdf_reports` `20.0.2.0.18`
 - `ff_account_transfer` `20.0.1.0.0`
 - `flousflow_branch_analytic` `20.0.1.0.0`
 
@@ -53,26 +53,28 @@ descending. Percentage changes display N/A when the comparison amount is zero.
 Custom ranges are validated server-side.
 Print and XLSX use every selected period-comparison range, preserve the
 ascending/descending column order, and show the same single-period change amount
-or percentage as the interactive report. Percentage-of selection remains an
-interactive-only option.
+or percentage as the interactive report. Percentage-of selection now carries
+the selected base line into PDF and XLSX, with the same zero-base behavior as
+the interactive report.
 
 The live Enterprise P&L was observed with columns for current period, prior
 period, and Change (%). Selecting a percentage-of base line replaces the prior
 period column with the percentage-of value; a zero base displays N/A. The local
 8077 database was backed up before upgrade and now reports
-`accounting_pdf_reports` `20.0.2.0.17`. Runtime smoke checks on 2.0.15 verified
+`accounting_pdf_reports` `20.0.2.0.18`. Runtime smoke checks on 2.0.15 verified
 previous-period, multi-period quarter, same-year and custom date ranges, plus
 percentage-of mode disabling period-comparison aggregation. Version 2.0.16 was
 upgraded successfully and its regenerated browser asset includes the Balance
 Sheet-safe chronological sort fallback. Version 2.0.17 adds the same selected
 comparison periods and ordering to PDF and XLSX output. A two-period query
 returned two comparison contexts and two distinct comparison values on each
-report line. The local HTTP
+report line. Version 2.0.18 preserves Percentage of base selection in PDF and
+XLSX. The local HTTP
 login endpoint returned 200. The live Enterprise ascending selection was
 observed ordering periods oldest-to-newest; the local interface now sorts its
 period columns the same way. The local browser session is active again and the
-Review menu and Audit Trail page were rechecked on 2026-10-29. Budget selection, cash/accrual parity,
-full P&L hierarchy and multi-period print/XLSX remain open gaps.
+Review menu and Audit Trail page were rechecked on 2026-10-29. Budget selection,
+cash/accrual parity and full P&L hierarchy remain open gaps.
 
 ## Verified parity increment
 

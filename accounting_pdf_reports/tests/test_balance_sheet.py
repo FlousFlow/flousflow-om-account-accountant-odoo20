@@ -162,6 +162,80 @@ class TestBalanceSheet(AccountTestInvoicingCommon):
         for column in export_data['period_columns']:
             self.assertIn(column['label'], shared_strings)
 
+    def test_percentage_of_selection_is_preserved_in_pdf_and_xlsx(self):
+        self.init_invoice('out_invoice', amounts=[1000.0], invoice_date='2025-06-01', taxes=[], post=True)
+        report = self.env.ref('accounting_pdf_reports.account_financial_report_profitandloss0')
+        wizard = self.env['accounting.report'].create({
+            'account_report_id': report.id,
+            'company_id': self.env.company.id,
+            'date_from': '2025-01-01',
+            'date_to': '2025-12-31',
+            'journal_ids': [(6, 0, self.env['account.journal'].search([
+                ('company_id', 'child_of', self.env.company.id),
+            ]).ids)],
+            'target_move': 'posted',
+        })
+        form = wizard.read([
+            'date_from', 'date_to', 'journal_ids', 'target_move', 'company_id',
+            'account_report_id', 'enable_filter', 'debit_credit', 'comparison_mode',
+            'percentage_of_row_key', 'comparison_display', 'comparison_sort',
+        ])[0]
+        form['used_context'] = {'lang': self.env.lang}
+        interactive_data = wizard._get_interactive_report_data(form)
+        base_line = next(line for line in interactive_data['lines']
+                         if line.get('type') in {'report', 'group', 'category', 'total'}
+                         and line.get('show_amount', True))
+        form['comparison_mode'] = 'percentage_of'
+        form['percentage_of_row_key'] = base_line.get('row_key') or (
+            f"report-{base_line.get('report_id') or base_line.get('name')}"
+        )
+        wizard.write({
+            'comparison_mode': form['comparison_mode'],
+            'percentage_of_row_key': form['percentage_of_row_key'],
+        })
+        export_data = wizard._prepare_export_data(
+            form, interactive_data,
+        )
+        base_line = next(line for line in export_data['lines']
+                         if (line.get('row_key') or f"report-{line.get('report_id') or line.get('name')}")
+                         == form['percentage_of_row_key'])
+        expected_header = f"Percentage of {base_line['name']}"
+        self.assertEqual(export_data['comparison_change_label'], expected_header)
+        self.assertEqual(base_line['comparison_change'], '100.00%')
+
+        report_action = self.env.ref('accounting_pdf_reports.action_report_financial')
+        rendered_html, report_type = report_action.with_context(
+            active_model='accounting.report', active_id=wizard.id,
+        )._render_qweb_html(report_action.report_name, [wizard.id], {'form': form})
+        self.assertEqual(report_type, 'html')
+        self.assertIn(expected_header, rendered_html.decode())
+        self.assertIn('100.00%', rendered_html.decode())
+
+        action = wizard.action_export_xlsx()
+        self.assertEqual(action['type'], 'ir.actions.act_url')
+        with ZipFile(BytesIO(bytes(wizard.xlsx_file))) as workbook:
+            shared_strings = workbook.read('xl/sharedStrings.xml').decode()
+        self.assertIn(expected_header, shared_strings)
+        self.assertIn('100.00%', shared_strings)
+
+    def test_percentage_of_zero_base_matches_interactive_n_a_behavior(self):
+        report = self.env.ref('accounting_pdf_reports.account_financial_report_profitandloss0')
+        wizard = self.env['accounting.report'].create({'account_report_id': report.id})
+        export_data = wizard._prepare_export_data({
+            'account_report_id': (report.id, report.display_name),
+            'comparison_mode': 'percentage_of',
+            'percentage_of_row_key': 'base-line',
+            'enable_filter': False,
+        }, {
+            'lines': [
+                {'name': 'Base', 'type': 'report', 'row_key': 'base-line', 'balance': 0.0},
+                {'name': 'Nonzero', 'type': 'category', 'row_key': 'nonzero-line', 'balance': 25.0},
+                {'name': 'Zero', 'type': 'category', 'row_key': 'zero-line', 'balance': 0.0},
+            ],
+        })
+        self.assertEqual(export_data['lines'][1]['comparison_change'], 'N/A')
+        self.assertEqual(export_data['lines'][2]['comparison_change'], '0.00%')
+
     def test_the_equity_is_not_among_the_liabilities(self):
         equity_types = self.env.ref('accounting_pdf_reports.account_financial_report_equity_accounts0')\
             .account_type_ids.mapped('type')
