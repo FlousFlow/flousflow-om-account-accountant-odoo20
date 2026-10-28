@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from lxml import etree
 from odoo import Command, fields
 from odoo.tools.safe_eval import safe_eval
 from odoo.addons.account.tests.common import AccountTestInvoicingCommon
@@ -219,6 +220,10 @@ class TestReviewAccrualCosts(AccountTestInvoicingCommon):
                     mapping.view_id,
                     self.env.ref(f"om_account_accountant.{view_xmlid}"),
                 )
+                combined_arch = etree.fromstring(mapping.view_id.get_combined_arch().encode())
+                unit_price = combined_arch.xpath(".//field[@name='price_unit']")
+                self.assertEqual(len(unit_price), 1)
+                self.assertEqual(unit_price[0].get("sum"), "Total Unit Price")
 
 
 @tagged("post_install", "-at_install")

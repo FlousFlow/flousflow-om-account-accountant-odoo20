@@ -69,9 +69,11 @@ The date picker and grouped historical quantities are covered by Odoo model and
 browser-tour tests. The four report actions now each open a dedicated matching
 list view: Bills To Receive, Billed Not Received, Invoices To Be Issued, and
 Invoiced Not Delivered. A regression test verifies each action-to-view mapping;
-the local database was upgraded to module version 20.0.1.25.0 and its four
-stored mappings were queried after the upgrade. A live Enterprise Invoices To
-Be Issued view confirmed that Total Cost follows the delivered quantity. The
+the local database was upgraded to module version 20.0.1.26.0 and its four
+stored mappings were queried after the upgrade. The grouped Enterprise purchase
+and sales views aggregate Unit Price; both local list views now declare the same
+sum, and the combined-view test checks it. A live Enterprise Invoices To Be
+Issued view confirmed that Total Cost follows the delivered quantity. The
 unit-cost computation now switches to the sale line's company before reading
 company-dependent product cost, matching Odoo's native sales margin cost
 calculation; a two-company regression test verifies this behavior. Remaining
