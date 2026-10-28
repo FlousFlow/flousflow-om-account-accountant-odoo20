@@ -173,6 +173,37 @@ class TestReviewAccrualCosts(AccountTestInvoicingCommon):
         self.assertEqual(grouped_rows[0]["qty_received_at_date:sum"], 5.0)
         self.assertEqual(grouped_rows[0]["qty_invoiced_at_date:sum"], 0.0)
 
+    def test_purchase_unit_price_group_uses_average(self):
+        product = self.env["product.product"].sudo().with_company(self.env.company).create({
+            "name": "Purchase review average price test product",
+            "type": "service",
+            "uom_id": self.uom.id,
+            "standard_price": 50.0,
+            "list_price": 150.0,
+            "taxes_id": [Command.clear()],
+            "supplier_taxes_id": [Command.clear()],
+        })
+        lines = self.env["purchase.order.line"]
+        for unit_price, quantity in ((132.50, 20.0), (89.0, 5.0)):
+            order = self.env["purchase.order"].sudo().create({
+                "partner_id": self.partner_a.id,
+                "order_line": [Command.create({
+                    "product_id": product.id,
+                    "product_qty": quantity,
+                    "price_unit": unit_price,
+                    "tax_ids": [Command.clear()],
+                })],
+            })
+            order.button_confirm()
+            lines |= order.order_line
+
+        grouped_rows = lines.formatted_read_group(
+            [("id", "in", lines.ids)],
+            ["partner_id"],
+            ["price_unit:avg"],
+        )
+        self.assertAlmostEqual(grouped_rows[0]["price_unit:avg"], 110.75)
+
     def test_review_accrual_actions_default_to_enterprise_grouping_and_period(self):
         purchase_action = self.env.ref(
             "om_account_accountant.action_purchase_bill_to_receive"
@@ -192,24 +223,28 @@ class TestReviewAccrualCosts(AccountTestInvoicingCommon):
                 "action_purchase_bill_to_receive_list",
                 "action_purchase_bill_to_receive",
                 "view_purchase_bill_to_receive_list",
+                "avg",
             ),
             (
                 "action_purchase_billed_not_received_list",
                 "action_purchase_billed_not_received",
                 "view_purchase_billed_not_received_list",
+                "avg",
             ),
             (
                 "action_sale_invoice_to_be_issued_list",
                 "action_sale_invoice_to_be_issued",
                 "view_sale_invoice_to_be_issued_list",
+                "sum",
             ),
             (
                 "action_sale_invoiced_not_delivered_list",
                 "action_sale_invoiced_not_delivered",
                 "view_sale_invoiced_not_delivered_list",
+                "sum",
             ),
         )
-        for mapping_xmlid, action_xmlid, view_xmlid in report_mappings:
+        for mapping_xmlid, action_xmlid, view_xmlid, unit_price_aggregator in report_mappings:
             with self.subTest(mapping=mapping_xmlid):
                 mapping = self.env.ref(f"om_account_accountant.{mapping_xmlid}")
                 self.assertEqual(
@@ -223,7 +258,10 @@ class TestReviewAccrualCosts(AccountTestInvoicingCommon):
                 combined_arch = etree.fromstring(mapping.view_id.get_combined_arch().encode())
                 unit_price = combined_arch.xpath(".//field[@name='price_unit']")
                 self.assertEqual(len(unit_price), 1)
-                self.assertEqual(unit_price[0].get("sum"), "Total Unit Price")
+                self.assertEqual(
+                    unit_price[0].get(unit_price_aggregator),
+                    "Average Unit Price" if unit_price_aggregator == "avg" else "Total Unit Price",
+                )
 
 
 @tagged("post_install", "-at_install")

@@ -56,7 +56,7 @@
                 <field name="product_qty" string="Quantity" sum="Total Quantity"/>
                 <field name="qty_received_at_date" string="Received" sum="Total Received"/>
                 <field name="qty_invoiced_at_date" string="Billed" sum="Total Billed"/>
-                <field name="price_unit" string="Unit Price" sum="Total Unit Price"/>
+                <field name="price_unit" string="Unit Price" avg="Average Unit Price"/>
                 <field name="amount_to_invoice_at_date" string="Amount" sum="Total Amount"/>
                 <field name="currency_id" column_invisible="True"/>
                 <field name="company_id" column_invisible="True"/>

@@ -70,10 +70,15 @@ browser-tour tests. The four report actions now each open a dedicated matching
 list view: Bills To Receive, Billed Not Received, Invoices To Be Issued, and
 Invoiced Not Delivered. A regression test verifies each action-to-view mapping;
 the local database was upgraded to module version 20.0.1.26.0 and its four
-stored mappings were queried after the upgrade. The grouped Enterprise purchase
-and sales views aggregate Unit Price; both local list views now declare the same
-sum, and the combined-view test checks it. A live Enterprise Invoices To Be
-Issued view confirmed that Total Cost follows the delivered quantity. The
+stored mappings were queried after the upgrade. The live Enterprise Bills To
+Receive group shows an average Unit Price: 132.50 and 89.00 on its two lines
+produce 110.75, while Amount totals 3,095. The local purchase lists now use the
+average aggregator; their own-view test distinguishes purchase averages from
+the existing sales sums. Version 20.0.1.29.0 is installed on the local 8077
+database, and the stored purchase and sales view arches were queried after the
+upgrade. The Enterprise sales Unit Price group still needs an expanded-row
+comparison. A live Enterprise Invoices To Be Issued view confirmed
+that Total Cost follows the delivered quantity. The
 unit-cost computation now switches to the sale line's company before reading
 company-dependent product cost, matching Odoo's native sales margin cost
 calculation; a two-company regression test verifies this behavior. Remaining
