@@ -110,6 +110,55 @@ class TestWorkingFileBalances(AccountTestInvoicingCommon):
             100.0 / working_file.balance_line_count,
         )
 
+    def test_balance_account_link_opens_posted_journal_items_in_review_period(self):
+        working_file = self.env["account.working.file"].create({
+            "name": "Working file journal item drilldown",
+            "date_from": "2026-01-01",
+            "date_to": "2026-06-30",
+        })
+        balance = working_file.balance_line_ids.filtered(
+            lambda line: line.account_id == self.balance_sheet_account
+        )
+        in_period_move = self._post_balance_move(
+            self.balance_sheet_account, "2026-03-15", 25, 0
+        )
+        self._post_balance_move(self.balance_sheet_account, "2026-07-01", 35, 0)
+        draft_move = self.env["account.move"].create({
+            "move_type": "entry",
+            "date": "2026-04-15",
+            "journal_id": self.company_data["default_journal_misc"].id,
+            "line_ids": [
+                (0, 0, {
+                    "name": "Draft working file drilldown",
+                    "account_id": self.balance_sheet_account.id,
+                    "debit": 45,
+                }),
+                (0, 0, {
+                    "name": "Draft working file drilldown counterpart",
+                    "account_id": self.company_data["default_account_expense"].id,
+                    "credit": 45,
+                }),
+            ],
+        })
+
+        action = balance.action_open_journal_items()
+        visible_lines = self.env["account.move.line"].search(action["domain"])
+
+        self.assertEqual(action["res_model"], "account.move.line")
+        self.assertEqual(action["name"], "Journal Items")
+        self.assertEqual(
+            set(visible_lines.move_id.ids),
+            {in_period_move.id},
+        )
+        self.assertNotIn(draft_move.id, visible_lines.move_id.ids)
+
+    def test_balance_account_name_uses_journal_items_link_widget(self):
+        view = self.env.ref("om_account_accountant.view_account_working_file_balance_list")
+        arch = etree.fromstring(view.arch_db.encode())
+        account_field = arch.xpath(".//field[@name='account_name']")[0]
+
+        self.assertEqual(account_field.get("widget"), "ff_working_file_balance_account")
+
     def test_working_file_opens_on_cycles_before_balances(self):
         view = self.env.ref("om_account_accountant.view_account_working_file_form")
         arch = etree.fromstring(view.arch_db.encode())

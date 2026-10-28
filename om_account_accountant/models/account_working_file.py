@@ -405,6 +405,27 @@ class AccountWorkingFileBalance(models.Model):
             account = line.account_id.with_company(line.company_id) if line.company_id else line.account_id
             line.account_code = account.code
 
+    def action_open_journal_items(self):
+        self.ensure_one()
+        working_file = self.file_id
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Journal Items"),
+            "res_model": "account.move.line",
+            "view_mode": "list,form",
+            "domain": [
+                ("company_id", "=", working_file.company_id.id),
+                ("account_id", "=", self.account_id.id),
+                ("date", ">=", working_file.date_from),
+                ("date", "<=", working_file.date_to),
+                ("parent_state", "=", "posted"),
+            ],
+            "context": {
+                "default_company_id": working_file.company_id.id,
+                "search_default_posted": 1,
+            },
+        }
+
     @api.depends("file_id.date_from", "file_id.date_to", "account_id", "company_id")
     def _compute_balances(self):
         for line in self:

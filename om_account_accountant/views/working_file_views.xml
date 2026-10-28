@@ -7,7 +7,7 @@
             <list string="Balances" create="false" delete="false">
                 <field name="sequence" widget="handle" optional="hide"/>
                 <field name="account_code" string="Code"/>
-                <field name="account_name" string="Account"/>
+                <field name="account_name" string="Account" widget="ff_working_file_balance_account"/>
                 <field name="account_type" string="Type" optional="hide"/>
                 <field name="balance" string="Balance" sum="Total Balance"/>
                 <field name="balance_previous" string="Balance N-1" sum="Total Balance N-1"/>
@@ -299,7 +299,7 @@
                                 <list editable="bottom" create="false" delete="false" default_order="sequence,account_id">
                                     <field name="sequence" widget="handle" optional="hide"/>
                                     <field name="account_code" string="Code" readonly="1"/>
-                                    <field name="account_name" string="Account" readonly="1"/>
+                                    <field name="account_name" string="Account" widget="ff_working_file_balance_account" readonly="1"/>
                                     <field name="account_type" string="Type" optional="hide" readonly="1"/>
                                     <field name="balance" string="Balance" readonly="1"/>
                                     <field name="balance_previous" string="Balance N-1" readonly="1"/>

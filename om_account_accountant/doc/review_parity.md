@@ -147,6 +147,13 @@ periods. The fixture also verifies variation and percentage calculations. Both
 tests pass on the local Odoo 20 database; this confirms the Community rules, not
 numeric equality with the live Enterprise company's ledger.
 
+Enterprise account names in the Balances view open Journal Items filtered to
+that account and the review period, with posted entries selected. Community
+account names now use the same drill-down destination and scope it to the
+working-file company, account, dates, and posted state. A local test confirms
+that in-period posted lines appear while out-of-period and draft lines are
+excluded; the account-name field is wired to the link widget in the list view.
+
 Parity remains partial because browser save/reload has not yet been exercised.
 Several Enterprise checklist prompts refer to Belgian
 GAAP or account numbers 17/42; those
