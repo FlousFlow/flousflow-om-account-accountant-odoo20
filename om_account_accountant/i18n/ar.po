@@ -654,6 +654,11 @@ msgid "Accounts"
 msgstr "الحسابات"
 
 #. module: om_account_accountant
+#: model_terms:ir.ui.view,arch_db:om_account_accountant.view_account_working_file_kanban
+msgid "balances reviewed"
+msgstr "الأرصدة التي تمت مراجعتها"
+
+#. module: om_account_accountant
 msgid "checks reviewed"
 msgstr "بند تمت مراجعته"
 

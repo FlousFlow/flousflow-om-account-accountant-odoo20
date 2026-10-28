@@ -149,6 +149,9 @@
                 <field name="check_count"/>
                 <field name="reviewed_count"/>
                 <field name="progress"/>
+                <field name="balance_line_count"/>
+                <field name="balance_reviewed_count"/>
+                <field name="balance_progress"/>
                 <field name="state"/>
                 <templates>
                     <t t-name="card">
@@ -159,6 +162,11 @@
                         <div class="text-muted mt-2">
                             <field name="date_from"/> – <field name="date_to"/>
                         </div>
+                        <div class="mt-2">
+                            <field name="balance_reviewed_count"/> / <field name="balance_line_count"/>
+                            <span>balances reviewed</span>
+                        </div>
+                        <field name="balance_progress" widget="progressbar"/>
                         <div class="mt-2">
                             <field name="reviewed_count"/> / <field name="check_count"/> <span>checks reviewed</span>
                         </div>

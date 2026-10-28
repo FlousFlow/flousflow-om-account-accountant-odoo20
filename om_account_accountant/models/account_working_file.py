@@ -50,6 +50,8 @@ class AccountWorkingFile(models.Model):
     reviewed_count = fields.Integer(compute="_compute_progress", store=True)
     progress = fields.Float(compute="_compute_progress", store=True)
     balance_line_count = fields.Integer(compute="_compute_balance_line_count")
+    balance_reviewed_count = fields.Integer(compute="_compute_balance_progress")
+    balance_progress = fields.Float(compute="_compute_balance_progress")
     currency_id = fields.Many2one(related="company_id.currency_id")
 
     @api.depends("check_ids", "check_ids.state")
@@ -65,6 +67,18 @@ class AccountWorkingFile(models.Model):
     def _compute_balance_line_count(self):
         for record in self:
             record.balance_line_count = len(record.balance_line_ids)
+
+    @api.depends("balance_line_ids", "balance_line_ids.state")
+    def _compute_balance_progress(self):
+        for record in self:
+            reviewed = record.balance_line_ids.filtered(
+                lambda line: line.state == "reviewed"
+            )
+            record.balance_reviewed_count = len(reviewed)
+            record.balance_progress = (
+                100.0 * len(reviewed) / len(record.balance_line_ids)
+                if record.balance_line_ids else 0.0
+            )
 
     @api.constrains("date_from", "date_to")
     def _check_dates(self):

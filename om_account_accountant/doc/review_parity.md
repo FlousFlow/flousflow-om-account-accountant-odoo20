@@ -123,6 +123,11 @@ been exercised.
 Accounting managers can validate or reopen a file, and validation is blocked
 until every checklist item is reviewed. Company-scoped access is applied.
 
+The working-file kanban card now shows two separate completion bars like the
+Enterprise card: reviewed balance accounts / total balance accounts, followed
+by reviewed checks / total checks. A test verifies that reviewing a balance
+line updates the card's balance count and percentage.
+
 The Balances tab creates one line for each active account in the file's company.
 It shows current-period balance, the corresponding prior-year balance,
 variation, variation percentage, last comment, and review status, with account

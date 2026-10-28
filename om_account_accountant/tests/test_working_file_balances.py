@@ -86,3 +86,25 @@ class TestWorkingFileBalances(AccountTestInvoicingCommon):
         self.assertEqual(line.balance_previous, -10)
         self.assertEqual(line.variation, -20)
         self.assertEqual(line.variation_percent, -200)
+
+    def test_working_file_card_tracks_reviewed_balance_accounts(self):
+        working_file = self.env["account.working.file"].create({
+            "name": "Working file balance review progress",
+            "date_from": "2026-01-01",
+            "date_to": "2026-12-31",
+        })
+        line = working_file.balance_line_ids.filtered(
+            lambda balance: balance.account_id == self.balance_sheet_account
+        )
+
+        self.assertEqual(working_file.balance_reviewed_count, 0)
+        self.assertEqual(working_file.balance_line_count, len(working_file.balance_line_ids))
+        self.assertEqual(working_file.balance_progress, 0)
+
+        line.write({"state": "reviewed"})
+
+        self.assertEqual(working_file.balance_reviewed_count, 1)
+        self.assertAlmostEqual(
+            working_file.balance_progress,
+            100.0 / working_file.balance_line_count,
+        )
