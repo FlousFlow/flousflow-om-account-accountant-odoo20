@@ -36,7 +36,16 @@ async function fillDateAndWait(input, value) {
 
 registry.category("web_tour.tours").add("ff_journal_audit_period_filter", {
     steps: () => [
-        { trigger: ".o_ff_journal_audit .ff_journal_audit_table" },
+        {
+            trigger: ".o_ff_journal_audit .ff_journal_audit_table",
+            run() {
+                const zeroPendingJournals = [...document.querySelectorAll(".ff_journal_audit_journal")]
+                    .filter((row) => row.querySelector("td:nth-child(2)")?.innerText.trim() === "0");
+                if (zeroPendingJournals.some((row) => !row.querySelector(".ff_journal_audit_review"))) {
+                    throw new Error("The audit action should remain visible when a journal has no pending reviews.");
+                }
+            },
+        },
         { trigger: ".ff_journal_audit_period_picker > button", run: "click" },
         {
             trigger: ".ff_journal_audit_period_option:nth-child(1) .dropdown-item",

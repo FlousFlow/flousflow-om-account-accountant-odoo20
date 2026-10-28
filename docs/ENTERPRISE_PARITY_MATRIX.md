@@ -14,7 +14,7 @@ Baseline database: `flousflow_om_accountant_dev20_20261028`; Odoo 20.0; last inv
 | Annual Report | `accounting_pdf_reports` and suite annual-report menu exist | Enterprise template/configuration behavior needs runtime comparison | Test template setup, period selection and output |
 | General Ledger | Suite exposes General Ledger under Reporting > Ledgers | Enterprise full-page search/grouping/drill-down behavior needs comparison | Preserve native report engine; add targeted UI gaps only |
 | Trial Balance | Suite exposes Trial Balance under Reporting > Ledgers | Enterprise filters and column behavior need comparison | Add missing filters/columns after evidence |
-| Journal Audit | Period presets, entry filters, payment toggle, scale, review action, tax summary, print, XLSX export, Send to Documents and Insert in Article | Main report and date presets are browser-tested; Send to Documents and Insert in Article are missing because Documents and Knowledge are unavailable in local Community | Preserve native report flow; investigate optional integrations when compatible platform modules exist |
+| Journal Audit | Period presets, entry filters, payment toggle, scale, per-journal audit action, tax summary, print, XLSX export, Send to Documents and Insert in Article | Main report, date presets and per-journal action visibility are browser-tested; Send to Documents and Insert in Article are missing because Documents and Knowledge are unavailable in local Community | Preserve native report flow; investigate optional integrations when compatible platform modules exist |
 | Partner Ledger and Aged Partner reports | Partner Ledger, Aged Partner Balance, Aged Receivable and Aged Payable are installed | Enterprise interaction and export parity needs runtime proof | Validate filters, partner drill-down and exports |
 | Tax Report | Tax Report menu/action is installed | Enterprise localization and period-lock behavior needs comparison | Reuse native tax engine; close verified gaps only |
 | Daily reports | Day Book, Cash Book and Bank Book are installed | Enterprise grouping and export behavior needs comparison | Compare output and filters |
@@ -166,3 +166,22 @@ This closes the observed hierarchy and category-label differences only.
 Formula parity beyond inspected info popovers, all report options and drill-down
 parity remain part of the ongoing comparison; live-value parity remains
 unproven because the Enterprise and local databases contain different data.
+
+## Verified Journal Audit action increment — 2026-10-28
+
+The same Journal Audit destination was inspected in Enterprise and the local
+suite. Enterprise keeps the per-journal Audit action visible even when the
+To Review count is zero. The local report previously hid that action in this
+case. It now remains visible to accounting users; its server-side handler still
+marks only posted entries in the selected company, journal and period, and
+returns zero without changing anything when none are pending. Read-only users
+do not receive the action. The browser tour checks the zero-pending case when a
+matching journal row exists, and the local browser showed Audit beside
+Miscellaneous Operations with a count of zero after the upgrade. The Journal
+Audit period tour, period tests and Review menu tests passed together
+(0 failures across 8 selected tests).
+
+Review > Control still matches Enterprise's three destinations and their order;
+the local-only Entries to Review queue remains afterward as an additional
+destination. Export integrations and the Enterprise workflow behind the
+separate tax verification link remain open parity items.

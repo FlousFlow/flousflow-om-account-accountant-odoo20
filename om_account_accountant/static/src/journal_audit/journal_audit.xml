@@ -115,8 +115,10 @@
                                             </button>
                                             <strong t-out="journal.name"/>
                                             <span class="text-muted ms-2">(<t t-out="journal.documents"/> documents)</span>
-                                            <button t-if="this.state.canAudit and journal.to_review"
-                                                    class="btn btn-sm btn-outline-primary ms-2"
+                                            <button t-if="this.state.canAudit"
+                                                    t-att-data-journal-id="journal.id"
+                                                    t-att-data-to-review="journal.to_review"
+                                                    t-att-class="'btn btn-sm btn-outline-primary ms-2 ff_journal_audit_review'"
                                                     t-att-disabled="this.state.auditingJournalId === journal.id"
                                                     t-on-click="() => this.auditJournal(journal)">
                                                 <i t-if="this.state.auditingJournalId === journal.id" class="fa fa-spinner fa-spin me-1"/>

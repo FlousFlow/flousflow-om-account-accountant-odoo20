@@ -273,7 +273,7 @@ export class JournalAudit extends Component {
     }
 
     async auditJournal(journal) {
-        if (!this.state.canAudit || !journal.to_review || this.state.auditingJournalId) {
+        if (!this.state.canAudit || this.state.auditingJournalId) {
             return;
         }
         this.state.auditingJournalId = journal.id;

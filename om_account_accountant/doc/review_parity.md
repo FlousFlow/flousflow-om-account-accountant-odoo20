@@ -24,7 +24,7 @@ community work queue under Accounting.
 | Include payments | Yes | Yes | Implemented |
 | Display scale | Currency, thousands, millions | Currency, thousands, millions | Implemented |
 | Journal totals and expandable entries | Yes | Yes | Implemented |
-| Review action | Marks entries reviewed | Calls Odoo's native `set_moves_checked` for eligible posted entries | Implemented; no entry was changed during verification |
+| Review action | Marks entries reviewed; the per-journal action remains visible at zero pending | Calls Odoo's native `set_moves_checked` for eligible posted entries; the action is visible at zero pending and returns 0 without writes | Browser verified on the local zero-pending journal; handler remains company, period, state and group scoped |
 | Tax summary and drill-down | Yes | Yes | Implemented |
 | Print | Yes | Yes | Implemented |
 | XLSX export | Yes | Yes; Journals, Entries, and Taxes worksheets | Implemented and downloaded/validated |
