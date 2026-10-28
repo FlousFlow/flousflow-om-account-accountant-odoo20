@@ -37,15 +37,15 @@ class SaleOrderLineReviewCost(models.Model):
     @api.depends("product_id", "company_id", "currency_id", "product_uom_id")
     def _compute_review_accrual_unit_cost(self):
         for line in self:
+            line = line.with_company(line.company_id)
             product = line.product_id
             if not product or not line.product_uom_id:
                 line.review_accrual_unit_cost = 0.0
                 continue
-            company_line = line.with_company(line.company_id)
             product_cost = product.uom_id._compute_price(
                 product.standard_price, line.product_uom_id
             )
-            line.review_accrual_unit_cost = company_line._convert_to_sol_currency(
+            line.review_accrual_unit_cost = line._convert_to_sol_currency(
                 product_cost, product.cost_currency_id
             )
 

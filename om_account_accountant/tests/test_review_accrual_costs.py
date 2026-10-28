@@ -81,6 +81,40 @@ class TestReviewAccrualCosts(AccountTestInvoicingCommon):
             )
         )
 
+    def test_review_unit_cost_uses_the_order_line_company(self):
+        company_data = self.setup_other_company(name="review_cost_company")
+        company = company_data["company"]
+        product = self.env["product.product"].sudo().create({
+            "name": "Company-specific review cost product",
+            "type": "service",
+            "invoice_policy": "delivery",
+            "uom_id": self.uom.id,
+            "standard_price": 125.0,
+            "list_price": 400.0,
+            "taxes_id": [Command.clear()],
+        })
+        product.with_company(company).standard_price = 225.0
+        pricelist = self.env["product.pricelist"].with_company(company).search([
+            ("currency_id", "=", company.currency_id.id),
+            "|", ("company_id", "=", company.id), ("company_id", "=", False),
+        ], limit=1)
+        order = self.env["sale.order"].sudo().create({
+            "company_id": company.id,
+            "partner_id": self.partner_a.id,
+            "pricelist_id": pricelist.id,
+            "order_line": [Command.create({
+                "product_id": product.id,
+                "product_uom_qty": 2.0,
+                "price_unit": 400.0,
+                "tax_ids": [Command.clear()],
+            })],
+        })
+        order.with_company(company).action_confirm()
+
+        line = order.order_line
+        self.assertEqual(line.company_id, company)
+        self.assertAlmostEqual(line.review_accrual_unit_cost, 225.0)
+
     def test_purchase_review_search_and_group_sums_use_as_of_context(self):
         product = self.env["product.product"].sudo().with_company(self.env.company).create({
             "name": "Purchase review accrual test product",
