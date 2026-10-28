@@ -919,6 +919,11 @@ msgstr ""
 msgid "Equity"
 msgstr ""
 
+#. odoo-python
+#: code:addons/accounting_pdf_reports/report/report_financial.py:0
+msgid "Capital"
+msgstr ""
+
 #. module: accounting_pdf_reports
 #: model_terms:ir.ui.view,arch_db:accounting_pdf_reports.res_config_settings_view_form
 msgid "Excel Reports"

@@ -8,7 +8,7 @@ Baseline database: `flousflow_om_accountant_dev20_20261028`; Odoo 20.0; last inv
 
 | Enterprise destination / function | Standard Community or suite support | Actual gap | Proposed solution |
 | --- | --- | --- | --- |
-| Balance Sheet | The menu opens a full-page in-app report with As of date, comparison, posted/all entries, debit/credit columns, journal filters, amount scaling, draft warning, expandable report rows, account-to-journal-item links and Print options | Browser tour confirms every displayed line has an info icon and the Total ASSETS popover matches Enterprise's formula; hierarchy still needs line-by-line comparison. Live-value parity is unproven because the databases contain different data | Compare the hierarchy against Enterprise, then compare equivalent fixtures, native settings and line drill-down behavior |
+| Balance Sheet | The menu opens a full-page in-app report with As of date, comparison, posted/all entries, debit/credit columns, journal filters, amount scaling, draft warning, expandable report rows, account-to-journal-item links and Print options | Browser comparison confirms the asset, liability and equity labels/order, plus formula-info icons. Live-value parity is unproven because the databases contain different data | Continue comparing formulas, options, drill-downs and equivalent fixtures |
 | Profit and Loss | Menu opens the same full-page in-app report with year-to-date dates, comparison, entry state, debit/credit, journal filters, scaling and Print options | Enterprise-specific period presets and hierarchy still need a line-by-line comparison | Compare report rows, date presets, settings, exports and drill-down |
 | Cash Flow Statement | `accounting_pdf_reports` action/menu exists and is installed | Enterprise layout and interaction parity not fully verified | Reconcile report lines, filters and export behavior |
 | Annual Report | `accounting_pdf_reports` and suite annual-report menu exist | Enterprise template/configuration behavior needs runtime comparison | Test template setup, period selection and output |
@@ -145,3 +145,24 @@ non-current asset categories, and calculates category and section subtotals
 from the financial-report engine. Its Odoo module tests pass; the revised
 hierarchy still needs a fresh browser check. Enterprise settings and full
 drill-down parity remain open gaps.
+
+## Verified Balance Sheet hierarchy increment — 2026-10-28
+
+The local browser and live Enterprise report were compared again. Both show
+Current Assets followed by Bank and Cash Accounts, Receivables, Current Assets,
+Prepayments and Total Current Assets; both then show Fixed Assets,
+Non-current Assets and Total ASSETS. The current-liability category is named
+Current Liabilities in both. The equity section also matches Enterprise's
+Capital, Earnings, Current Year Unallocated Earnings, Previous Years Earnings,
+Total Earnings, Total EQUITY (& EARNINGS), and LIABILITIES + EQUITY rows. The
+local report had called the categories Other Current Assets,
+Other Current Liabilities and Equity. Those labels now match Enterprise while
+retaining the same account type domains and totals. The Balance Sheet test
+asserts the corrected names; all 10 `TestBalanceSheet` tests passed on
+`flousflow_om_accountant_dev20_20261028` after upgrading
+`accounting_pdf_reports`. The database was backed up before the upgrade.
+
+This closes the observed hierarchy and category-label differences only.
+Formula parity beyond inspected info popovers, all report options and drill-down
+parity remain part of the ongoing comparison; live-value parity remains
+unproven because the Enterprise and local databases contain different data.

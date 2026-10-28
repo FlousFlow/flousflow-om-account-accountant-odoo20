@@ -173,11 +173,25 @@ class TestBalanceSheet(AccountTestInvoicingCommon):
         self.assertNotIn('Liabilities and Equity', [item['name'] for item in result['lines']])
         self.assertIn('LIABILITIES', [item['name'] for item in result['lines']])
         self.assertIn('Current Assets', [item['name'] for item in result['lines']])
+        self.assertIn('Current Liabilities', [item['name'] for item in result['lines']])
+        self.assertNotIn('Other Current Assets', [item['name'] for item in result['lines']])
+        self.assertNotIn('Other Current Liabilities', [item['name'] for item in result['lines']])
+        self.assertEqual(
+            [item['name'] for item in result['lines'] if item.get('account_type') == 'asset_current'],
+            ['Current Assets'],
+        )
+        self.assertEqual(
+            [item['name'] for item in result['lines'] if item.get('account_type') == 'liability_current'],
+            ['Current Liabilities'],
+        )
         self.assertIn('Bank and Cash Accounts', [item['name'] for item in result['lines']])
         self.assertIn('Receivables', [item['name'] for item in result['lines']])
         line_names = [item['name'] for item in result['lines']]
         self.assertLess(line_names.index('Bank and Cash Accounts'), line_names.index('Receivables'))
         self.assertIn('EQUITY (& EARNINGS)', line_names)
+        self.assertIn('Capital', line_names)
+        self.assertNotIn('Equity', [item['name'] for item in result['lines']
+                                    if item.get('row_key', '').startswith('equity-accounts-')])
         self.assertIn('Current Year Unallocated Earnings', line_names)
         self.assertIn('Previous Years Earnings', line_names)
         self.assertIn('LIABILITIES + EQUITY', line_names)

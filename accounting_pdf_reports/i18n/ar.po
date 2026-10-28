@@ -756,6 +756,11 @@ msgstr "الالتزامات الجارية"
 
 #. odoo-python
 #: code:addons/accounting_pdf_reports/report/report_financial.py:0
+msgid "Capital"
+msgstr "رأس المال"
+
+#. odoo-python
+#: code:addons/accounting_pdf_reports/report/report_financial.py:0
 msgid "Other Current Liabilities"
 msgstr "الالتزامات الجارية الأخرى"
 

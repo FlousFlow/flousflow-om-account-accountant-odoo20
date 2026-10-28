@@ -411,9 +411,9 @@ class ReportFinancial(models.AbstractModel):
                 category_name = {
                     'asset_cash': _('Bank and Cash Accounts'),
                     'asset_receivable': _('Receivables'),
-                    'asset_current': _('Other Current Assets'),
+                    'asset_current': _('Current Assets'),
                     'liability_payable': _('Payables'),
-                    'liability_current': _('Other Current Liabilities'),
+                    'liability_current': _('Current Liabilities'),
                 }.get(account_type.type, account_type.name)
                 categories.append((account_type, category_accounts, category_name))
 
@@ -506,7 +506,7 @@ class ReportFinancial(models.AbstractModel):
                         'credit': value['credit'],
                         'balance': -value['balance'],
                     })
-                lines.append(amount_row(_('Equity'), 'category', f"equity-accounts-{section.id}",
+                lines.append(amount_row(_('Capital'), 'category', f"equity-accounts-{section.id}",
                                         line['level'] + 1, equity_lines,
                                         extra_account_ids=account_ids_for_types({'equity'})))
                 for account in equity_lines:
