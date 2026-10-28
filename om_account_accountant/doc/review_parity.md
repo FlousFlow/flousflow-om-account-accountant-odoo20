@@ -148,8 +148,9 @@ navigation. Its audit checklist contains 52 checks grouped by accounting area,
 with review states, notes, evidence uploads, and activity history. The cycle also
 has a Spreadsheet tab. The observed Enterprise file opens a blank Sheet1 in the
 spreadsheet editor, with File/Edit/View/Insert/Format/Data/Help menus and a
-"Saved" status indicator. Editing and persistence across reloads have not yet
-been exercised.
+"Saved" status indicator. A browser tour now edits a cell, waits for the Saved
+state, reloads the working-file page, reopens Spreadsheet, and confirms the cell
+value both in the reloaded editor model and the record snapshot.
 
 The Community suite now exposes Working Files under Review with a cycle kanban,
 checklist cards labeled by accounting area, and a Balances tab. New files use the
@@ -170,8 +171,8 @@ alongside Cycles and Balances as in Enterprise. The existing full-screen open
 action remains as an additional shortcut. A local browser tour verified that the
 embedded editor loads, handles a cell update, reaches its Saved state, and
 persists the edited value in the Odoo snapshot; it also verifies that the
-full-screen shortcut still opens. A full page reload after saving has not yet
-been exercised.
+full-screen shortcut still opens. The same browser tour confirms that the
+edited cell survives a full page reload and is present in the reloaded editor.
 Accounting managers can validate or reopen a file, and validation is blocked
 until every checklist item is reviewed. Company-scoped access is applied.
 
@@ -213,7 +214,7 @@ always reconciles account rows, and the current development file has been
 refreshed to 50 account rows without altering journal entries. A regression
 test covers creation with the empty one2many payload.
 
-Parity remains partial because browser save/reload has not yet been exercised.
+Spreadsheet save/reload now has browser coverage. Overall parity remains partial.
 Several Enterprise checklist prompts refer to Belgian
 GAAP or account numbers 17/42; those
 jurisdiction-specific instructions were observed in the Enterprise company and need
