@@ -152,8 +152,10 @@ class AccountWorkingFile(models.Model):
                     })
                     for template in templates
                 ]
-            if "balance_line_ids" not in vals:
-                file_record._sync_balance_lines()
+            # The web form can send an explicit empty one2many command while
+            # creating a file. Always reconcile the account snapshot so that
+            # this does not leave a newly created review file without balances.
+            file_record._sync_balance_lines()
             file_record.message_post(body=_("Working file created for %(name)s.", name=file_record.name))
         return files
 

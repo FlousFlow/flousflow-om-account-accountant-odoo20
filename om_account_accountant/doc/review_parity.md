@@ -154,6 +154,13 @@ working-file company, account, dates, and posted state. A local test confirms
 that in-period posted lines appear while out-of-period and draft lines are
 excluded; the account-name field is wired to the link widget in the list view.
 
+The local development file initially opened with zero balance rows although its
+company had 50 active accounts. The web form can submit an explicit empty
+one2many value, which bypassed the old create-time sync. File creation now
+always reconciles account rows, and the current development file has been
+refreshed to 50 account rows without altering journal entries. A regression
+test covers creation with the empty one2many payload.
+
 Parity remains partial because browser save/reload has not yet been exercised.
 Several Enterprise checklist prompts refer to Belgian
 GAAP or account numbers 17/42; those

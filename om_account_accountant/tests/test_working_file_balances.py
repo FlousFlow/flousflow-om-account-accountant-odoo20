@@ -110,6 +110,26 @@ class TestWorkingFileBalances(AccountTestInvoicingCommon):
             100.0 / working_file.balance_line_count,
         )
 
+    def test_create_syncs_accounts_when_web_form_sends_empty_balance_lines(self):
+        working_file = self.env["account.working.file"].create({
+            "name": "Working file empty balance commands",
+            "date_from": "2026-01-01",
+            "date_to": "2026-12-31",
+            "balance_line_ids": [],
+        })
+
+        line = working_file.balance_line_ids.filtered(
+            lambda balance: balance.account_id == self.balance_sheet_account
+        )
+        self.assertEqual(len(line), 1)
+        self.assertEqual(
+            working_file.balance_line_count,
+            self.env["account.account"].with_company(working_file.company_id).search_count([
+                ("company_ids", "in", working_file.company_id.id),
+                ("active", "=", True),
+            ]),
+        )
+
     def test_balance_account_link_opens_posted_journal_items_in_review_period(self):
         working_file = self.env["account.working.file"].create({
             "name": "Working file journal item drilldown",
