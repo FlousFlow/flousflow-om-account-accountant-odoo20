@@ -113,8 +113,8 @@ filter now supports the same period types and navigation; Fiscal Year bounds
 come from the active company's configured fiscal-year settings. Custom date
 ranges validate start/end order before reloading the report. A local Odoo browser
 tour exercised Month, Quarter, next-quarter navigation, Fiscal Year, and custom
-date entry on 2026-10-28; the fiscal-year unit tests and Review menu tests passed
-in the same run (0 failures across 13 tests). The test also exposed and fixed
+date entry on 2026-10-28; the fiscal-year unit tests and full Review menu-tree
+tests passed in the same run (0 failures across 14 tests). The test also exposed and fixed
 eager loading of the Spreadsheet editor's dependencies on unrelated accounting
 pages; the editor now loads its bundle only when a working-file spreadsheet is
 opened.
