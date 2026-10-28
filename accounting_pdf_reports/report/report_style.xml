@@ -44,6 +44,10 @@
                 vertical-align: bottom;
             }
             .o_om_report table tbody tr:nth-child(even) td { background-color: #fbfbfb; }
+            .o_om_report .ff_financial_print_table tbody tr.o_om_section td {
+                background-color: #d8dee7 !important; font-weight: 700; text-transform: uppercase;
+            }
+            .o_om_report .ff_financial_print_table tbody tr.o_om_group td { font-weight: 600; }
 
             /* Figures: aligned digits, and never broken across two lines. */
             .o_om_report table th.text-end,

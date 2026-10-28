@@ -743,11 +743,21 @@ msgstr "عملة"
 msgid "Current Assets"
 msgstr "الأصول المتداولة"
 
+#. odoo-python
+#: code:addons/accounting_pdf_reports/report/report_financial.py:0
+msgid "Other Current Assets"
+msgstr "الأصول المتداولة الأخرى"
+
 #. module: accounting_pdf_reports
 #: model:account.account.type,name:accounting_pdf_reports.data_account_type_current_liabilities
 #: model:ir.model.fields.selection,name:accounting_pdf_reports.selection__account_account_type__type__liability_current
 msgid "Current Liabilities"
 msgstr "الالتزامات الجارية"
+
+#. odoo-python
+#: code:addons/accounting_pdf_reports/report/report_financial.py:0
+msgid "Other Current Liabilities"
+msgstr "الالتزامات الجارية الأخرى"
 
 #. module: accounting_pdf_reports
 #: model:account.account.type,name:accounting_pdf_reports.data_unaffected_earnings
@@ -1568,6 +1578,11 @@ msgstr "معاينة التقارير المالية دون تنزيلها"
 #: model_terms:ir.ui.view,arch_db:accounting_pdf_reports.accounting_tax_report_view
 msgid "Print"
 msgstr "طباعة"
+
+#. module: accounting_pdf_reports
+#: model_terms:ir.ui.view,arch_db:accounting_pdf_reports.accounting_report_view
+msgid "Export Excel"
+msgstr "تصدير Excel"
 
 #. module: accounting_pdf_reports
 #: model:ir.model.fields,help:accounting_pdf_reports.field_account_common_journal_report__amount_currency

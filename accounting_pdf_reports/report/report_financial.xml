@@ -25,74 +25,36 @@
                             </div>
                         </div>
 
-                        <table class="table table-sm table-reports" t-if="data['debit_credit'] == 1">
+                        <table class="table table-sm table-reports ff_financial_print_table">
                             <thead>
                                 <tr>
-                                    <th>Name</th>
-                                    <th class="text-end">Debit</th>
-                                    <th class="text-end">Credit</th>
+                                    <th>Account</th>
+                                    <th t-if="data['debit_credit']" class="text-end">Debit</th>
+                                    <th t-if="data['debit_credit']" class="text-end">Credit</th>
                                     <th class="text-end">Balance</th>
+                                    <th t-if="data['enable_filter']" class="text-end">
+                                        <span t-out="data.get('label_filter') or 'Previous Period'"/>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr t-foreach="get_account_lines" t-as="a" t-if="a['level'] != 0">
-                                    <t t-set="style" t-value="'font-weight: normal;' if int(a.get('level')) &gt; 3 else 'font-weight: bold;'"/>
-                                    <td>
-                                        <span style="color: white;" t-out="'..' * int(a.get('level', 0))"/>
-                                        <span t-att-style="style" t-out="a.get('name')"/>
+                                <tr t-foreach="report_lines" t-as="line"
+                                    t-att-class="'o_om_section' if line.get('type') == 'report' and int(line.get('level', 0)) &lt;= 1 else ('o_om_total' if line.get('type') == 'total' else ('o_om_group' if line.get('type') == 'group' else ''))">
+                                    <t t-set="level" t-value="max(0, int(line.get('level', 0)))"/>
+                                    <td t-att-style="'padding-right: %spx;' % (8 + level * 16) if o.env.lang.startswith('ar') else 'padding-left: %spx;' % (8 + level * 16)">
+                                        <span t-out="line.get('name')"/>
+                                    </td>
+                                    <td t-if="data['debit_credit']" class="text-end text-nowrap">
+                                        <span t-if="line.get('show_amount', True)" t-out="line.get('debit', 0.0)" t-options="{'widget': 'monetary', 'display_currency': res_company.currency_id}"/>
+                                    </td>
+                                    <td t-if="data['debit_credit']" class="text-end text-nowrap">
+                                        <span t-if="line.get('show_amount', True)" t-out="line.get('credit', 0.0)" t-options="{'widget': 'monetary', 'display_currency': res_company.currency_id}"/>
                                     </td>
                                     <td class="text-end text-nowrap">
-                                        <span t-att-style="style" t-out="a.get('debit')" t-options="{'widget': 'monetary', 'display_currency': res_company.currency_id}"/>
+                                        <span t-if="line.get('show_amount', True)" t-out="line.get('balance', 0.0)" t-options="{'widget': 'monetary', 'display_currency': res_company.currency_id}"/>
                                     </td>
-                                    <td class="text-end text-nowrap">
-                                        <span t-att-style="style" t-out="a.get('credit')" t-options="{'widget': 'monetary', 'display_currency': res_company.currency_id}"/>
-                                    </td>
-                                    <td class="text-end text-nowrap">
-                                        <span t-att-style="style" t-out="a.get('balance')" t-options="{'widget': 'monetary', 'display_currency': res_company.currency_id}"/>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-
-                        <table class="table table-sm table-reports" t-if="not data['enable_filter'] and not data['debit_credit']">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th class="text-end">Balance</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr t-foreach="get_account_lines" t-as="a" t-if="a['level'] != 0">
-                                    <t t-set="style" t-value="'font-weight: normal;' if int(a.get('level')) &gt; 3 else 'font-weight: bold;'"/>
-                                    <td>
-                                        <span style="color: white;" t-out="'..' * int(a.get('level', 0))"/>
-                                        <span t-att-style="style" t-out="a.get('name')"/>
-                                    </td>
-                                    <td class="text-end text-nowrap"><span t-att-style="style" t-out="a.get('balance')" t-options="{'widget': 'monetary', 'display_currency': res_company.currency_id}"/></td>
-                                </tr>
-                            </tbody>
-                        </table>
-
-                        <table class="table table-sm table-reports" t-if="data['enable_filter'] == 1 and not data['debit_credit']">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th class="text-end">Balance</th>
-                                    <th class="text-end"><span t-out="data['label_filter']"/></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr t-foreach="get_account_lines" t-as="a" t-if="a['level'] != 0">
-                                    <t t-set="style" t-value="'font-weight: normal;' if int(a.get('level')) &gt; 3 else 'font-weight: bold;'"/>
-                                    <td>
-                                        <span style="color: white;" t-out="'..' * int(a.get('level', 0))"/>
-                                        <span t-att-style="style" t-out="a.get('name')"/>
-                                    </td>
-                                    <td class="text-end text-nowrap">
-                                        <span t-att-style="style" t-out="a.get('balance')" t-options="{'widget': 'monetary', 'display_currency': res_company.currency_id}"/>
-                                    </td>
-                                    <td class="text-end text-nowrap">
-                                        <span t-att-style="style" t-out="a.get('balance_cmp')" t-options="{'widget': 'monetary', 'display_currency': res_company.currency_id}"/>
+                                    <td t-if="data['enable_filter']" class="text-end text-nowrap">
+                                        <span t-if="line.get('show_amount', True)" t-out="line.get('balance_cmp', 0.0)" t-options="{'widget': 'monetary', 'display_currency': res_company.currency_id}"/>
                                     </td>
                                 </tr>
                             </tbody>

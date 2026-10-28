@@ -1,7 +1,6 @@
 from . import wizard
 from . import models
 from . import report
-from . import controllers
 
 
 def _pre_init_clean_m2m_models(env):

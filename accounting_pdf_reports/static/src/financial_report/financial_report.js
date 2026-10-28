@@ -37,11 +37,13 @@ export class FinancialReport extends Component {
             journals: [],
             journalIds: false,
             expanded: [],
+            hideZero: false,
             draftCount: 0,
             dismissedDraftWarning: false,
             currencyId: false,
             companyId: false,
             companyName: "",
+            formulaInfoKey: null,
         });
         onWillStart(() => this.loadReport());
     }
@@ -50,6 +52,9 @@ export class FinancialReport extends Component {
         const visible = [];
         const parents = [];
         for (const line of this.state.lines) {
+            if (this.state.hideZero && this.isZeroDetail(line) && !this.hasNonzeroChildren(line)) {
+                continue;
+            }
             while (parents.length && parents[parents.length - 1].level >= line.level) {
                 parents.pop();
             }
@@ -64,6 +69,27 @@ export class FinancialReport extends Component {
             }
         }
         return visible;
+    }
+
+    isZeroDetail(line) {
+        return ["account", "category"].includes(line.type) &&
+            Math.abs(line.balance || 0) < 0.005 &&
+            Math.abs(line.debit || 0) < 0.005 &&
+            Math.abs(line.credit || 0) < 0.005 &&
+            Math.abs(line.balance_cmp || 0) < 0.005;
+    }
+
+    hasNonzeroChildren(line) {
+        const index = this.state.lines.indexOf(line);
+        for (const child of this.state.lines.slice(index + 1)) {
+            if (child.level <= line.level) {
+                break;
+            }
+            if (!this.isZeroDetail(child)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     hasChildren(line) {
@@ -126,6 +152,28 @@ export class FinancialReport extends Component {
             : [...this.state.expanded, key];
     }
 
+    formulaInfoKey(line) {
+        return line.row_key || `report-${line.report_id || line.name}`;
+    }
+
+    toggleFormulaInfo(line) {
+        const key = this.formulaInfoKey(line);
+        this.state.formulaInfoKey = this.state.formulaInfoKey === key ? null : key;
+    }
+
+    toggleAllLines() {
+        const expandable = this.state.lines.filter((line) => this.hasChildren(line));
+        const allExpanded = this.areAllLinesExpanded();
+        this.state.expanded = allExpanded ? [] : expandable.map((line) => this.expansionKey(line));
+    }
+
+    areAllLinesExpanded() {
+        const expandable = this.state.lines.filter((line) => this.hasChildren(line));
+        return expandable.length > 0 && expandable.every((line) =>
+            this.state.expanded.includes(this.expansionKey(line))
+        );
+    }
+
     formatAmount(value) {
         const scales = {
             unit: { divisor: 1, digits: [69, 2], suffix: "" },
@@ -140,14 +188,27 @@ export class FinancialReport extends Component {
         })}${scale.suffix}`;
     }
 
-    async openAccount(accountId) {
+    async openLineDetails(line) {
+        const accountIds = line.account_ids || (line.account_id ? [line.account_id] : []);
+        if (!accountIds.length) {
+            return;
+        }
         const action = await this.action.loadAction("account.action_account_moves_all");
-        action.domain = [...(action.domain || []), ["account_id", "=", accountId], ["date", "<=", this.state.dateTo]];
-        if (this.state.dateFrom) {
-            action.domain.push(["date", ">=", this.state.dateFrom]);
+        const dateFrom = line.detail_date_from ?? this.state.dateFrom;
+        const dateTo = line.detail_date_to ?? this.state.dateTo;
+        action.domain = [...(action.domain || []), ["account_id", "in", accountIds], ["date", "<=", dateTo]];
+        if (dateFrom) {
+            action.domain.push(["date", ">=", dateFrom]);
         }
         action.domain.push(["company_id", "child_of", this.state.companyId]);
+        if (Array.isArray(this.state.journalIds)) {
+            action.domain.push(["journal_id", "in", this.state.journalIds]);
+        }
         return this.action.doAction(action);
+    }
+
+    async openAccount(accountId) {
+        return this.openLineDetails({ account_id: accountId });
     }
 
     async openPrintOptions() {

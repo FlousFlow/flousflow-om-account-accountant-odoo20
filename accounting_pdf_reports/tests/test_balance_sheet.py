@@ -165,16 +165,30 @@ class TestBalanceSheet(AccountTestInvoicingCommon):
         self.assertEqual(result['name'], 'Balance Sheet')
         self.assertEqual(result['date_to'], '2025-12-31')
         self.assertTrue(result['lines'])
+        self.assertTrue(all('formula_info' in item for item in result['lines']))
+        total_assets = next(item for item in result['lines'] if item['name'] == 'Total ASSETS')
+        self.assertEqual(total_assets['formula_info']['engine'], 'Aggregate Other Formulas')
+        self.assertEqual(total_assets['formula_info']['formula'], 'CA.balance + FA.balance + PNCA.balance')
         self.assertNotIn('Balance Sheet', [item['name'] for item in result['lines']])
         self.assertNotIn('Liabilities and Equity', [item['name'] for item in result['lines']])
-        self.assertIn('Liabilities', [item['name'] for item in result['lines']])
+        self.assertIn('LIABILITIES', [item['name'] for item in result['lines']])
         self.assertIn('Current Assets', [item['name'] for item in result['lines']])
         self.assertIn('Bank and Cash Accounts', [item['name'] for item in result['lines']])
         self.assertIn('Receivables', [item['name'] for item in result['lines']])
+        line_names = [item['name'] for item in result['lines']]
+        self.assertLess(line_names.index('Bank and Cash Accounts'), line_names.index('Receivables'))
+        self.assertIn('EQUITY (& EARNINGS)', line_names)
+        self.assertIn('Current Year Unallocated Earnings', line_names)
+        self.assertIn('Previous Years Earnings', line_names)
+        self.assertIn('LIABILITIES + EQUITY', line_names)
         self.assertAlmostEqual(next(item for item in result['lines']
                                     if item['name'] == 'Total Current Assets')['balance'], 420.0)
         self.assertAlmostEqual(next(item for item in result['lines']
-                                    if item['name'] == 'Total Assets')['balance'], 420.0)
+                                    if item['name'] == 'Total ASSETS')['balance'], 420.0)
+        self.assertAlmostEqual(next(item for item in result['lines']
+                                    if item['name'] == 'Current Year Unallocated Earnings')['balance'], 420.0)
+        self.assertAlmostEqual(next(item for item in result['lines']
+                                    if item['name'] == 'LIABILITIES + EQUITY')['balance'], 420.0)
         receivable = self.partner_a.property_account_receivable_id
         line = next(item for item in result['lines'] if item.get('account_id') == receivable.id)
         self.assertAlmostEqual(line['balance'], 420.0)

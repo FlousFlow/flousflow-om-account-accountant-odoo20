@@ -35,6 +35,17 @@ Purchases balance. The local development database showed one posted
 Miscellaneous Operations entry with no review pending and zero balance. These
 are different databases and are not evidence of a report-calculation mismatch.
 
+## Balance Sheet and Profit and Loss
+
+Enterprise shows an information icon for each report line. Its popover exposes
+the engine, label, formula, and calculated value. The Community Balance Sheet
+now returns this formula metadata for every line and renders the icon for
+regular users as well as developers. A read-only call against the local 8077
+database returned 28 report lines with formula metadata; `Total ASSETS` reports
+`CA.balance + FA.balance + PNCA.balance`. The local browser session had expired,
+so visual confirmation in that browser remains pending. Numeric parity still
+requires matching company data and report dates.
+
 ## Deferred Expenses and Deferred Revenues
 
 The live Deferred Expenses report has a monthly period selector, period

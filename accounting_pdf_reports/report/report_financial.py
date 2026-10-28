@@ -2,6 +2,7 @@ import time
 from dateutil.relativedelta import relativedelta
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
+from odoo.orm.domains import Domain
 
 
 class ReportFinancial(models.AbstractModel):
@@ -135,6 +136,7 @@ class ReportFinancial(models.AbstractModel):
                         # must never be False: the template skips rows whose level is 0/False
                         'level': 4 if report.display_detail == 'detail_with_hierarchy' else report.level + 1,
                         'account_type': account.account_type,
+                        'non_trade': account.non_trade,
                     }
                     if data['debit_credit']:
                         vals['debit'] = value['debit']
@@ -155,7 +157,8 @@ class ReportFinancial(models.AbstractModel):
 
     @api.model
     def get_interactive_data(self, report_id, date_from, date_to, target_move='posted',
-                             journal_ids=None, comparison=False, debit_credit=False):
+                             journal_ids=None, comparison=False, debit_credit=False,
+                             comparison_context=None):
         """Return the native financial-report hierarchy for the Odoo web client."""
         if not self.env.user.has_group('account.group_account_readonly'):
             from odoo.exceptions import AccessError
@@ -187,7 +190,9 @@ class ReportFinancial(models.AbstractModel):
             'enable_filter': bool(comparison),
             'debit_credit': bool(debit_credit),
         }
-        if comparison:
+        if comparison and comparison_context is not None:
+            data['comparison_context'] = comparison_context
+        elif comparison:
             start = fields.Date.to_date(date_from) if date_from else False
             end = fields.Date.to_date(date_to) if date_to else fields.Date.context_today(self)
             if start:
@@ -209,15 +214,145 @@ class ReportFinancial(models.AbstractModel):
         fixed_asset_types = {'asset_fixed', 'asset_non_current'}
         current_liability_types = {'liability_current', 'liability_credit_card', 'liability_payable'}
 
-        def amount_row(name, row_type, row_key, level, accounts, show_amount=True):
+        def account_domain_for_types(types):
+            domains = []
+            ordinary_types = set(types)
+            special_domains = {
+                'asset_receivable': [('account_type', '=', 'asset_receivable'), ('non_trade', '=', False)],
+                'asset_current': Domain.OR([
+                    [('account_type', '=', 'asset_current')],
+                    [('account_type', '=', 'asset_receivable'), ('non_trade', '=', True)],
+                ]),
+                'liability_current': Domain.OR([
+                    [('account_type', '=', 'liability_current')],
+                    [('account_type', '=', 'liability_payable'), ('non_trade', '=', True)],
+                ]),
+                'liability_payable': [('account_type', '=', 'liability_payable'), ('non_trade', '=', False)],
+            }
+            for account_type, domain in special_domains.items():
+                if account_type in ordinary_types:
+                    domains.append(domain)
+                    ordinary_types.remove(account_type)
+            if ordinary_types:
+                domains.append([('account_type', 'in', list(ordinary_types))])
+            return Domain.AND([
+                Domain.OR(domains),
+                [('company_ids', 'child_of', company.id)],
+            ])
+
+        def account_ids_for_types(types):
+            return self.env['account.account'].search(account_domain_for_types(types)).ids
+
+        def amount_row(name, row_type, row_key, level, accounts, show_amount=True,
+                       extra_account_ids=()):
             values = {
                 field: sum(account.get(field, 0.0) for account in accounts)
                 for field in ('debit', 'credit', 'balance', 'balance_cmp')
             }
+            account_ids = set()
+            for account in accounts:
+                if account.get('account_id'):
+                    account_ids.add(account['account_id'])
+                account_ids.update(account.get('account_ids', []))
+            account_ids.update(extra_account_ids)
             return {
                 'name': name, 'type': row_type, 'row_key': row_key, 'level': level,
-                'show_amount': show_amount, **values,
+                'show_amount': show_amount,
+                'account_ids': sorted(account_ids),
+                **values,
             }
+
+        def add_formula_info(line):
+            """Expose the calculation behind a report line for its info popover."""
+            row_key = line.get('row_key', '')
+            row_type = line.get('type')
+            report_formula_by_id = {
+                self.env.ref('accounting_pdf_reports.account_financial_report_assets0').id:
+                    'CA.balance + FA.balance + PNCA.balance',
+                self.env.ref('accounting_pdf_reports.account_financial_report_balancesheet0').id:
+                    'L.balance + EQ.balance',
+                self.env.ref('accounting_pdf_reports.account_financial_report_liability0').id:
+                    'CL.balance + NL.balance',
+                self.env.ref('accounting_pdf_reports.account_financial_report_equity0').id:
+                    'EQU.balance + EAR.balance + OCI.balance',
+            }
+            aggregate_formulas = {
+                'asset-current-': 'BA.balance + REC.balance + CAS.balance + PRE.balance',
+                'asset-total-current-': 'BA.balance + REC.balance + CAS.balance + PRE.balance',
+                'asset-total-': 'CA.balance + FA.balance + PNCA.balance',
+                'liability-current-': 'CL1.balance + CL2.balance + CL3.balance',
+                'liability-total-current-': 'CL1.balance + CL2.balance + CL3.balance',
+                'liability-total-': 'CL.balance + NL.balance',
+                'earnings-': 'PYE.balance + CYE.balance',
+                'equity-accounts-': "[('account_id.account_type', '=', 'equity')]",
+                'current-year-earnings-': "[('account_id.account_type', 'in', ['income', 'income_other', 'expense_direct_cost', 'expense', 'expense_depreciation', 'expense_other'])]",
+                'previous-years-earnings-': "[('account_id.account_type', 'in', ['income', 'income_other', 'expense_direct_cost', 'expense', 'expense_depreciation', 'expense_other', 'equity_unaffected'])]",
+                'earnings-total-': 'PYE.balance + CYE.balance',
+                'equity-total-': 'EQU.balance + EAR.balance + OCI.balance',
+                'liabilities-equity-total-': 'L.balance + EQ.balance',
+            }
+            formula = next((value for prefix, value in aggregate_formulas.items()
+                            if row_key.startswith(prefix)), None)
+            if not formula and line.get('report_id') in report_formula_by_id:
+                formula = report_formula_by_id[line['report_id']]
+            if not formula and row_key.startswith('account-type-'):
+                account_type = self.env['account.account.type'].browse(int(row_key.rsplit('-', 1)[-1]))
+                if account_type.exists():
+                    line['account_type'] = account_type.type
+            account_type_domains = {
+                'asset_receivable': "[('account_id.account_type', '=', 'asset_receivable'), ('account_id.non_trade', '=', False)]",
+                'asset_current': "['|', ('account_id.account_type', '=', 'asset_current'), '&', ('account_id.account_type', '=', 'asset_receivable'), ('account_id.non_trade', '=', True)]",
+                'liability_current': "['|', ('account_id.account_type', '=', 'liability_current'), '&', ('account_id.account_type', '=', 'liability_payable'), ('account_id.non_trade', '=', True)]",
+                'liability_payable': "[('account_id.account_type', '=', 'liability_payable'), ('account_id.non_trade', '=', False)]",
+            }
+            if row_type != 'account' and line.get('account_type') in account_type_domains:
+                formula = account_type_domains[line['account_type']]
+            engine = 'Aggregate Other Formulas' if formula and row_type in {'report', 'group', 'total'} else 'Odoo Domain'
+            subformula = None
+            if not formula:
+                account_type = line.get('account_type')
+                if account_type:
+                    formula = "[('account_id.account_type', '=', '%s')]" % account_type
+                    if account_type in {'liability_current', 'liability_credit_card', 'liability_payable',
+                                        'liability_non_current', 'equity'}:
+                        subformula = '-sum'
+                    else:
+                        subformula = 'sum'
+                elif line.get('account_id'):
+                    formula = "[('account_id', '=', %s)]" % line['account_id']
+                    subformula = 'sum'
+                else:
+                    formula = '0.0'
+                    engine = 'Odoo Domain'
+            line['formula_info'] = {
+                'engine': engine,
+                'label': 'balance',
+                'formula': formula,
+                'subformula': subformula,
+                'value': line.get('balance', 0.0),
+            }
+            return line
+
+        def account_lines_for_types(types, context):
+            accounts = self.env['account.account'].search([
+                ('account_type', 'in', list(types)),
+                ('company_ids', 'child_of', company.id),
+            ])
+            return self.with_context(context)._compute_account_balance(accounts)
+
+        def profit_and_loss_lines(context):
+            profit_report = self.env.ref('accounting_pdf_reports.account_financial_report_profitandloss0')
+            profit_data = {
+                'account_report_id': (profit_report.id, profit_report.display_name),
+                'used_context': context,
+                'enable_filter': False,
+                'debit_credit': False,
+            }
+            direct_report_ids = set(profit_report.children_ids.ids)
+            report_lines = self.get_account_lines(profit_data)
+            top_lines = [row for row in report_lines if row.get('report_id') in direct_report_ids]
+            detail_lines = [row for row in report_lines if row.get('account_id')]
+            return sum(row['balance'] for row in top_lines), detail_lines
 
         all_lines = self.get_account_lines(data)
         lines = []
@@ -229,13 +364,14 @@ class ReportFinancial(models.AbstractModel):
                 index += 1
                 continue
             section = self.env['account.financial.report'].browse(line['report_id']) if line.get('report_id') else False
+            equity_report = self.env.ref('accounting_pdf_reports.account_financial_report_equity0')
             parent = section.parent_id if section else self.env['account.financial.report']
             while parent:
                 if parent == hidden_wrapper:
                     line['level'] = max(line['level'] - 1, 1)
                     break
                 parent = parent.parent_id
-            if not section or section.type != 'account_type':
+            if not section or (section.type != 'account_type' and section != equity_report):
                 if line.get('account_id'):
                     line['row_key'] = f"account-{line['account_id']}"
                 lines.append(line)
@@ -248,16 +384,41 @@ class ReportFinancial(models.AbstractModel):
                 account_lines.append(all_lines[next_index])
                 next_index += 1
             categories = []
-            for account_type in section.account_type_ids.sorted('id'):
+            type_order = {
+                'asset_cash': 10, 'asset_receivable': 20, 'asset_current': 30,
+                'asset_prepayments': 40, 'asset_fixed': 50, 'asset_non_current': 60,
+                'liability_current': 70, 'liability_credit_card': 80,
+                'liability_payable': 90, 'liability_non_current': 100,
+            }
+            ordered_types = section.account_type_ids.sorted(
+                key=lambda account_type: (type_order.get(account_type.type, 1000), account_type.id)
+            )
+            for account_type in ordered_types:
                 category_accounts = [account for account in account_lines
-                                     if account.get('account_type') == account_type.type]
+                                     if account.get('account_type') == account_type.type
+                                     and (account_type.type != 'asset_receivable' or not account.get('non_trade'))
+                                     and (account_type.type != 'liability_payable' or not account.get('non_trade'))]
+                if account_type.type == 'asset_current':
+                    category_accounts.extend(
+                        account for account in account_lines
+                        if account.get('account_type') == 'asset_receivable' and account.get('non_trade')
+                    )
+                elif account_type.type == 'liability_current':
+                    category_accounts.extend(
+                        account for account in account_lines
+                        if account.get('account_type') == 'liability_payable' and account.get('non_trade')
+                    )
                 category_name = {
                     'asset_cash': _('Bank and Cash Accounts'),
                     'asset_receivable': _('Receivables'),
+                    'asset_current': _('Other Current Assets'),
+                    'liability_payable': _('Payables'),
+                    'liability_current': _('Other Current Liabilities'),
                 }.get(account_type.type, account_type.name)
                 categories.append((account_type, category_accounts, category_name))
 
             if section.id == self.env.ref('accounting_pdf_reports.account_financial_report_assets0').id:
+                line['name'] = _('ASSETS')
                 line['show_amount'] = False
                 lines.append(line)
                 current = [(record, accounts, name) for record, accounts, name in categories
@@ -269,24 +430,31 @@ class ReportFinancial(models.AbstractModel):
                 for record, accounts, name in current:
                     key = f"account-type-{section.id}-{record.id}"
                     lines.append(amount_row(name, 'category', key, line['level'] + 2,
-                                            accounts))
+                                            accounts,
+                                            extra_account_ids=account_ids_for_types({record.type})))
                     for account in accounts:
                         lines.append({**account, 'row_key': f"account-{account['account_id']}",
                                       'level': line['level'] + 3})
                 lines.append(amount_row(_('Total Current Assets'), 'total', f"asset-total-current-{section.id}",
                                         line['level'] + 1,
-                                        [account for _, accounts, _ in current for account in accounts]))
+                                        [account for _, accounts, _ in current for account in accounts],
+                                        extra_account_ids=account_ids_for_types(
+                                            {record.type for record, _, _ in current})))
                 for record, accounts, name in categories:
                     if record.type not in fixed_asset_types:
                         continue
                     lines.append(amount_row(name, 'category', f"account-type-{section.id}-{record.id}",
-                                            line['level'] + 1, accounts))
+                                            line['level'] + 1, accounts,
+                                            extra_account_ids=account_ids_for_types({record.type})))
                     for account in accounts:
                         lines.append({**account, 'row_key': f"account-{account['account_id']}",
                                       'level': line['level'] + 2})
-                lines.append(amount_row(_('Total Assets'), 'total', f"asset-total-{section.id}",
-                                        line['level'], account_lines))
+                lines.append(amount_row(_('Total ASSETS'), 'total', f"asset-total-{section.id}",
+                                        line['level'], account_lines,
+                                        extra_account_ids=account_ids_for_types(
+                                            {record.type for record, _, _ in categories})))
             elif section.id == self.env.ref('accounting_pdf_reports.account_financial_report_liability0').id:
+                line['name'] = _('LIABILITIES')
                 line['show_amount'] = False
                 lines.append(line)
                 current = [(record, accounts, name) for record, accounts, name in categories
@@ -298,29 +466,135 @@ class ReportFinancial(models.AbstractModel):
                 for record, accounts, name in current:
                     key = f"account-type-{section.id}-{record.id}"
                     lines.append(amount_row(name, 'category', key, line['level'] + 2,
-                                            accounts))
+                                            accounts,
+                                            extra_account_ids=account_ids_for_types({record.type})))
                     for account in accounts:
                         lines.append({**account, 'row_key': f"account-{account['account_id']}",
                                       'level': line['level'] + 3})
                 lines.append(amount_row(_('Total Current Liabilities'), 'total',
                                         f"liability-total-current-{section.id}", line['level'] + 1,
-                                        [account for _, accounts, _ in current for account in accounts]))
+                                        [account for _, accounts, _ in current for account in accounts],
+                                        extra_account_ids=account_ids_for_types(
+                                            {record.type for record, _, _ in current})))
                 for record, accounts, name in categories:
                     if record.type not in {'liability_non_current'}:
                         continue
                     lines.append(amount_row(name, 'category', f"account-type-{section.id}-{record.id}",
-                                            line['level'] + 1, accounts))
+                                            line['level'] + 1, accounts,
+                                            extra_account_ids=account_ids_for_types({record.type})))
                     for account in accounts:
                         lines.append({**account, 'row_key': f"account-{account['account_id']}",
                                       'level': line['level'] + 2})
-                lines.append(amount_row(_('Total Liabilities'), 'total', f"liability-total-{section.id}",
-                                        line['level'], account_lines))
+                lines.append(amount_row(_('Total LIABILITIES'), 'total', f"liability-total-{section.id}",
+                                        line['level'], account_lines,
+                                        extra_account_ids=account_ids_for_types(
+                                            {record.type for record, _, _ in categories})))
+            elif section.id == self.env.ref('accounting_pdf_reports.account_financial_report_equity0').id:
+                line['name'] = _('EQUITY (& EARNINGS)')
+                line['show_amount'] = False
+                lines.append(line)
+
+                equity_accounts = account_lines_for_types({'equity'}, context)
+                equity_lines = []
+                for account_id, value in equity_accounts.items():
+                    account = self.env['account.account'].browse(account_id)
+                    equity_lines.append({
+                        'name': ' '.join(part for part in (account.code, account.name) if part),
+                        'account_id': account.id,
+                        'account_type': account.account_type,
+                        'debit': value['debit'],
+                        'credit': value['credit'],
+                        'balance': -value['balance'],
+                    })
+                lines.append(amount_row(_('Equity'), 'category', f"equity-accounts-{section.id}",
+                                        line['level'] + 1, equity_lines,
+                                        extra_account_ids=account_ids_for_types({'equity'})))
+                for account in equity_lines:
+                    lines.append({**account, 'row_key': f"account-{account['account_id']}",
+                                  'level': line['level'] + 2})
+
+                earnings_key = f"earnings-{section.id}"
+                lines.append(amount_row(_('Earnings'), 'group', earnings_key,
+                                        line['level'] + 1, [], show_amount=False))
+                expanded_group_keys.append(earnings_key)
+                year_dates = company.compute_fiscalyear_dates(fields.Date.to_date(date_to))
+                fiscalyear_start = year_dates['date_from']
+                current_context = dict(context, date_from=fiscalyear_start.isoformat(),
+                                       date_to=date_to, strict_range=True)
+                current_earnings, current_pnl_accounts = profit_and_loss_lines(current_context)
+                profit_loss_types = {
+                    'income', 'income_other', 'expense', 'expense_other',
+                    'expense_depreciation', 'expense_direct_cost',
+                }
+                current_earning_line = {
+                    'name': _('Current Year Unallocated Earnings'), 'type': 'category',
+                    'row_key': f"current-year-earnings-{section.id}",
+                    'level': line['level'] + 2, 'debit': sum(row.get('debit', 0.0) for row in current_pnl_accounts),
+                    'credit': sum(row.get('credit', 0.0) for row in current_pnl_accounts),
+                    'balance': current_earnings,
+                    'account_ids': account_ids_for_types(profit_loss_types),
+                    'detail_date_from': fiscalyear_start.isoformat(),
+                    'detail_date_to': date_to,
+                }
+                lines.append(current_earning_line)
+
+                prior_earnings = 0.0
+                prior_accounts = []
+                prior_end = fields.Date.to_date(fiscalyear_start) - relativedelta(days=1)
+                if prior_end:
+                    prior_context = dict(context, date_from=False, date_to=prior_end.isoformat(),
+                                         strict_range=False)
+                    prior_result, prior_pnl_accounts = profit_and_loss_lines(prior_context)
+                    prior_earnings += prior_result
+                    prior_accounts.extend(prior_pnl_accounts)
+                unaffected = account_lines_for_types({'equity_unaffected'}, context)
+                for account_id, value in unaffected.items():
+                    account = self.env['account.account'].browse(account_id)
+                    prior_accounts.append({
+                        'account_id': account.id, 'debit': value['debit'],
+                        'credit': value['credit'], 'balance': -value['balance'],
+                    })
+                    prior_earnings += -value['balance']
+                prior_row = {
+                    'name': _('Previous Years Earnings'), 'type': 'category',
+                    'row_key': f"previous-years-earnings-{section.id}",
+                    'level': line['level'] + 2,
+                    'debit': sum(row.get('debit', 0.0) for row in prior_accounts),
+                    'credit': sum(row.get('credit', 0.0) for row in prior_accounts),
+                    'balance': prior_earnings,
+                    'account_ids': account_ids_for_types(profit_loss_types | {'equity_unaffected'}),
+                    'detail_date_from': False,
+                    'detail_date_to': prior_end.isoformat(),
+                }
+                lines.append(prior_row)
+                earnings_total = amount_row(_('Total Earnings'), 'total',
+                                            f"earnings-total-{section.id}", line['level'] + 1,
+                                            [current_earning_line, prior_row])
+                lines.append(earnings_total)
+                lines.append(amount_row(_('Total EQUITY (& EARNINGS)'), 'total',
+                                        f"equity-total-{section.id}", line['level'],
+                                        equity_lines + [current_earning_line, prior_row]))
+                total_liabilities = next(
+                    row for row in lines if row.get('row_key') ==
+                    f"liability-total-{self.env.ref('accounting_pdf_reports.account_financial_report_liability0').id}"
+                )
+                total_equity = lines[-1]
+                lines.append(amount_row(_('LIABILITIES + EQUITY'), 'total',
+                                        f"liabilities-equity-total-{section.id}", line['level'],
+                                        [total_liabilities, total_equity]))
+
+                next_index = index + 1
+                while next_index < len(all_lines) and all_lines[next_index]['level'] > line['level']:
+                    next_index += 1
+                index = next_index
+                continue
             else:
                 lines.append(line)
                 for record, accounts, name in categories:
                     key = f"account-type-{section.id}-{record.id}"
                     lines.append(amount_row(name, 'category', key, line['level'] + 1,
-                                            accounts))
+                                            accounts,
+                                            extra_account_ids=account_ids_for_types({record.type})))
                     for account in accounts:
                         lines.append({**account, 'row_key': f"account-{account['account_id']}",
                                       'level': line['level'] + 2})
@@ -335,7 +609,7 @@ class ReportFinancial(models.AbstractModel):
             drafts_domain.append(('date', '<=', date_to))
         return {
             'name': report.display_name,
-            'lines': lines,
+            'lines': [add_formula_info(line) for line in lines],
             'expanded_report_ids': [line['report_id'] for line in lines if line.get('type') == 'report'],
             'expanded_group_keys': expanded_group_keys,
             'date_from': date_from or False,
@@ -356,12 +630,12 @@ class ReportFinancial(models.AbstractModel):
 
         model = self.env.context.get('active_model')
         docs = self.env[model].browse(self.env.context.get('active_id'))
-        report_lines = self.get_account_lines(data.get('form'))
+        report_data = docs._get_interactive_report_data(data['form'])
         return {
             'doc_ids': self.ids,
             'doc_model': model,
             'data': data['form'],
             'docs': docs,
             'time': time,
-            'get_account_lines': report_lines,
+            'report_lines': report_data['lines'],
         }
