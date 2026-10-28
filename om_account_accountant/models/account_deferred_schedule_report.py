@@ -1,6 +1,7 @@
-from dateutil.relativedelta import relativedelta
+from datetime import timedelta
 
-from odoo import api, fields, models, _
+from dateutil.relativedelta import relativedelta
+from odoo import _, api, fields, models
 from odoo.exceptions import AccessError, ValidationError
 
 
@@ -19,14 +20,79 @@ class AccountDeferredScheduleReport(models.AbstractModel):
             raise AccessError(_("You are not allowed to read deferred schedule reports."))
 
     @api.model
-    def _get_period_dates(self, period):
+    def _get_period_ranges(
+        self, period_type="month", period=None, period_anchor=None,
+        date_from=None, date_to=None, comparison_periods=0,
+    ):
+        if period_type not in ("month", "quarter", "fiscal_year", "custom"):
+            raise ValidationError(_("Choose a valid reporting period."))
         try:
-            start = fields.Date.to_date(f"{period}-01")
+            anchor = fields.Date.to_date(period_anchor)
+            if not anchor and period:
+                anchor = fields.Date.to_date(f"{period}-01")
+            anchor = anchor or fields.Date.context_today(self)
         except (TypeError, ValueError):
-            start = False
-        if not start or fields.Date.to_string(start)[:7] != period:
-            raise ValidationError(_("Choose a valid reporting month."))
-        return start, start + relativedelta(months=1, days=-1)
+            raise ValidationError(_("Choose a valid reporting period."))
+
+        if period_type == "custom":
+            try:
+                current_from = fields.Date.to_date(date_from)
+                current_to = fields.Date.to_date(date_to)
+            except (TypeError, ValueError):
+                current_from = current_to = False
+            if not current_from or not current_to or current_from > current_to:
+                raise ValidationError(_("Choose a valid custom date range."))
+            duration = (current_to - current_from).days + 1
+        elif period_type == "month":
+            current_from = anchor.replace(day=1)
+            current_to = current_from + relativedelta(months=1, days=-1)
+        elif period_type == "quarter":
+            current_from = anchor.replace(month=((anchor.month - 1) // 3) * 3 + 1, day=1)
+            current_to = current_from + relativedelta(months=3, days=-1)
+        else:
+            fiscal_dates = self.env.company.compute_fiscalyear_dates(anchor)
+            current_from = fiscal_dates["date_from"]
+            current_to = fiscal_dates["date_to"]
+
+        ranges = []
+        for offset in range(comparison_periods + 1):
+            if offset == 0:
+                start, end = current_from, current_to
+            elif period_type == "month":
+                start = current_from - relativedelta(months=offset)
+                end = start + relativedelta(months=1, days=-1)
+            elif period_type == "quarter":
+                start = current_from - relativedelta(months=3 * offset)
+                end = start + relativedelta(months=3, days=-1)
+            elif period_type == "fiscal_year":
+                previous_anchor = current_from - relativedelta(years=offset)
+                fiscal_dates = self.env.company.compute_fiscalyear_dates(previous_anchor)
+                start, end = fiscal_dates["date_from"], fiscal_dates["date_to"]
+            else:
+                end = current_from - timedelta(days=(duration * (offset - 1) + 1))
+                start = end - timedelta(days=duration - 1)
+            key = f"{fields.Date.to_string(start)}:{fields.Date.to_string(end)}"
+            if period_type == "month":
+                label = start.strftime("%B %Y")
+            elif period_type == "quarter":
+                label = f"Q{((start.month - 1) // 3) + 1} {start.year}"
+            elif period_type == "fiscal_year":
+                label = str(start.year)
+            else:
+                label = f"{fields.Date.to_string(start)} – {fields.Date.to_string(end)}"
+            ranges.append({
+                "key": key,
+                "date_from": fields.Date.to_string(start),
+                "date_to": fields.Date.to_string(end),
+                "label": label,
+            })
+        return ranges
+
+    @api.model
+    def _get_period_dates(self, period):
+        """Keep the earlier month-only drill-down contract available."""
+        period_range = self._get_period_ranges("month", period=period)[0]
+        return fields.Date.to_date(period_range["date_from"]), fields.Date.to_date(period_range["date_to"])
 
     @api.model
     def _validate_filters(self, report_type, group_by, target_move):
@@ -68,13 +134,13 @@ class AccountDeferredScheduleReport(models.AbstractModel):
 
     @api.model
     def _collect_periods(self, report_type, periods, group_by, target_move, journal_ids):
-        oldest_start, _oldest_end = self._get_period_dates(periods[-1])
-        _current_start, current_end = self._get_period_dates(periods[0])
+        oldest_start = min(fields.Date.to_date(period["date_from"]) for period in periods)
+        current_end = max(fields.Date.to_date(period["date_to"]) for period in periods)
         domain = self._get_move_domain(report_type, oldest_start, current_end, target_move)
         if journal_ids:
             domain.append(("journal_id", "in", journal_ids))
         moves = self.env["account.move"].search(domain, order="date, name, id")
-        rows_by_period = {period: {} for period in periods}
+        rows_by_period = {period["key"]: {} for period in periods}
         if not moves:
             return rows_by_period
 
@@ -113,10 +179,14 @@ class AccountDeferredScheduleReport(models.AbstractModel):
             key, group_id, name, group_model = self._get_group(report_type, group_by, asset, account)
             if not key:
                 continue
-            period = fields.Date.to_string(move.date)[:7]
-            if period not in rows_by_period:
+            period = next(
+                (period for period in periods
+                 if fields.Date.to_date(period["date_from"]) <= move.date <= fields.Date.to_date(period["date_to"])),
+                None,
+            )
+            if not period:
                 continue
-            rows = rows_by_period[period]
+            rows = rows_by_period[period["key"]]
             row = rows.setdefault(key, {
                 "key": key,
                 "group_id": group_id,
@@ -136,6 +206,7 @@ class AccountDeferredScheduleReport(models.AbstractModel):
         self, report_type, period, group_by="account", target_move="posted",
         compare_previous=False, hide_zero=False, journal_ids=None,
         comparison_periods=None, comparison_mode="amount", sort_order="desc",
+        period_type="month", period_anchor=None, date_from=None, date_to=None,
     ):
         """Aggregate the local asset/revenue-recognition board using posted journal amounts."""
         self._check_report_access()
@@ -153,15 +224,15 @@ class AccountDeferredScheduleReport(models.AbstractModel):
             raise ValidationError(_("Unsupported comparison method."))
         if sort_order not in ("asc", "desc"):
             raise ValidationError(_("Unsupported report sort order."))
-        date_from, _date_to = self._get_period_dates(period)
-        period_keys = [
-            fields.Date.to_string(date_from - relativedelta(months=offset))[:7]
-            for offset in range(comparison_periods + 1)
-        ]
-        period_rows = self._collect_periods(
-            report_type, period_keys, group_by, target_move, journal_ids
+        period_ranges = self._get_period_ranges(
+            period_type, period, period_anchor, date_from, date_to, comparison_periods
         )
-        current = period_rows[period]
+        period_keys = [period_range["key"] for period_range in period_ranges]
+        period_rows = self._collect_periods(
+            report_type, period_ranges, group_by, target_move, journal_ids
+        )
+        current_key = period_keys[0]
+        current = period_rows[current_key]
         currency = self.env.company.currency_id
         rows = []
         all_keys = set().union(*(period_data.keys() for period_data in period_rows.values()))
@@ -212,7 +283,7 @@ class AccountDeferredScheduleReport(models.AbstractModel):
                 "period_move_ids": period_move_ids,
                 "comparison_values": comparison_values,
                 "sort_value": sort_value,
-                "move_ids": period_move_ids.get(period, []),
+                "move_ids": period_move_ids.get(current_key, []),
             })
         rows.sort(key=lambda row: (
             row["sort_value"] is None,
@@ -223,8 +294,13 @@ class AccountDeferredScheduleReport(models.AbstractModel):
         ))
         return {
             "report_type": report_type,
-            "period": period,
-            "periods": period_keys,
+            "period": period_ranges[0]["key"],
+            "period_type": period_type,
+            "period_anchor": period_ranges[0]["date_from"],
+            "date_from": period_ranges[0]["date_from"],
+            "date_to": period_ranges[0]["date_to"],
+            "periods": period_ranges,
+            "current_period_key": current_key,
             "comparison_periods": comparison_periods,
             "comparison_mode": comparison_mode,
             "sort_order": sort_order,
@@ -259,12 +335,21 @@ class AccountDeferredScheduleReport(models.AbstractModel):
     @api.model
     def get_group_move_domain(
         self, report_type, period, group_by, group_id, target_move="posted",
-        group_model=None, journal_ids=None,
+        group_model=None, journal_ids=None, date_to=None,
     ):
         self._check_report_access()
         self._validate_filters(report_type, group_by, target_move)
         journal_ids = self._validate_journals(journal_ids)
-        date_from, date_to = self._get_period_dates(period)
+        if date_to:
+            try:
+                date_from = fields.Date.to_date(period)
+                date_to = fields.Date.to_date(date_to)
+            except (TypeError, ValueError):
+                date_from = date_to = False
+            if not date_from or not date_to or date_from > date_to:
+                raise ValidationError(_("Choose a valid reporting period."))
+        else:
+            date_from, date_to = self._get_period_dates(period)
         domain = self._get_move_domain(report_type, date_from, date_to, target_move)
         if journal_ids:
             domain.append(("journal_id", "in", journal_ids))

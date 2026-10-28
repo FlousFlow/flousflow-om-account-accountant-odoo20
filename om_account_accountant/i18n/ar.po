@@ -84,6 +84,36 @@ msgstr "تدقيق"
 msgid "Taxes Applied"
 msgstr "الضرائب المطبقة"
 
+#. module: om_account_accountant
+#: om_account_accountant/static/src/deferred_schedule/deferred_schedule.xml
+msgid "Month"
+msgstr "الشهر"
+
+#. module: om_account_accountant
+#: om_account_accountant/static/src/deferred_schedule/deferred_schedule.xml
+msgid "Quarter"
+msgstr "ربع السنة"
+
+#. module: om_account_accountant
+#: om_account_accountant/static/src/deferred_schedule/deferred_schedule.xml
+msgid "Fiscal Year"
+msgstr "السنة المالية"
+
+#. module: om_account_accountant
+#: om_account_accountant/static/src/deferred_schedule/deferred_schedule.xml
+msgid "Custom Dates"
+msgstr "تواريخ مخصصة"
+
+#. odoo-javascript
+#: om_account_accountant/static/src/deferred_schedule/deferred_schedule.js
+msgid "Enter valid start and end dates."
+msgstr "أدخل تاريخ بداية ونهاية صالحين."
+
+#. odoo-javascript
+#: om_account_accountant/static/src/deferred_schedule/deferred_schedule.js
+msgid "The start date must be on or before the end date."
+msgstr "يجب أن يكون تاريخ البداية في أو قبل تاريخ النهاية."
+
 
 #. module: om_account_accountant
 #: model:ir.model.fields,field_description:om_account_accountant.field_res_company__credit_limit_block

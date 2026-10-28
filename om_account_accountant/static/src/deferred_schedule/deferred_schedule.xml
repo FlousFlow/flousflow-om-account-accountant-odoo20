@@ -42,10 +42,48 @@
                             </label>
                         </div>
                     </div>
-                    <label for="ff_deferred_period" class="visually-hidden">Period</label>
-                    <input id="ff_deferred_period" class="form-control ff_deferred_period" type="month"
-                           t-att-value="this.state.period"
-                           t-on-change="(ev) => this.onFilterChange('period', ev.target.value)"/>
+                    <div class="dropdown">
+                        <button id="ff_deferred_period" class="btn btn-secondary dropdown-toggle ff_deferred_period"
+                                type="button" t-on-click="() => this.togglePeriodPicker()">
+                            <i class="fa fa-calendar me-1"/><t t-out="this.periodLabel"/>
+                        </button>
+                        <div t-if="this.state.periodPickerOpen" class="dropdown-menu show p-2 ff_deferred_period_menu">
+                            <t t-foreach="['month', 'quarter', 'fiscal_year']" t-as="periodType" t-key="periodType">
+                                <div class="d-flex align-items-center gap-1 ff_deferred_period_option">
+                                    <button t-att-class="'dropdown-item ' + (this.state.periodType === periodType ? 'active' : '')"
+                                            t-on-click="() => this.setPeriodType(periodType)">
+                                        <t t-if="periodType === 'month'">Month</t>
+                                        <t t-elif="periodType === 'quarter'">Quarter</t>
+                                        <t t-else="">Fiscal Year</t>
+                                    </button>
+                                    <button class="btn btn-light btn-sm" t-att-aria-label="'Previous ' + periodType"
+                                            t-on-click="() => this.navigatePeriod(periodType, -1)">
+                                        <i class="fa fa-chevron-left"/>
+                                    </button>
+                                    <span class="text-nowrap" t-out="this.getPeriodOptionLabel(periodType)"/>
+                                    <button class="btn btn-light btn-sm" t-att-aria-label="'Next ' + periodType"
+                                            t-on-click="() => this.navigatePeriod(periodType, 1)">
+                                        <i class="fa fa-chevron-right"/>
+                                    </button>
+                                </div>
+                            </t>
+                            <button t-att-class="'dropdown-item ' + (this.state.periodType === 'custom' ? 'active' : '')"
+                                    t-on-click="() => this.setPeriodType('custom')">Custom Dates</button>
+                            <div t-if="this.state.periodType === 'custom'" class="ff_deferred_custom_period px-2 pt-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <input class="form-control form-control-sm" type="date" aria-label="Start Date"
+                                           t-att-value="this.state.customDateFrom"
+                                           t-on-change="(ev) => this.onCustomDateChange('customDateFrom', ev)"/>
+                                    <span>to</span>
+                                    <input class="form-control form-control-sm" type="date" aria-label="End Date"
+                                           t-att-value="this.state.customDateTo"
+                                           t-on-change="(ev) => this.onCustomDateChange('customDateTo', ev)"/>
+                                </div>
+                                <small t-if="this.state.customDateError" class="text-danger d-block mt-1"
+                                       t-out="this.state.customDateError"/>
+                            </div>
+                        </div>
+                    </div>
                     <label for="ff_deferred_group" class="visually-hidden">Group By</label>
                     <select id="ff_deferred_group" class="form-select ff_deferred_group"
                             t-att-value="this.state.groupBy"
@@ -119,13 +157,13 @@
                                 <tr>
                                     <th t-out="this.state.groupBy === 'account' ? 'Account' : (this.state.groupBy === 'category' ? 'Product Category' : 'Product')"/>
                                     <th class="text-end">Entries</th>
-                                    <th t-foreach="this.state.periods" t-as="reportPeriod" t-key="reportPeriod"
+                                    <th t-foreach="this.state.periods" t-as="reportPeriod" t-key="reportPeriod.key"
                                         class="text-end">
-                                        <t t-if="reportPeriod === this.state.period">
-                                            <t t-out="reportPeriod"/> <span>Recognized Amount</span>
+                                        <t t-if="reportPeriod.key === this.state.period">
+                                            <t t-out="reportPeriod.label"/> <span>Recognized Amount</span>
                                         </t>
                                         <t t-else="">
-                                            <t t-out="reportPeriod"/> <span t-out="this.state.comparisonMode === 'percentage' ? 'Change (%)' : 'Change Amount'"/>
+                                            <t t-out="reportPeriod.label"/> <span t-out="this.state.comparisonMode === 'percentage' ? 'Change (%)' : 'Change Amount'"/>
                                         </t>
                                     </th>
                                 </tr>
@@ -141,22 +179,22 @@
                                                 t-out="row.name"/>
                                     </td>
                                     <td class="text-end" t-out="row.entries"/>
-                                    <td t-foreach="this.state.periods" t-as="reportPeriod" t-key="reportPeriod"
+                                    <td t-foreach="this.state.periods" t-as="reportPeriod" t-key="reportPeriod.key"
                                         class="text-end">
                                         <button class="btn btn-link p-0" t-on-click="() => this.openGroup(row, reportPeriod)"
-                                                t-att-title="'Open entries for ' + reportPeriod">
-                                            <t t-if="reportPeriod === this.state.period" t-out="this.formatAmount(row.amount)"/>
-                                            <t t-else="" t-out="this.formatComparison(this.comparisonValue(row, reportPeriod))"/>
+                                                t-att-title="'Open entries for ' + reportPeriod.label">
+                                            <t t-if="reportPeriod.key === this.state.period" t-out="this.formatAmount(row.amount)"/>
+                                            <t t-else="" t-out="this.formatComparison(this.comparisonValue(row, reportPeriod.key))"/>
                                         </button>
                                     </td>
                                 </tr>
                                 <tr t-if="this.visibleRows.length" class="ff_deferred_total">
                                     <td>Total</td>
                                     <td class="text-end" t-out="this.totals.entries"/>
-                                    <td t-foreach="this.state.periods" t-as="reportPeriod" t-key="reportPeriod"
+                                    <td t-foreach="this.state.periods" t-as="reportPeriod" t-key="reportPeriod.key"
                                         class="text-end">
-                                        <t t-if="reportPeriod === this.state.period" t-out="this.formatAmount(this.totals.amount)"/>
-                                        <t t-else="" t-out="this.formatComparison(this.totalComparisonValue(reportPeriod))"/>
+                                        <t t-if="reportPeriod.key === this.state.period" t-out="this.formatAmount(this.totals.amount)"/>
+                                        <t t-else="" t-out="this.formatComparison(this.totalComparisonValue(reportPeriod.key))"/>
                                     </td>
                                 </tr>
                             </tbody>

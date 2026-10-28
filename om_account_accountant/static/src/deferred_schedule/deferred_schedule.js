@@ -18,9 +18,18 @@ export class DeferredScheduleReport extends Component {
         this.action = useService("action");
         this.notification = useService("notification");
         const params = this.props.action.params || {};
+        const today = DateTime.now();
         this.state = proxy({
             reportType: params.report_type || "expense",
-            period: DateTime.now().toFormat("yyyy-MM"),
+            period: today.toFormat("yyyy-MM"),
+            periodType: "month",
+            periodAnchor: today.toISODate(),
+            periodPickerOpen: false,
+            dateFrom: "",
+            dateTo: "",
+            customDateFrom: "",
+            customDateTo: "",
+            customDateError: "",
             groupBy: "account",
             targetMove: "posted",
             comparisonPeriods: 0,
@@ -44,6 +53,24 @@ export class DeferredScheduleReport extends Component {
 
     get title() {
         return this.state.reportType === "expense" ? _t("Deferred Expenses") : _t("Deferred Revenues");
+    }
+
+    get periodLabel() {
+        if (this.state.periodType === "custom") {
+            return `${DateTime.fromISO(this.state.dateFrom).toLocaleString(DateTime.DATE_MED)} – ${DateTime.fromISO(this.state.dateTo).toLocaleString(DateTime.DATE_MED)}`;
+        }
+        return this.getPeriodOptionLabel(this.state.periodType);
+    }
+
+    getPeriodOptionLabel(periodType) {
+        const anchor = DateTime.fromISO(this.state.periodAnchor);
+        if (periodType === "month") {
+            return anchor.toFormat("LLLL yyyy");
+        }
+        if (periodType === "quarter") {
+            return `Q${anchor.quarter} ${anchor.year}`;
+        }
+        return `FY ${anchor.year}`;
     }
 
     get totals() {
@@ -70,13 +97,22 @@ export class DeferredScheduleReport extends Component {
                 [this.state.reportType, this.state.period, this.state.groupBy,
                     this.state.targetMove, this.state.comparisonPeriods > 0, this.state.hideZero,
                     this.state.journalIds, this.state.comparisonPeriods,
-                    this.state.comparisonMode, this.state.sortOrder]
+                    this.state.comparisonMode, this.state.sortOrder, this.state.periodType,
+                    this.state.periodAnchor, this.state.customDateFrom, this.state.customDateTo]
             );
             this.state.companyName = data.company_name;
             this.state.currencyId = data.currency_id;
             this.state.rows = data.rows;
             this.state.journals = data.journals;
             this.state.periods = data.periods;
+            this.state.period = data.periods[0].key;
+            this.state.periodAnchor = data.period_anchor;
+            this.state.dateFrom = data.date_from;
+            this.state.dateTo = data.date_to;
+            if (this.state.periodType !== "custom") {
+                this.state.customDateFrom = data.date_from;
+                this.state.customDateTo = data.date_to;
+            }
         } catch (error) {
             this.notification.add(error.message || _t("The deferred report could not be loaded."), {
                 type: "danger",
@@ -90,6 +126,59 @@ export class DeferredScheduleReport extends Component {
 
     async onFilterChange(key, value) {
         this.state[key] = value;
+        await this.loadReport();
+    }
+
+    togglePeriodPicker() {
+        this.state.periodPickerOpen = !this.state.periodPickerOpen;
+    }
+
+    async setPeriodType(periodType) {
+        if (!["month", "quarter", "fiscal_year", "custom"].includes(periodType)) {
+            return;
+        }
+        this.state.periodType = periodType;
+        this.state.periodPickerOpen = true;
+        if (periodType === "custom") {
+            this.state.customDateFrom = this.state.dateFrom;
+            this.state.customDateTo = this.state.dateTo;
+            await this.applyCustomDateRange();
+        } else {
+            await this.loadReport();
+        }
+    }
+
+    async navigatePeriod(periodType, offset) {
+        const unit = { month: "months", quarter: "quarters", fiscal_year: "years" }[periodType];
+        if (!unit) {
+            return;
+        }
+        this.state.periodType = periodType;
+        this.state.periodAnchor = DateTime.fromISO(this.state.periodAnchor).plus({ [unit]: offset }).toISODate();
+        await this.loadReport();
+    }
+
+    async onCustomDateChange(key, ev) {
+        this.state[key] = ev.target.value;
+        await this.applyCustomDateRange();
+    }
+
+    async applyCustomDateRange() {
+        const from = DateTime.fromISO(this.state.customDateFrom);
+        const to = DateTime.fromISO(this.state.customDateTo);
+        if (!from.isValid || !to.isValid) {
+            this.state.customDateError = this.state.customDateFrom && this.state.customDateTo
+                ? _t("Enter valid start and end dates.")
+                : "";
+            return;
+        }
+        if (from > to) {
+            this.state.customDateError = _t("The start date must be on or before the end date.");
+            return;
+        }
+        this.state.customDateError = "";
+        this.state.periodType = "custom";
+        this.state.periodAnchor = from.toISODate();
         await this.loadReport();
     }
 
@@ -173,6 +262,10 @@ export class DeferredScheduleReport extends Component {
         const params = new URLSearchParams({
             report_type: this.state.reportType,
             period: this.state.period,
+            period_type: this.state.periodType,
+            period_anchor: this.state.periodAnchor,
+            date_from: this.state.dateFrom,
+            date_to: this.state.dateTo,
             group_by: this.state.groupBy,
             target_move: this.state.targetMove,
             compare_previous: this.state.comparisonPeriods > 0 ? "1" : "0",
@@ -194,13 +287,14 @@ export class DeferredScheduleReport extends Component {
         return formatMonetary((value || 0) / this.state.scale, { currencyId: this.state.currencyId });
     }
 
-    async openGroup(row, period = this.state.period) {
+    async openGroup(row, period = this.state.periods[0]) {
         try {
             const domain = await this.orm.call(
                 "account.deferred.schedule.report",
                 "get_group_move_domain",
-                [this.state.reportType, period, this.state.groupBy,
-                    row.group_id, this.state.targetMove, row.group_model, this.state.journalIds]
+                [this.state.reportType, period.date_from, this.state.groupBy,
+                    row.group_id, this.state.targetMove, row.group_model, this.state.journalIds,
+                    period.date_to]
             );
             return this.action.doAction({
                 type: "ir.actions.act_window",

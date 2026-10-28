@@ -1,11 +1,9 @@
 from io import BytesIO
 
 import xlsxwriter
-from werkzeug.exceptions import Forbidden, NotFound
-
 from odoo.http import Controller, request, route
 from odoo.http.stream import content_disposition
-
+from werkzeug.exceptions import Forbidden, NotFound
 
 XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 READ_GROUPS = (
@@ -22,7 +20,8 @@ class DeferredScheduleController(Controller):
     def deferred_schedule_xlsx(
         self, report_type=None, period=None, group_by="account", target_move="posted",
         compare_previous="0", hide_zero="0", scale="1", journal_ids="",
-        comparison_periods=None, comparison_mode="amount", sort_order="desc", **kwargs,
+        comparison_periods=None, comparison_mode="amount", sort_order="desc",
+        period_type="month", period_anchor=None, date_from=None, date_to=None, **kwargs,
     ):
         if not any(request.env.user.has_group(group) for group in READ_GROUPS):
             raise Forbidden()
@@ -55,6 +54,7 @@ class DeferredScheduleController(Controller):
         data = report.get_report_data(
             report_type, period, group_by, target_move, compare_previous, hide_zero, journal_ids,
             comparison_periods, comparison_mode, sort_order,
+            period_type, period_anchor, date_from, date_to,
         )
         currency = request.env.company.currency_id
         unit = currency.name if scale == 1 else f"{'k' if scale == 1000 else 'M'}{currency.name}"
@@ -68,12 +68,12 @@ class DeferredScheduleController(Controller):
         percentage_format = workbook.add_format({"num_format": "0.00%;[Red](0.00%)"})
 
         summary = workbook.add_worksheet("Schedule")
-        summary.write(0, 0, f"{title} — {data['company_name']} — {period}", title_format)
+        summary.write(0, 0, f"{title} — {data['company_name']} — {data['periods'][0]['label']}", title_format)
         summary_headers = ["Group", "Entries", f"Recognized Amount ({unit})"]
         if comparison_periods:
             summary_headers.extend(
-                f"{period_key} Comparison ({'%' if comparison_mode == 'percentage' else unit})"
-                for period_key in data["periods"][1:]
+                f"{period_range['label']} Comparison ({'%' if comparison_mode == 'percentage' else unit})"
+                for period_range in data["periods"][1:]
             )
         for column, label in enumerate(summary_headers):
             summary.write(2, column, label, header)
@@ -81,7 +81,8 @@ class DeferredScheduleController(Controller):
             summary.write_string(row_index, 0, row["name"])
             summary.write_number(row_index, 1, row["entries"])
             summary.write_number(row_index, 2, row["amount"] / scale, amount_format)
-            for column, period_key in enumerate(data["periods"][1:], start=3):
+            for column, period_range in enumerate(data["periods"][1:], start=3):
+                period_key = period_range["key"]
                 comparison_value = row["comparison_values"][period_key]
                 if comparison_value is not None:
                     summary.write_number(
@@ -100,11 +101,12 @@ class DeferredScheduleController(Controller):
         for column, label in enumerate(entry_headers):
             entries.write(0, column, label, header)
         period_move_pairs = list(dict.fromkeys(
-            (period_key, move_id)
+            (period_range["key"], move_id)
             for row in data["rows"]
-            for period_key in data["periods"]
-            for move_id in row["period_move_ids"].get(period_key, [])
+            for period_range in data["periods"]
+            for move_id in row["period_move_ids"].get(period_range["key"], [])
         ))
+        period_label_by_key = {period_range["key"]: period_range["label"] for period_range in data["periods"]}
         move_ids = list(dict.fromkeys(move_id for _period_key, move_id in period_move_pairs))
         moves = request.env["account.move"].browse(move_ids).exists()
         move_by_id = {move.id: move for move in moves}
@@ -128,7 +130,7 @@ class DeferredScheduleController(Controller):
                 for line in move.line_ids
                 if line.account_id == account
             )
-            entries.write_string(row_index, 0, period_key)
+            entries.write_string(row_index, 0, period_label_by_key[period_key])
             entries.write_string(row_index, 1, str(move.date or ""))
             entries.write_string(row_index, 2, move.journal_id.display_name or "")
             entries.write_string(row_index, 3, move.name or "")
@@ -143,7 +145,7 @@ class DeferredScheduleController(Controller):
         entries.autofilter(0, 0, max(0, row_index - 1), len(entry_headers) - 1)
 
         workbook.close()
-        filename = f"{report_type}-deferred-{period}.xlsx"
+        filename = f"{report_type}-deferred-{data['date_from']}-to-{data['date_to']}.xlsx"
         return request.make_response(output.getvalue(), [
             ("Content-Type", XLSX_CONTENT_TYPE),
             ("Content-Disposition", content_disposition(filename)),
