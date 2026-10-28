@@ -22,6 +22,9 @@
             'accounting_pdf_reports/static/src/financial_report/financial_report.xml',
             'accounting_pdf_reports/static/src/financial_report/financial_report.scss',
         ],
+        'web.assets_tests': [
+            'accounting_pdf_reports/static/tests/tours/financial_report_formula_info.js',
+        ],
     },
     'live_test_url': 'https://www.youtube.com/watch?v=yA4NLwOLZms',
     'data': [

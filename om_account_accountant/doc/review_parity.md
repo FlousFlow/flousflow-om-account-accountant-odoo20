@@ -48,9 +48,11 @@ the engine, label, formula, and calculated value. The Community Balance Sheet
 now returns this formula metadata for every line and renders the icon for
 regular users as well as developers. A read-only call against the local 8077
 database returned 28 report lines with formula metadata; `Total ASSETS` reports
-`CA.balance + FA.balance + PNCA.balance`. The local browser session had expired,
-so visual confirmation in that browser remains pending. Numeric parity still
-requires matching company data and report dates.
+`CA.balance + FA.balance + PNCA.balance`. A headless browser tour on the local
+database confirmed an info icon on every displayed row, then opened Total
+ASSETS and verified that the popover shows Engine, Label, Formula, and Value,
+including the expected aggregate formula. Numeric parity still requires
+matching company data and report dates.
 
 ## Deferred Expenses and Deferred Revenues
 
