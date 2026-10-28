@@ -198,7 +198,8 @@ class ReportFinancial(models.AbstractModel):
                              journal_ids=None, comparison=False, debit_credit=False,
                              comparison_context=None, period_type=None,
                              comparison_mode='previous_period', comparison_date_from=None,
-                             comparison_date_to=None, comparison_periods=1):
+                             comparison_date_to=None, comparison_periods=1,
+                             comparison_period_ranges=None):
         """Return the native financial-report hierarchy for the Odoo web client."""
         if not self.env.user.has_group('account.group_account_readonly'):
             from odoo.exceptions import AccessError
@@ -240,7 +241,22 @@ class ReportFinancial(models.AbstractModel):
             periods = int(comparison_periods or 1)
             if periods < 1:
                 raise UserError(_('The number of comparison periods must be positive.'))
-            if comparison_mode == 'custom':
+            if comparison_period_ranges:
+                comparison_contexts = []
+                for period_range in comparison_period_ranges:
+                    comparison_start = fields.Date.to_date(period_range.get('date_from')) if period_range.get('date_from') else False
+                    comparison_end = fields.Date.to_date(period_range.get('date_to')) if period_range.get('date_to') else False
+                    if not comparison_start and not comparison_end:
+                        raise UserError(_('Select a valid comparison date range.'))
+                    if comparison_start and comparison_end and comparison_start > comparison_end:
+                        raise UserError(_('The comparison start date must be on or before its end date.'))
+                    comparison_contexts.append(dict(
+                        context,
+                        date_from=comparison_start.isoformat() if comparison_start else False,
+                        date_to=comparison_end.isoformat() if comparison_end else False,
+                        strict_range=True,
+                    ))
+            elif comparison_mode == 'custom':
                 comparison_start = fields.Date.to_date(comparison_date_from) if comparison_date_from else False
                 comparison_end = fields.Date.to_date(comparison_date_to) if comparison_date_to else False
                 if not comparison_start or not comparison_end or comparison_start > comparison_end:
@@ -258,7 +274,9 @@ class ReportFinancial(models.AbstractModel):
                     if comparison_mode == 'same_period_last_year':
                         comparison_start = start - relativedelta(years=1)
                         comparison_end = end - relativedelta(years=1)
-                    elif period_type == 'fiscal_year' or (start.month == 1 and start.day == 1 and period_type is None):
+                    elif period_type == 'fiscal_year' or (
+                            start.month == 1 and start.day == 1 and end.month == 12 and end.day == 31
+                            and period_type is None):
                         comparison_start = start - relativedelta(years=period_index)
                         comparison_end = comparison_start + relativedelta(years=1, days=-1)
                     elif period_type == 'quarter':
@@ -723,7 +741,7 @@ class ReportFinancial(models.AbstractModel):
 
         model = self.env.context.get('active_model')
         docs = self.env[model].browse(self.env.context.get('active_id'))
-        report_data = docs._get_interactive_report_data(data['form'])
+        report_data = docs._prepare_export_data(data['form'], docs._get_interactive_report_data(data['form']))
         return {
             'doc_ids': self.ids,
             'doc_model': model,
@@ -731,4 +749,8 @@ class ReportFinancial(models.AbstractModel):
             'docs': docs,
             'time': time,
             'report_lines': report_data['lines'],
+            'period_columns': report_data['period_columns'],
+            'show_comparison_change': report_data['show_comparison_change'],
+            'comparison_display': report_data['comparison_display'],
+            'comparison_change_label': report_data['comparison_change_label'],
         }

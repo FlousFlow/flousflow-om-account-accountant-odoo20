@@ -447,6 +447,11 @@ export class FinancialReport extends Component {
             default_date_from_cmp: hasPeriodComparison ? comparisonContext.date_from || false : false,
             default_date_to_cmp: hasPeriodComparison ? comparisonContext.date_to || false : false,
             default_debit_credit: this.state.debitCredit,
+            default_comparison_period_ranges: hasPeriodComparison
+                ? this.state.comparisonContexts.map(({ date_from, date_to }) => ({ date_from, date_to }))
+                : [],
+            default_comparison_sort: this.state.comparisonSort,
+            default_comparison_display: this.state.comparisonDisplay,
         };
         return this.action.doAction(action);
     }
@@ -468,6 +473,11 @@ export class FinancialReport extends Component {
                 date_from_cmp: hasPeriodComparison ? comparisonContext.date_from || false : false,
                 date_to_cmp: hasPeriodComparison ? comparisonContext.date_to || false : false,
                 debit_credit: this.state.debitCredit,
+                comparison_period_ranges: hasPeriodComparison
+                    ? this.state.comparisonContexts.map(({ date_from, date_to }) => ({ date_from, date_to }))
+                    : [],
+                comparison_sort: this.state.comparisonSort,
+                comparison_display: this.state.comparisonDisplay,
             }]);
             const action = await this.orm.call(
                 "accounting.report", "action_export_xlsx", [[wizardIds[0]]]

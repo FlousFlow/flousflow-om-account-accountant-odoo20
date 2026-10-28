@@ -1,3 +1,6 @@
+from io import BytesIO
+from zipfile import ZipFile
+
 from odoo.tests import tagged
 from odoo.exceptions import ValidationError
 
@@ -86,6 +89,7 @@ class TestBalanceSheet(AccountTestInvoicingCommon):
         report = self.env.ref('accounting_pdf_reports.account_financial_report_balancesheet0')
         interactive_data = self.env['report.accounting_pdf_reports.report_financial'].get_interactive_data(
             report.id, '2026-01-01', '2026-06-30', 'posted', [], True, False,
+            comparison_mode='same_period_last_year',
         )
         comparison_context = interactive_data['comparison_context']
         self.assertEqual(comparison_context['date_from'], '2025-01-01')
@@ -109,6 +113,54 @@ class TestBalanceSheet(AccountTestInvoicingCommon):
         self.assertEqual(action['type'], 'ir.actions.act_url')
         self.assertEqual(wizard.xlsx_filename, 'Balance Sheet.xlsx')
         self.assertTrue(wizard.xlsx_file)
+
+    def test_interactive_xlsx_export_preserves_all_comparison_periods_and_order(self):
+        report = self.env.ref('accounting_pdf_reports.account_financial_report_balancesheet0')
+        wizard = self.env['accounting.report'].create({
+            'account_report_id': report.id,
+            'date_to': '2026-06-30',
+            'journal_ids': [(6, 0, self.env['account.journal'].search([
+                ('company_id', 'child_of', self.env.company.id),
+            ]).ids)],
+            'target_move': 'posted',
+            'enable_filter': True,
+            'filter_cmp': 'filter_date',
+            'comparison_period_ranges': [
+                {'date_from': '2025-01-01', 'date_to': '2025-06-30'},
+                {'date_from': '2024-01-01', 'date_to': '2024-06-30'},
+            ],
+            'comparison_sort': 'ascending',
+        })
+        form = wizard.read([
+            'date_from', 'date_to', 'journal_ids', 'target_move', 'company_id',
+            'account_report_id', 'date_from_cmp', 'date_to_cmp', 'filter_cmp',
+            'enable_filter', 'label_filter', 'debit_credit',
+            'comparison_period_ranges', 'comparison_sort', 'comparison_display',
+        ])[0]
+        form['used_context'] = {'lang': self.env.lang}
+        export_data = wizard._prepare_export_data(
+            form, wizard._get_interactive_report_data(form),
+        )
+
+        self.assertEqual([column['index'] for column in export_data['period_columns']], [1, 0, -1])
+        self.assertFalse(export_data['show_comparison_change'])
+        report_action = self.env.ref('accounting_pdf_reports.action_report_financial')
+        rendered_html, report_type = report_action.with_context(
+            active_model='accounting.report', active_id=wizard.id,
+        )._render_qweb_html(
+            report_action.report_name, [wizard.id], {'form': form},
+        )
+        self.assertEqual(report_type, 'html')
+        rendered_html = rendered_html.decode()
+        for column in export_data['period_columns']:
+            self.assertIn(column['label'], rendered_html)
+
+        action = wizard.action_export_xlsx()
+        self.assertEqual(action['type'], 'ir.actions.act_url')
+        with ZipFile(BytesIO(bytes(wizard.xlsx_file))) as workbook:
+            shared_strings = workbook.read('xl/sharedStrings.xml').decode()
+        for column in export_data['period_columns']:
+            self.assertIn(column['label'], shared_strings)
 
     def test_the_equity_is_not_among_the_liabilities(self):
         equity_types = self.env.ref('accounting_pdf_reports.account_financial_report_equity_accounts0')\

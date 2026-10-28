@@ -31,9 +31,11 @@
                                     <th>Account</th>
                                     <th t-if="data['debit_credit']" class="text-end">Debit</th>
                                     <th t-if="data['debit_credit']" class="text-end">Credit</th>
-                                    <th class="text-end">Balance</th>
-                                    <th t-if="data['enable_filter']" class="text-end">
-                                        <span t-out="data.get('label_filter') or 'Previous Period'"/>
+                                    <th t-foreach="period_columns" t-as="period_column" class="text-end">
+                                        <span t-out="period_column['label']"/>
+                                    </th>
+                                    <th t-if="show_comparison_change" class="text-end">
+                                        <span t-out="comparison_change_label"/>
                                     </th>
                                 </tr>
                             </thead>
@@ -41,7 +43,7 @@
                                 <tr t-foreach="report_lines" t-as="line"
                                     t-att-class="'o_om_section' if line.get('type') == 'report' and int(line.get('level', 0)) &lt;= 1 else ('o_om_total' if line.get('type') == 'total' else ('o_om_group' if line.get('type') == 'group' else ''))">
                                     <t t-set="level" t-value="max(0, int(line.get('level', 0)))"/>
-                                    <td t-att-style="'padding-right: %spx;' % (8 + level * 16) if o.env.lang.startswith('ar') else 'padding-left: %spx;' % (8 + level * 16)">
+                                    <td t-att-style="'padding-right: %spx;' % (8 + level * 16) if (o.env.lang or '').startswith('ar') else 'padding-left: %spx;' % (8 + level * 16)">
                                         <span t-out="line.get('name')"/>
                                     </td>
                                     <td t-if="data['debit_credit']" class="text-end text-nowrap">
@@ -50,11 +52,13 @@
                                     <td t-if="data['debit_credit']" class="text-end text-nowrap">
                                         <span t-if="line.get('show_amount', True)" t-out="line.get('credit', 0.0)" t-options="{'widget': 'monetary', 'display_currency': res_company.currency_id}"/>
                                     </td>
-                                    <td class="text-end text-nowrap">
-                                        <span t-if="line.get('show_amount', True)" t-out="line.get('balance', 0.0)" t-options="{'widget': 'monetary', 'display_currency': res_company.currency_id}"/>
+                                    <td t-foreach="period_columns" t-as="period_column" class="text-end text-nowrap">
+                                        <t t-set="period_amount" t-value="line.get('balance', 0.0) if period_column['current'] else ((line.get('balance_cmp_list') or [line.get('balance_cmp', 0.0)])[period_column['index']] if period_column['index'] &lt; len(line.get('balance_cmp_list') or [line.get('balance_cmp', 0.0)]) else 0.0)"/>
+                                        <span t-if="line.get('show_amount', True)" t-out="period_amount" t-options="{'widget': 'monetary', 'display_currency': res_company.currency_id}"/>
                                     </td>
-                                    <td t-if="data['enable_filter']" class="text-end text-nowrap">
-                                        <span t-if="line.get('show_amount', True)" t-out="line.get('balance_cmp', 0.0)" t-options="{'widget': 'monetary', 'display_currency': res_company.currency_id}"/>
+                                    <td t-if="show_comparison_change" class="text-end text-nowrap">
+                                        <t t-if="line.get('show_amount', True) and comparison_display == 'percentage'" t-out="line.get('comparison_change')"/>
+                                        <span t-elif="line.get('show_amount', True)" t-out="line.get('comparison_change')" t-options="{'widget': 'monetary', 'display_currency': res_company.currency_id}"/>
                                     </td>
                                 </tr>
                             </tbody>

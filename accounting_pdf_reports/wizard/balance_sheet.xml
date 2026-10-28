@@ -128,6 +128,9 @@
                             <field name="date_from_cmp" required="filter_cmp == 'filter_date'"/>
                             <field name="date_to_cmp" required="filter_cmp == 'filter_date'"/>
                         </group>
+                        <field name="comparison_period_ranges" invisible="True"/>
+                        <field name="comparison_sort" invisible="True"/>
+                        <field name="comparison_display" invisible="True"/>
                     </page>
                 </notebook>
             </field>
