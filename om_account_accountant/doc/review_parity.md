@@ -113,8 +113,13 @@ cycle cards. A Spreadsheet tab now opens the native Odoo spreadsheet editor for
 the working file. The workbook is stored on the record and autosaves after edits;
 auditors and validated files open read-only. This uses the installed Community
 `spreadsheet` model and editor component rather than the read-only dashboard
-surface. The local navigation opens the editor from the Spreadsheet tab, while
-Enterprise embeds it as a sibling tab in the dossier.
+surface. The Spreadsheet tab now mounts the Odoo editor inside the working file,
+alongside Cycles and Balances as in Enterprise. The existing full-screen open
+action remains as an additional shortcut. A local browser tour verified that the
+embedded editor loads, handles a cell update, reaches its Saved state, and
+persists the edited value in the Odoo snapshot; it also verifies that the
+full-screen shortcut still opens. A full page reload after saving has not yet
+been exercised.
 Accounting managers can validate or reopen a file, and validation is blocked
 until every checklist item is reviewed. Company-scoped access is applied.
 
@@ -126,10 +131,8 @@ opening balances are calculated through the period end, while income and
 expense accounts use the selected date range. A Refresh Accounts action adds
 new company accounts without replacing comments or review statuses.
 
-Parity remains partial because Enterprise embeds the Spreadsheet editor directly
-in the dossier while Community opens it as a full editor action; save/reload
-has server-side snapshot round-trip coverage, but the browser autosave interaction
-has not yet been exercised. Several Enterprise checklist prompts refer to Belgian
+Parity remains partial because browser save/reload has not yet been exercised.
+Several Enterprise checklist prompts refer to Belgian
 GAAP or account numbers 17/42; those
 jurisdiction-specific instructions were observed in the Enterprise company and need
 review before applying them to Egyptian entities. The live Enterprise balance table

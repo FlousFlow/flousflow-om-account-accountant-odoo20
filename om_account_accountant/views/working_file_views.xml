@@ -311,6 +311,8 @@
                                         class="btn-primary" invisible="not id"/>
                                 <span class="text-muted">Spreadsheet changes are saved automatically.</span>
                             </div>
+                            <field name="spreadsheet_data" widget="ff_working_file_spreadsheet"
+                                   nolabel="1" readonly="state == 'validated'" invisible="not id"/>
                         </page>
                     </notebook>
                 </sheet>

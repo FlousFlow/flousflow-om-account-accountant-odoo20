@@ -1,5 +1,5 @@
 import { Model } from "@odoo/o-spreadsheet";
-import { Component, markRaw, onWillStart, onWillUnmount, useProps, useState } from "@odoo/owl";
+import { Component, markRaw, onWillStart, onWillUnmount, proxy, t, useProps } from "@odoo/owl";
 import { OdooDataProvider } from "@spreadsheet/data_sources/odoo_data_provider";
 import { SpreadsheetComponent } from "@spreadsheet/actions/spreadsheet_component";
 import { createDefaultCurrency } from "@spreadsheet/currency/helpers";
@@ -8,19 +8,20 @@ import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 
-export class WorkingFileSpreadsheet extends Component {
-    static template = "om_account_accountant.WorkingFileSpreadsheet";
+export class WorkingFileSpreadsheetEditor extends Component {
+    static template = "om_account_accountant.WorkingFileSpreadsheetEditor";
     static components = { SpreadsheetComponent };
-
-    props = useProps(standardActionServiceProps);
+    props = useProps({
+        recordId: t.number(),
+        canEdit: t.boolean(),
+        embedded: t.boolean().optional(false),
+        onBack: t.function().optional(),
+    });
 
     setup() {
         this.orm = useService("orm");
         this.notification = useService("notification");
-        this.actionService = useService("action");
-        this.recordId = this.props.action.params.record_id;
-        this.canEdit = Boolean(this.props.action.params.can_edit);
-        this.state = useState({
+        this.state = proxy({
             loading: true,
             name: "",
             status: "",
@@ -40,13 +41,13 @@ export class WorkingFileSpreadsheet extends Component {
         try {
             const [record] = await this.orm.read(
                 "account.working.file",
-                [this.recordId],
+                [this.props.recordId],
                 ["name", "company_id"]
             );
             const snapshot = await this.orm.call(
                 "account.working.file",
                 "get_working_file_spreadsheet_snapshot",
-                [[this.recordId]]
+                [[this.props.recordId]]
             );
             const currency = await this.orm.call(
                 "res.currency",
@@ -55,7 +56,7 @@ export class WorkingFileSpreadsheet extends Component {
             );
             const dataProvider = markRaw(new OdooDataProvider(this.env));
             const config = {
-                mode: this.canEdit ? undefined : "readonly",
+                mode: this.props.canEdit ? undefined : "readonly",
                 custom: {
                     env: this.env,
                     orm: this.orm,
@@ -69,7 +70,7 @@ export class WorkingFileSpreadsheet extends Component {
             });
             this.model.on("update", this, this.onSpreadsheetUpdate);
             this.state.name = record.name;
-            this.state.status = this.canEdit ? "saved" : "readonly";
+            this.state.status = this.props.canEdit ? "saved" : "readonly";
         } catch (error) {
             this.state.error = true;
             this.state.status = "error";
@@ -83,7 +84,7 @@ export class WorkingFileSpreadsheet extends Component {
     }
 
     onSpreadsheetUpdate() {
-        if (!this.canEdit) {
+        if (!this.props.canEdit) {
             return;
         }
         this.hasUnsavedChanges = true;
@@ -97,7 +98,7 @@ export class WorkingFileSpreadsheet extends Component {
     }
 
     async saveSpreadsheet() {
-        if (!this.canEdit || !this.model || !this.hasUnsavedChanges) {
+        if (!this.props.canEdit || !this.model || !this.hasUnsavedChanges) {
             return;
         }
         if (this.saveInProgress) {
@@ -112,7 +113,7 @@ export class WorkingFileSpreadsheet extends Component {
                 this.saveAgain = false;
                 const snapshot = this.model.exportData();
                 const serializedSnapshot = JSON.stringify(snapshot);
-                await this.orm.write("account.working.file", [this.recordId], {
+                await this.orm.write("account.working.file", [this.props.recordId], {
                     spreadsheet_data: serializedSnapshot,
                 });
                 this.hasUnsavedChanges =
@@ -148,14 +149,7 @@ export class WorkingFileSpreadsheet extends Component {
         if (this.state.error || this.hasUnsavedChanges) {
             return;
         }
-        return this.actionService.doAction({
-            type: "ir.actions.act_window",
-            name: _t("Working File"),
-            res_model: "account.working.file",
-            res_id: this.recordId,
-            views: [[false, "form"]],
-            target: "current",
-        });
+        return this.props.onBack?.();
     }
 
     dispose() {
@@ -169,7 +163,34 @@ export class WorkingFileSpreadsheet extends Component {
     }
 }
 
+class WorkingFileSpreadsheet extends Component {
+    static template = "om_account_accountant.WorkingFileSpreadsheet";
+    static components = { WorkingFileSpreadsheetEditor };
+    props = useProps(standardActionServiceProps);
+
+    setup() {
+        this.actionService = useService("action");
+        this.recordId = this.props.action.params.record_id;
+        this.canEdit = Boolean(this.props.action.params.can_edit);
+    }
+
+    returnToWorkingFile() {
+        return this.actionService.doAction({
+            type: "ir.actions.act_window",
+            name: _t("Working File"),
+            res_model: "account.working.file",
+            res_id: this.recordId,
+            views: [[false, "form"]],
+            target: "current",
+        });
+    }
+}
+
 registry.category("lazy_components").add(
     "om_account_accountant.WorkingFileSpreadsheet",
     WorkingFileSpreadsheet
+);
+registry.category("lazy_components").add(
+    "om_account_accountant.WorkingFileSpreadsheetEmbedded",
+    WorkingFileSpreadsheetEditor
 );

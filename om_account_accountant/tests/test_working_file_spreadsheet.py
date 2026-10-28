@@ -2,7 +2,7 @@ import json
 
 from odoo import Command
 from odoo.exceptions import UserError
-from odoo.tests import TransactionCase, new_test_user, tagged
+from odoo.tests import HttpCase, TransactionCase, new_test_user, tagged
 
 
 @tagged("post_install", "-at_install")
@@ -50,3 +50,19 @@ class TestWorkingFileSpreadsheet(TransactionCase):
         self.assertFalse(action["params"]["can_edit"])
         with self.assertRaises(UserError):
             self.working_file.write({"spreadsheet_data": json.dumps({"sheets": []})})
+
+
+@tagged("post_install", "-at_install")
+class TestWorkingFileSpreadsheetTour(HttpCase):
+    def test_spreadsheet_is_embedded_in_the_working_file(self):
+        working_file = self.env["account.working.file"].create({
+            "name": "Embedded spreadsheet tour",
+            "date_from": "2026-01-01",
+            "date_to": "2026-12-31",
+        })
+        action = self.env.ref("om_account_accountant.action_account_working_file")
+        self.start_tour(
+            f"/odoo/action-{action.id}/{working_file.id}",
+            "ff_working_file_spreadsheet_embedded",
+            login="admin",
+        )
