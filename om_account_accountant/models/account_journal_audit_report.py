@@ -15,6 +15,16 @@ class AccountJournalAuditReport(models.AbstractModel):
     }
 
     @api.model
+    def get_fiscal_year_range(self, anchor_date=None):
+        """Return the active company's fiscal-year bounds around a selected date."""
+        anchor_date = fields.Date.to_date(anchor_date) or fields.Date.context_today(self)
+        dates = self.env.company.compute_fiscalyear_dates(anchor_date)
+        return {
+            "date_from": fields.Date.to_string(dates["date_from"]),
+            "date_to": fields.Date.to_string(dates["date_to"]),
+        }
+
+    @api.model
     def _get_report_filters(self, date_from, date_to, target_move, include_payments=False):
         date_from = fields.Date.to_date(date_from)
         date_to = fields.Date.to_date(date_to)

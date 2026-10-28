@@ -20,14 +20,50 @@
                     </div>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <label for="ff_journal_audit_year" class="visually-hidden">Year</label>
-                    <input id="ff_journal_audit_year" class="form-control ff_journal_audit_year"
-                           type="number" min="1900" max="9999" t-att-value="this.state.year"
-                           t-on-change="(ev) => this.onYearChange(ev)"/>
+                    <div class="dropdown ff_journal_audit_period_picker">
+                        <button class="btn btn-light" type="button" t-att-aria-expanded="this.state.periodFilterOpen"
+                                t-on-click="() => this.togglePeriodFilter()">
+                            <i class="fa fa-calendar me-1"/><t t-out="this.periodLabel"/>
+                        </button>
+                        <div t-if="this.state.periodFilterOpen" class="dropdown-menu show p-2 ff_journal_audit_period_menu">
+                            <div t-foreach="['month', 'quarter', 'fiscal_year']" t-as="period" t-key="period"
+                                 class="ff_journal_audit_period_option">
+                                <button t-att-class="'dropdown-item ' + (this.state.periodType === period ? 'active' : '')"
+                                        t-on-click="() => this.setPeriod(period)">
+                                    <t t-if="period === 'month'">Month</t>
+                                    <t t-elif="period === 'quarter'">Quarter</t>
+                                    <t t-else="">Fiscal Year</t>
+                                </button>
+                                <button class="btn btn-light btn-sm" t-att-aria-label="'Previous ' + period"
+                                        t-on-click="() => this.navigatePeriod(period, -1)">
+                                    <i class="fa fa-chevron-left"/>
+                                </button>
+                                <span class="ff_journal_audit_period_value" t-out="this.getPeriodOptionLabel(period)"/>
+                                <button class="btn btn-light btn-sm" t-att-aria-label="'Next ' + period"
+                                        t-on-click="() => this.navigatePeriod(period, 1)">
+                                    <i class="fa fa-chevron-right"/>
+                                </button>
+                            </div>
+                            <div class="ff_journal_audit_custom_period">
+                                <strong>Custom Dates</strong>
+                                <div class="d-flex align-items-center gap-2 mt-2">
+                                    <input class="form-control form-control-sm" type="date"
+                                           aria-label="Start Date" t-att-value="this.state.customDateFrom"
+                                           t-on-change="(ev) => this.onCustomDateFromChange(ev)"/>
+                                    <span>to</span>
+                                    <input class="form-control form-control-sm" type="date"
+                                           aria-label="End Date" t-att-value="this.state.customDateTo"
+                                           t-on-change="(ev) => this.onCustomDateToChange(ev)"/>
+                                </div>
+                                <small t-if="this.state.customDateError" class="text-danger d-block mt-1"
+                                       t-out="this.state.customDateError"/>
+                            </div>
+                        </div>
+                    </div>
                     <label for="ff_journal_audit_target" class="visually-hidden">Target Moves</label>
                     <select id="ff_journal_audit_target" class="form-select ff_journal_audit_target"
                             t-att-value="this.state.targetMove" t-on-change="(ev) => this.onTargetMoveChange(ev)">
-                        <option value="posted">Posted Moves</option>
+                        <option value="posted">Posted Entries</option>
                         <option value="draft">Draft Entries</option>
                         <option value="all">All Entries</option>
                     </select>

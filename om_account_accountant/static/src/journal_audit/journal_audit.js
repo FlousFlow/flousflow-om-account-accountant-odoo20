@@ -19,7 +19,14 @@ export class JournalAudit extends Component {
         this.action = useService("action");
         this.notification = useService("notification");
         this.state = proxy({
-            year: DateTime.now().year,
+            periodType: "fiscal_year",
+            periodAnchor: DateTime.now().toISODate(),
+            periodFilterOpen: false,
+            dateFrom: "",
+            dateTo: "",
+            customDateFrom: "",
+            customDateTo: "",
+            customDateError: "",
             targetMove: "posted",
             includePayments: false,
             displayScale: 1,
@@ -35,15 +42,123 @@ export class JournalAudit extends Component {
             auditingJournalId: false,
             settingsOpen: false,
         });
-        onWillStart(() => this.loadReport());
+        onWillStart(async () => {
+            await this.setPeriod("fiscal_year", this.state.periodAnchor, false, false);
+            await this.loadReport();
+        });
     }
 
     get dateFrom() {
-        return `${this.state.year}-01-01`;
+        return this.state.dateFrom;
     }
 
     get dateTo() {
-        return `${this.state.year}-12-31`;
+        return this.state.dateTo;
+    }
+
+    get periodLabel() {
+        if (this.state.periodType === "month") {
+            return DateTime.fromISO(this.state.periodAnchor).toFormat("LLLL yyyy");
+        }
+        if (this.state.periodType === "quarter") {
+            const anchor = DateTime.fromISO(this.state.periodAnchor);
+            return `Q${anchor.quarter} ${anchor.year}`;
+        }
+        if (this.state.periodType === "custom") {
+            const from = DateTime.fromISO(this.state.dateFrom).toLocaleString(DateTime.DATE_SHORT);
+            const to = DateTime.fromISO(this.state.dateTo).toLocaleString(DateTime.DATE_SHORT);
+            return `${from} – ${to}`;
+        }
+        const fromYear = DateTime.fromISO(this.state.dateFrom).year;
+        const toYear = DateTime.fromISO(this.state.dateTo).year;
+        return fromYear === toYear ? String(fromYear) : `${fromYear}–${toYear}`;
+    }
+
+    getPeriodOptionLabel(periodType) {
+        const anchor = DateTime.fromISO(this.state.periodAnchor);
+        if (periodType === "month") {
+            return anchor.toFormat("LLLL yyyy");
+        }
+        if (periodType === "quarter") {
+            return `Q${anchor.quarter} ${anchor.year}`;
+        }
+        return String(anchor.year);
+    }
+
+    togglePeriodFilter() {
+        this.state.periodFilterOpen = !this.state.periodFilterOpen;
+    }
+
+    async setPeriod(periodType, anchorDate = this.state.periodAnchor, keepMenuOpen = false, reload = true) {
+        const anchor = DateTime.fromISO(anchorDate);
+        if (!anchor.isValid || !["month", "quarter", "fiscal_year"].includes(periodType)) {
+            return;
+        }
+        this.state.periodType = periodType;
+        this.state.periodAnchor = anchor.toISODate();
+        this.state.periodFilterOpen = keepMenuOpen;
+
+        let dateFrom;
+        let dateTo;
+        if (periodType === "fiscal_year") {
+            const range = await this.orm.call(
+                "account.journal.audit.report",
+                "get_fiscal_year_range",
+                [this.state.periodAnchor]
+            );
+            dateFrom = range.date_from;
+            dateTo = range.date_to;
+        } else {
+            const range = periodType === "month" ? "month" : "quarter";
+            dateFrom = anchor.startOf(range).toISODate();
+            dateTo = anchor.endOf(range).toISODate();
+        }
+        this.state.dateFrom = dateFrom;
+        this.state.dateTo = dateTo;
+        if (periodType !== "custom") {
+            this.state.customDateFrom = dateFrom;
+            this.state.customDateTo = dateTo;
+        }
+        if (reload) {
+            await this.loadReport();
+        }
+    }
+
+    async navigatePeriod(periodType, offset) {
+        const units = { month: "months", quarter: "quarters", fiscal_year: "years" };
+        const anchor = DateTime.fromISO(this.state.periodAnchor).plus({ [units[periodType]]: offset });
+        await this.setPeriod(periodType, anchor.toISODate(), true);
+    }
+
+    async onCustomDateFromChange(ev) {
+        this.state.customDateFrom = ev.target.value;
+        await this.applyCustomDateRange();
+    }
+
+    async onCustomDateToChange(ev) {
+        this.state.customDateTo = ev.target.value;
+        await this.applyCustomDateRange();
+    }
+
+    async applyCustomDateRange() {
+        const from = DateTime.fromISO(this.state.customDateFrom);
+        const to = DateTime.fromISO(this.state.customDateTo);
+        if (!from.isValid || !to.isValid) {
+            this.state.customDateError = this.state.customDateFrom && this.state.customDateTo
+                ? _t("Enter valid start and end dates.")
+                : "";
+            return;
+        }
+        if (from > to) {
+            this.state.customDateError = _t("The start date must be on or before the end date.");
+            return;
+        }
+        this.state.customDateError = "";
+        this.state.periodType = "custom";
+        this.state.periodAnchor = from.toISODate();
+        this.state.dateFrom = from.toISODate();
+        this.state.dateTo = to.toISODate();
+        await this.loadReport();
     }
 
     get totals() {
@@ -80,15 +195,6 @@ export class JournalAudit extends Component {
         } finally {
             this.state.loading = false;
         }
-    }
-
-    async onYearChange(ev) {
-        const year = Number.parseInt(ev.target.value, 10);
-        if (!Number.isInteger(year) || year < 1900 || year > 9999) {
-            return;
-        }
-        this.state.year = year;
-        await this.loadReport();
     }
 
     async onTargetMoveChange(ev) {

@@ -110,6 +110,15 @@ the upgraded local database reports module version `20.0.1.11.0`. A fresh
 browser visual check is still pending because the local browser session expired
 during the service restart.
 
+The live Enterprise **Journal Audit** date menu also exposes Month, Quarter,
+Fiscal Year, and Custom Dates, with previous/next controls for each period.
+The local report previously supported only a numeric calendar year. Its date
+filter now supports the same period types and navigation; Fiscal Year bounds
+come from the active company's configured fiscal-year settings. Custom date
+ranges validate start/end order before reloading the report. Backend tests
+cover fiscal-year boundaries and the default period; browser interaction
+verification is pending.
+
 ## Implemented interactive tranche
 
 The local Balance Sheet menu now opens an in-app client action directly,

@@ -2,8 +2,37 @@
     min-height: 100%;
     background: var(--body-bg, #f8f9fa);
 
-    .ff_journal_audit_year {
-        width: 110px;
+    .ff_journal_audit_period_picker {
+        position: relative;
+    }
+
+    .ff_journal_audit_period_menu {
+        min-width: 28rem;
+    }
+
+    .ff_journal_audit_period_option {
+        align-items: center;
+        display: flex;
+        gap: 0.25rem;
+
+        .dropdown-item {
+            flex: 1;
+        }
+    }
+
+    .ff_journal_audit_period_value {
+        min-width: 8rem;
+        text-align: center;
+    }
+
+    .ff_journal_audit_custom_period {
+        border-top: 1px solid #dee2e6;
+        margin-top: 0.5rem;
+        padding: 0.75rem 0.5rem 0.25rem;
+
+        input {
+            min-width: 0;
+        }
     }
 
     .ff_journal_audit_target {
@@ -61,6 +90,10 @@
     }
 
     @media print {
+        .ff_journal_audit_period_menu {
+            display: none !important;
+        }
+
         .o_control_panel button,
         .o_control_panel select,
         .o_control_panel input,
