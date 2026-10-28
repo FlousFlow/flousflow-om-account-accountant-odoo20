@@ -95,6 +95,21 @@ Customer Statement with period, account, partner, posting-state and currency
 filters; the local Partner Ledger is a different wizard and is not a verified
 equivalent. Those behavioral gaps remain open.
 
+## Verified Review menu increment — 2026-10-28
+
+The live Enterprise Review > Control menu exposes **Journal Items**, **Audit
+Trail**, and **Journal Audit** in that order. The local suite had **Entries to
+Review** first, which is a different `account.move` queue and does not match
+Enterprise's posted `account.move.line` destination at `/odoo/items`. The
+native Journal Items action is now also linked from Review > Control, ahead of
+the existing suite-specific Entries to Review queue. The extra queue remains
+available after the three Enterprise destinations. This closes the menu/action
+gap without removing existing functionality. Odoo menu tests passed, including
+the native `account.move.line` action and visibility for an accounting user;
+the upgraded local database reports module version `20.0.1.11.0`. A fresh
+browser visual check is still pending because the local browser session expired
+during the service restart.
+
 ## Implemented interactive tranche
 
 The local Balance Sheet menu now opens an in-app client action directly,

@@ -61,11 +61,15 @@ class TestMenus(TransactionCase):
             key=lambda menu: (menu.sequence, menu.id)
         )
         expected = [
-            self.env.ref('om_account_accountant.menu_review_moves_to_review'),
+            self.env.ref('om_account_accountant.menu_review_journal_items'),
             self.env.ref('account.account_audit_trail_menu'),
             self.env.ref('om_account_accountant.menu_review_journal_audit'),
+            self.env.ref('om_account_accountant.menu_review_moves_to_review'),
         ]
         self.assertEqual(actual.ids, [menu.id for menu in expected])
+        journal_items_action = self.env.ref('om_account_accountant.menu_review_journal_items').action
+        self.assertEqual(journal_items_action, self.env.ref('account.action_account_moves_all'))
+        self.assertEqual(journal_items_action.res_model, 'account.move.line')
 
     def test_no_two_menus_share_a_place(self):
         """ Menus with the same sequence under the same parent come in no given order. """
@@ -93,3 +97,4 @@ class TestMenus(TransactionCase):
                       'accounting_pdf_reports.menu_account_report_bs',
                       'accounting_pdf_reports.menu_account_report'):
             self.assertIn(self.env.ref(xmlid).id, visible, xmlid)
+        self.assertIn(self.env.ref('om_account_accountant.menu_review_journal_items').id, visible)

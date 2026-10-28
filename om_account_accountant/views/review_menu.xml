@@ -131,8 +131,12 @@
     <!-- Keep the extra community work queues available under Accounting. -->
     <menuitem id="menu_review_work_queues" name="Work Queues"
               parent="account.menu_finance_entries" groups="account.group_account_readonly" sequence="80"/>
+    <!-- Enterprise exposes native Journal Items under Review > Control. Keep our
+         narrower Entries to Review queue as an additional destination. -->
+    <menuitem id="menu_review_journal_items" action="account.action_account_moves_all"
+              parent="account.account_audit_control_menu" groups="account.group_account_readonly" sequence="6"/>
     <menuitem id="menu_review_moves_to_review" name="Entries to Review" action="action_moves_to_review"
-              parent="account.account_audit_control_menu" groups="account.group_account_readonly" sequence="5"/>
+              parent="account.account_audit_control_menu" groups="account.group_account_readonly" sequence="40"/>
     <menuitem id="menu_review_moves_unposted" name="Draft Entries" action="action_moves_unposted"
               parent="menu_review_work_queues" groups="account.group_account_readonly" sequence="20"/>
 
