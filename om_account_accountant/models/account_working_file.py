@@ -234,6 +234,27 @@ class AccountWorkingFileCheck(models.Model):
     note = fields.Text(tracking=True)
     evidence = fields.Binary(attachment=True)
     evidence_filename = fields.Char()
+    evidence_attachment_storage_ids = fields.One2many(
+        "ir.attachment", "res_id", string="Evidence Attachment Storage",
+        domain=[("res_model", "=", "account.working.file.check"), ("res_field", "=", False)],
+        copy=False,
+    )
+    evidence_attachment_ids = fields.Many2many(
+        "ir.attachment", string="Supporting Evidence",
+        compute="_compute_evidence_attachment_ids",
+        inverse="_inverse_evidence_attachment_ids",
+    )
+    evidence_attachment_count = fields.Integer(compute="_compute_evidence_attachment_ids")
+
+    @api.depends("evidence_attachment_storage_ids")
+    def _compute_evidence_attachment_ids(self):
+        for check in self:
+            check.evidence_attachment_ids = check.evidence_attachment_storage_ids
+            check.evidence_attachment_count = len(check.evidence_attachment_storage_ids)
+
+    def _inverse_evidence_attachment_ids(self):
+        for check in self:
+            check.evidence_attachment_storage_ids = check.evidence_attachment_ids
 
     def write(self, vals):
         if any(check.file_id.state == "validated" for check in self):
@@ -262,6 +283,42 @@ class AccountWorkingFileCheck(models.Model):
     def unlink(self):
         if any(check.file_id.state == "validated" for check in self):
             raise UserError(_("Reopen the working file before removing its review checks."))
+        return super().unlink()
+
+
+class IrAttachment(models.Model):
+    _inherit = "ir.attachment"
+
+    def _check_working_file_evidence_mutable(self, references):
+        check_ids = {
+            res_id for res_model, res_id in references
+            if res_model == "account.working.file.check" and res_id
+        }
+        checks = self.env["account.working.file.check"].browse(check_ids).exists()
+        if any(check.file_id.state == "validated" for check in checks):
+            raise UserError(_("Reopen the working file before changing its supporting evidence."))
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        self._check_working_file_evidence_mutable({
+            (vals.get("res_model"), vals.get("res_id")) for vals in vals_list
+        })
+        return super().create(vals_list)
+
+    def write(self, vals):
+        references = {(attachment.res_model, attachment.res_id) for attachment in self}
+        if "res_model" in vals or "res_id" in vals:
+            references.update({
+                (vals.get("res_model", attachment.res_model), vals.get("res_id", attachment.res_id))
+                for attachment in self
+            })
+        self._check_working_file_evidence_mutable(references)
+        return super().write(vals)
+
+    def unlink(self):
+        self._check_working_file_evidence_mutable({
+            (attachment.res_model, attachment.res_id) for attachment in self
+        })
         return super().unlink()
 
 

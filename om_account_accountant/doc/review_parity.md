@@ -73,9 +73,11 @@ states, notes, evidence uploads, and activity history.
 The Community suite now exposes Working Files under Review with a cycle kanban,
 checklist cards labeled by accounting area, and a Balances tab. A file is tied
 to a company and a user-entered date range and starts with a generic checklist;
-reviewers can mark checks Pending Review or Reviewed, add notes and one evidence
-attachment per check, and use chatter. The list view remains available alongside
-the cycle cards.
+reviewers can mark checks Pending Review or Reviewed, add notes and multiple
+supporting files per check, and use chatter. Existing single-file evidence remains
+available for records created before multi-file evidence was added. Evidence upload
+and removal are blocked after the working file is validated. The list view remains
+available alongside the cycle cards.
 The embedded Spreadsheet tab is still missing.
 Accounting managers can validate or reopen a file, and validation is blocked
 until every checklist item is reviewed. Company-scoped access is applied.
@@ -89,8 +91,7 @@ expense accounts use the selected date range. A Refresh Accounts action adds
 new company accounts without replacing comments or review statuses.
 
 Parity remains partial: the local checklist has 9 items versus 52 in the
-observed Enterprise file, and each Community check accepts one evidence
-attachment. The live Enterprise balance table had 52 accounts; the local company
+observed Enterprise file. The live Enterprise balance table had 52 accounts; the local company
 has 50 active accounts and only two posted journal-item rows. Its balance view
 therefore needs a non-zero fixture and matched-period comparison before numeric
 parity is established. The local database has no fiscal-year records, so the
