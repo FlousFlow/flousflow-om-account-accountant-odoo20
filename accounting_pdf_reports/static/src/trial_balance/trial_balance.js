@@ -29,6 +29,7 @@ export class TrialBalance extends Component {
             customDateError: "",
             search: "",
             targetMove: "posted",
+            cashBasis: false,
             displayAccount: "movement",
             comparison: false,
             scale: "unit",
@@ -95,7 +96,7 @@ export class TrialBalance extends Component {
                 [this.state.periodType, this.state.periodAnchor,
                     this.state.customDateFrom, this.state.customDateTo,
                     this.state.targetMove, this.state.journalIds,
-                    this.state.displayAccount, this.state.comparison]
+                    this.state.displayAccount, this.state.comparison, this.state.cashBasis]
             );
             this.state.lines = data.lines;
             this.state.totals = data.totals;
@@ -211,6 +212,7 @@ export class TrialBalance extends Component {
             default_target_move: this.state.targetMove,
             default_journal_ids: this.state.journalIds,
             default_display_account: this.state.displayAccount,
+            default_cash_basis: this.state.cashBasis,
         };
         return this.action.doAction(action);
     }

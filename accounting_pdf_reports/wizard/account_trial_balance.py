@@ -6,6 +6,8 @@ class AccountBalanceReport(models.TransientModel):
     _inherit = "account.common.account.report"
     _description = 'Trial Balance Report'
 
+    cash_basis = fields.Boolean(string='Cash Basis Method')
+
     journal_ids = fields.Many2many(
         'account.journal', 'account_balance_report_journal_rel',
         'account_id', 'journal_id',
@@ -15,6 +17,11 @@ class AccountBalanceReport(models.TransientModel):
         'account.analytic.account',
         'account_trial_balance_analytic_rel', string='Analytic Accounts'
     )
+
+    def _build_contexts(self, data):
+        result = super()._build_contexts(data)
+        result['tax_exigible'] = bool(self.cash_basis)
+        return result
 
     def _get_report_data(self, data):
         data = self.pre_print_report(data)

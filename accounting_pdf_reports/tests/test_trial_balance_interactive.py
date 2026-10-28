@@ -13,7 +13,7 @@ class TestInteractiveTrialBalance(AccountTestInvoicingCommon):
                           invoice_date='2025-02-05', post=True)
         report = self.env['report.accounting_pdf_reports.report_trialbalance']
         result = report.get_interactive_data(
-            'custom', '2025-02-01', '2025-02-01', '2025-02-28', 'posted', False, 'all', True
+            'custom', '2025-02-01', '2025-02-01', '2025-02-28', 'posted', False, 'all', True, False
         )
         receivable = self.partner_a.property_account_receivable_id
         line = next(item for item in result['lines'] if item['account_id'] == receivable.id)
@@ -25,6 +25,20 @@ class TestInteractiveTrialBalance(AccountTestInvoicingCommon):
         self.assertEqual(line['balance_cmp'], 100.0)
         self.assertAlmostEqual(result['totals']['debit'], result['totals']['credit'])
         self.assertAlmostEqual(result['totals']['balance'], 0.0)
+        cash_basis_result = report.get_interactive_data(
+            'custom', '2025-02-01', '2025-02-01', '2025-02-28', 'posted', False, 'all', False, True
+        )
+        self.assertTrue(cash_basis_result['cash_basis'])
+
+        wizard = self.env['account.balance.report'].create({'cash_basis': True})
+        used_context = wizard._build_contexts({'form': {
+            'journal_ids': wizard.journal_ids.ids,
+            'target_move': 'posted',
+            'date_from': False,
+            'date_to': False,
+            'company_id': [self.env.company.id],
+        }})
+        self.assertTrue(used_context['tax_exigible'])
 
 
 @tagged('post_install', '-at_install')

@@ -13,7 +13,7 @@ Baseline database: `flousflow_om_accountant_dev20_20261028`; Odoo 20.0; last inv
 | Cash Flow Statement | `accounting_pdf_reports` action/menu exists and is installed | Enterprise layout and interaction parity not fully verified | Reconcile report lines, filters and export behavior |
 | Annual Report | `accounting_pdf_reports` and suite annual-report menu exist | Enterprise template/configuration behavior needs runtime comparison | Test template setup, period selection and output |
 | General Ledger | Interactive full-page report with account search, expandable journal items, month/quarter/fiscal-year/custom dates, posting/cash-basis filters, scaling, Print, XLSX and CSV | Report controls and date presets now align with observed Enterprise behavior. Documents and Knowledge actions remain absent; export output still needs direct live-file comparison | Validate exports against matched records; consider Documents and Knowledge integrations where available |
-| Trial Balance | Full-page interactive report with opening balance, period debit/credit, ending balance, previous-period comparison, period presets, journal and entry filters, search, scaling, drill-down, and Print | Core table and filters now match the observed Enterprise Trial Balance screen. Export/settings actions and matched live-value comparison remain open | Verify export/settings behavior and reconcile figures on matched entries |
+| Trial Balance | Full-page interactive report with opening balance, period debit/credit, ending balance, previous-period comparison, period presets, journal and entry filters, accrual/cash-basis selection, search, scaling, drill-down, and Print | Core table and filters now match the observed Enterprise Trial Balance screen. Export/settings actions and matched live-value comparison remain open | Verify export/settings behavior and reconcile figures on matched entries |
 | Journal Audit | Period presets, entry filters, payment toggle, scale, per-journal audit action, tax summary, print, XLSX export, Send to Documents and Insert in Article | Main report, date presets and per-journal action visibility are browser-tested; Send to Documents and Insert in Article are missing because Documents and Knowledge are unavailable in local Community | Preserve native report flow; investigate optional integrations when compatible platform modules exist |
 | Partner Ledger and Aged Partner reports | Partner Ledger, Aged Partner Balance, Aged Receivable and Aged Payable are installed | Enterprise interaction and export parity needs runtime proof | Validate filters, partner drill-down and exports |
 | Tax Report | Tax Report menu/action is installed | Enterprise localization and period-lock behavior needs comparison | Reuse native tax engine; close verified gaps only |
@@ -31,7 +31,7 @@ Baseline database: `flousflow_om_accountant_dev20_20261028`; Odoo 20.0; last inv
 The database currently has the following integrated modules installed:
 
 - `om_account_accountant` `20.0.1.32.0`
-- `accounting_pdf_reports` `20.0.2.0.10`
+- `accounting_pdf_reports` `20.0.2.0.11`
 - `ff_account_transfer` `20.0.1.0.0`
 - `flousflow_branch_analytic` `20.0.1.0.0`
 
@@ -223,6 +223,8 @@ available through Print and the account report action.
 
 Tests verify opening/current/comparison amounts against posted invoices,
 debit-credit reconciliation, menu permissions, period controls, and rendered
-comparison columns. The local test browser completed the period and comparison
-tour. Enterprise export/settings actions and numeric equivalence across the two
+comparison columns. Cash Basis Method is available in the filter and print
+wizard and uses the tax-exigibility context consistently with General Ledger.
+The local test browser completed the period, comparison, and entry-basis tour.
+Enterprise export/settings actions and numeric equivalence across the two
 databases are still unverified.

@@ -1,5 +1,14 @@
 import { registry } from "@web/core/registry";
 
+async function waitFor(assertion, message) {
+    const started = Date.now();
+    while (Date.now() - started < 10000) {
+        if (assertion()) return;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    throw new Error(message);
+}
+
 registry.category("web_tour.tours").add("ff_trial_balance_controls", {
     steps: () => [
         { trigger: ".ff_tb_period_picker button", run: "click" },
@@ -32,5 +41,24 @@ registry.category("web_tour.tours").add("ff_trial_balance_controls", {
                 throw new Error("Comparison columns did not appear.");
             }
         } },
+        {
+            trigger: ".ff_tb_entry_filter",
+            run() {
+                if (!this.anchor.textContent.includes("Posted Entries")) {
+                    throw new Error("Entry-basis filter is missing.");
+                }
+                this.anchor.click();
+            },
+        },
+        {
+            trigger: ".ff_tb_filters .ff_tb_cash_basis input[type='checkbox']",
+            async run() {
+                this.anchor.click();
+                await waitFor(
+                    () => document.querySelector(".ff_tb_entry_filter")?.textContent.includes("Cash Basis"),
+                    "Cash Basis selection was not reflected in the toolbar."
+                );
+            },
+        },
     ],
 });

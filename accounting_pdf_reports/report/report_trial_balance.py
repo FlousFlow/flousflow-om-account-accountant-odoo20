@@ -12,7 +12,8 @@ class ReportTrialBalance(models.AbstractModel):
     def get_interactive_data(self, period_type='month', period_anchor=None,
                              custom_date_from=None, custom_date_to=None,
                              target_move='posted', journal_ids=None,
-                             display_account='movement', comparison=False):
+                             display_account='movement', comparison=False,
+                             cash_basis=False):
         if not self.env.user.has_group('account.group_account_readonly'):
             raise AccessError(_('You are not allowed to view the Trial Balance.'))
         if target_move not in ('posted', 'all'):
@@ -50,6 +51,7 @@ class ReportTrialBalance(models.AbstractModel):
                 'date_to': fields.Date.to_string(end_date),
                 'strict_range': bool(start_date),
                 'state': target_move,
+                'tax_exigible': bool(cash_basis),
             }
             return {
                 item['account_id']: item
@@ -115,6 +117,7 @@ class ReportTrialBalance(models.AbstractModel):
             'previous_date_from': fields.Date.to_string(previous_from) if previous_from else False,
             'previous_date_to': fields.Date.to_string(previous_to) if previous_to else False,
             'comparison': bool(comparison),
+            'cash_basis': bool(cash_basis),
             'draft_count': draft_count,
             'company_id': company.id,
             'company_name': company.name,
