@@ -21,6 +21,8 @@
 
     .table thead { background: #e1e5ea; }
     .ff_deferred_total { font-weight: 700; border-top: 2px solid #adb5bd; }
+    .ff_deferred_detail { color: var(--text-muted, #6c757d); }
+    .ff_deferred_detail_name { display: inline-block; padding-inline-start: 2rem; }
 
     @media print {
         .o_control_panel button,

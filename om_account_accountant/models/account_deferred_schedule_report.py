@@ -195,10 +195,21 @@ class AccountDeferredScheduleReport(models.AbstractModel):
                 "amount": 0.0,
                 "entries": 0,
                 "move_ids": [],
+                "details": {},
             })
-            row["amount"] += recognized_by_move.get(move.id, 0.0)
+            move_amount = recognized_by_move.get(move.id, 0.0)
+            row["amount"] += move_amount
             row["entries"] += 1
             row["move_ids"].append(move.id)
+            detail = row["details"].setdefault(asset.id, {
+                "key": f"asset:{asset.id}",
+                "asset_id": asset.id,
+                "name": asset.display_name,
+                "amount": 0.0,
+                "entries": 0,
+            })
+            detail["amount"] += move_amount
+            detail["entries"] += 1
         return rows_by_period
 
     @api.model
@@ -245,6 +256,18 @@ class AccountDeferredScheduleReport(models.AbstractModel):
                 period_key: period_rows[period_key].get(key, {}).get("amount", 0.0)
                 for period_key in period_keys
             }
+            details_by_asset = {}
+            for period_key in period_keys:
+                for asset_id, period_detail in period_rows[period_key].get(key, {}).get("details", {}).items():
+                    detail = details_by_asset.setdefault(asset_id, {
+                        "key": period_detail["key"],
+                        "asset_id": asset_id,
+                        "name": period_detail["name"],
+                        "period_entries": {key: 0 for key in period_keys},
+                        "period_values": {key: 0.0 for key in period_keys},
+                    })
+                    detail["period_entries"][period_key] = period_detail["entries"]
+                    detail["period_values"][period_key] = period_detail["amount"]
             period_move_ids = {
                 period_key: period_rows[period_key].get(key, {}).get("move_ids", [])
                 for period_key in period_keys
@@ -267,6 +290,28 @@ class AccountDeferredScheduleReport(models.AbstractModel):
                     )
                 else:
                     comparison_values[period_key] = amount - compared_amount
+            detail_rows = []
+            for detail in details_by_asset.values():
+                detail_values = detail["period_values"]
+                detail_comparison_values = {}
+                for period_key in period_keys[1:]:
+                    compared_amount = detail_values[period_key]
+                    detail_comparison_values[period_key] = (
+                        ((detail_values[current_key] - compared_amount) / abs(compared_amount)) * 100
+                        if comparison_mode == "percentage" and not currency.is_zero(compared_amount)
+                        else (0.0 if currency.is_zero(detail_values[current_key]) else None)
+                        if comparison_mode == "percentage"
+                        else detail_values[current_key] - compared_amount
+                    )
+                if hide_zero and all(currency.is_zero(value) for value in detail_values.values()):
+                    continue
+                detail_rows.append({
+                    **detail,
+                    "amount": detail_values[current_key],
+                    "entries": detail["period_entries"][current_key],
+                    "comparison_values": detail_comparison_values,
+                })
+            detail_rows.sort(key=lambda detail: detail["name"].casefold())
             sort_value = (
                 comparison_values.get(period_keys[1], amount)
                 if comparison_periods else amount
@@ -284,6 +329,7 @@ class AccountDeferredScheduleReport(models.AbstractModel):
                 "comparison_values": comparison_values,
                 "sort_value": sort_value,
                 "move_ids": period_move_ids.get(current_key, []),
+                "details": detail_rows,
             })
         rows.sort(key=lambda row: (
             row["sort_value"] is None,

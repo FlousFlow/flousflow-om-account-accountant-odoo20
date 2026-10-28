@@ -36,6 +36,8 @@ export class DeferredScheduleReport extends Component {
             comparisonMode: "percentage",
             sortOrder: "desc",
             hideZero: false,
+            unfoldAll: false,
+            expandedRows: [],
             scale: 1,
             settingsOpen: false,
             search: "",
@@ -103,6 +105,7 @@ export class DeferredScheduleReport extends Component {
             this.state.companyName = data.company_name;
             this.state.currencyId = data.currency_id;
             this.state.rows = data.rows;
+            this.state.expandedRows = this.state.unfoldAll ? data.rows.map((row) => row.key) : [];
             this.state.journals = data.journals;
             this.state.periods = data.periods;
             this.state.period = data.periods[0].key;
@@ -127,6 +130,31 @@ export class DeferredScheduleReport extends Component {
     async onFilterChange(key, value) {
         this.state[key] = value;
         await this.loadReport();
+    }
+
+    isExpanded(row) {
+        return this.state.expandedRows.includes(row.key);
+    }
+
+    rowToggleLabel(row) {
+        return this.isExpanded(row) ? _t("Collapse row") : _t("Expand row");
+    }
+
+    toggleRow(row) {
+        const expanded = new Set(this.state.expandedRows);
+        if (expanded.has(row.key)) {
+            expanded.delete(row.key);
+        } else {
+            expanded.add(row.key);
+        }
+        this.state.expandedRows = [...expanded];
+        this.state.unfoldAll = this.state.rows.length > 0
+            && this.state.rows.every((item) => expanded.has(item.key));
+    }
+
+    toggleUnfoldAll(ev) {
+        this.state.unfoldAll = ev.target.checked;
+        this.state.expandedRows = ev.target.checked ? this.state.rows.map((row) => row.key) : [];
     }
 
     togglePeriodPicker() {

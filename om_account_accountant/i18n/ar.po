@@ -432,6 +432,20 @@ msgid "Hide Zero Lines"
 msgstr "إخفاء البنود الصفرية"
 
 #. module: om_account_accountant
+msgid "Unfold All"
+msgstr "فتح الكل"
+
+#. odoo-javascript
+#: om_account_accountant/static/src/deferred_schedule/deferred_schedule.js
+msgid "Expand row"
+msgstr "توسيع السطر"
+
+#. odoo-javascript
+#: om_account_accountant/static/src/deferred_schedule/deferred_schedule.js
+msgid "Collapse row"
+msgstr "طي السطر"
+
+#. module: om_account_accountant
 msgid "Display Amounts"
 msgstr "عرض المبالغ"
 

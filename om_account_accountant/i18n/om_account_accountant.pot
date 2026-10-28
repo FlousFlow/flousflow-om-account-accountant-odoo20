@@ -354,3 +354,18 @@ msgstr ""
 #: model:ir.model.fields,field_description:om_account_accountant.field_res_config_settings__anglo_saxon_accounting
 msgid "Use anglo-saxon accounting"
 msgstr ""
+
+#. module: om_account_accountant
+#: om_account_accountant/static/src/deferred_schedule/deferred_schedule.xml
+msgid "Unfold All"
+msgstr ""
+
+#. odoo-javascript
+#: om_account_accountant/static/src/deferred_schedule/deferred_schedule.js
+msgid "Expand row"
+msgstr ""
+
+#. odoo-javascript
+#: om_account_accountant/static/src/deferred_schedule/deferred_schedule.js
+msgid "Collapse row"
+msgstr ""

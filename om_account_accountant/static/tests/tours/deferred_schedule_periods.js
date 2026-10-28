@@ -26,6 +26,24 @@ async function fillDateAndWait(input, value) {
 
 registry.category("web_tour.tours").add("ff_deferred_schedule_periods", {
     steps: () => [
+        { trigger: ".ff_deferred_unfold_all", run: "click" },
+        {
+            trigger: ".ff_deferred_unfold_all",
+            run() {
+                if (!this.anchor.checked) {
+                    throw new Error("Unfold All did not stay enabled.");
+                }
+            },
+        },
+        { trigger: ".ff_deferred_unfold_all", run: "click" },
+        {
+            trigger: ".ff_deferred_unfold_all",
+            run() {
+                if (this.anchor.checked) {
+                    throw new Error("Unfold All did not stay disabled.");
+                }
+            },
+        },
         { trigger: ".o_ff_deferred_schedule .ff_deferred_period", run: "click" },
         {
             trigger: ".ff_deferred_period_option:nth-child(2) .dropdown-item",

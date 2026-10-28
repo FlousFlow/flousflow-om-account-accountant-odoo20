@@ -134,6 +134,15 @@ drill-down to the matching journal entries. Their XLSX export includes Schedule
 and Entries worksheets and preserves period and comparison filters. New assets
 retain their source invoice line so product grouping can use the actual product.
 
+The Deferred schedule now offers an `Unfold All` toggle and expandable asset
+detail rows beneath each account, category, or product total. The parent-row
+amounts remain the report totals; child assets show their own recognized amounts
+and comparison values. Existing row clicks still open the matching journal
+entries. An isolated accounting fixture verifies that child detail amounts and
+comparisons reconcile to the parent, and the browser tour checks that Unfold All
+can be enabled and disabled. A live nonempty Enterprise schedule is still
+needed to confirm its exact hierarchy and presentation.
+
 Remaining differences: the Enterprise actions to send the report to Documents
 or insert it into an article are unavailable because those apps are absent from
 the local Odoo 20 addons path. Existing assets created before the
@@ -146,6 +155,14 @@ An isolated accounting fixture now verifies nonzero quarter totals and prior-
 period comparison against three posted depreciation moves (300.00 each total),
 and confirms that a February drill-down returns only the February move. A live
 matched-company comparison remains outstanding.
+
+The Enterprise report options include an independent `Unfold All` control,
+separate from `Hide lines at 0` and the posted/all-entries target. The local
+report now provides one expandable asset-detail level beneath each selected
+grouping and a matching expand/collapse-all control. The Enterprise Deferred
+Expenses screen had no rows for either September 2026 or FY 2025 during this
+inspection, so exact hierarchy and presentation parity on nonempty schedules
+still needs matched-data confirmation.
 
 ## Working Files
 

@@ -138,6 +138,12 @@ class TestDeferredScheduleReportValues(AccountTestInvoicingCommon):
         self.assertEqual(quarter["rows"][0]["amount"], 300.0)
         self.assertEqual(quarter["rows"][0]["entries"], 3)
         self.assertEqual(quarter["rows"][0]["comparison_values"][quarter["periods"][1]["key"]], 300.0)
+        self.assertEqual(len(quarter["rows"][0]["details"]), 1)
+        detail = quarter["rows"][0]["details"][0]
+        self.assertEqual(detail["asset_id"], asset.id)
+        self.assertEqual(detail["entries"], 3)
+        self.assertEqual(detail["amount"], quarter["rows"][0]["amount"])
+        self.assertEqual(detail["comparison_values"][quarter["periods"][1]["key"]], 300.0)
 
         group_domain = report.get_group_move_domain(
             "expense", "2025-02-01", "account", self.expense_account.id,

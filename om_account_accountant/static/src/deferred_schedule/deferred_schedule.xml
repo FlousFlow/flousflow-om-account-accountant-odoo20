@@ -134,6 +134,12 @@
                                t-on-change="(ev) => this.onFilterChange('hideZero', ev.target.checked)"/>
                         <span>Hide Zero Lines</span>
                     </label>
+                    <label class="form-check d-flex align-items-center gap-1 mb-0 text-nowrap">
+                        <input class="form-check-input mt-0 ff_deferred_unfold_all" type="checkbox"
+                               t-att-checked="this.state.unfoldAll"
+                               t-on-change="(ev) => this.toggleUnfoldAll(ev)"/>
+                        <span>Unfold All</span>
+                    </label>
                     <label for="ff_deferred_scale" class="visually-hidden">Display Amounts</label>
                     <select id="ff_deferred_scale" class="form-select ff_deferred_scale"
                             t-att-value="this.state.scale" t-on-change="(ev) => this.onScaleChange(ev)">
@@ -173,8 +179,15 @@
                                     <td t-att-colspan="1 + this.state.periods.length + 1"
                                         class="text-center text-muted py-5">No data found for the selected period.</td>
                                 </tr>
-                                <tr t-foreach="this.visibleRows" t-as="row" t-key="row.key">
+                                <t t-foreach="this.visibleRows" t-as="row" t-key="row.key">
+                                <tr>
                                     <td>
+                                        <button t-if="row.details.length" class="btn btn-link btn-sm p-0 me-2"
+                                                t-att-aria-expanded="this.isExpanded(row)"
+                                                t-att-aria-label="this.rowToggleLabel(row)"
+                                                t-on-click="() => this.toggleRow(row)">
+                                            <i t-att-class="this.isExpanded(row) ? 'fa fa-caret-down' : 'fa fa-caret-right'"/>
+                                        </button>
                                         <button class="btn btn-link p-0" t-on-click="() => this.openGroup(row)"
                                                 t-out="row.name"/>
                                     </td>
@@ -188,6 +201,17 @@
                                         </button>
                                     </td>
                                 </tr>
+                                <tr t-if="this.isExpanded(row)" t-foreach="row.details" t-as="detail" t-key="detail.key"
+                                    class="ff_deferred_detail">
+                                    <td><span class="ff_deferred_detail_name" t-out="detail.name"/></td>
+                                    <td class="text-end" t-out="detail.entries"/>
+                                    <td t-foreach="this.state.periods" t-as="reportPeriod" t-key="reportPeriod.key"
+                                        class="text-end">
+                                        <t t-if="reportPeriod.key === this.state.period" t-out="this.formatAmount(detail.amount)"/>
+                                        <t t-else="" t-out="this.formatComparison(detail.comparison_values[reportPeriod.key])"/>
+                                    </td>
+                                </tr>
+                                </t>
                                 <tr t-if="this.visibleRows.length" class="ff_deferred_total">
                                     <td>Total</td>
                                     <td class="text-end" t-out="this.totals.entries"/>
