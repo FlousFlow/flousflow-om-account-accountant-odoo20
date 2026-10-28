@@ -90,15 +90,21 @@ class ReportFinancial(models.AbstractModel):
         child_reports = account_report._get_children_by_order()
         res = self.with_context(data.get('used_context'))._compute_report_balance(child_reports)
         if data['enable_filter']:
-            comparison_res = self.with_context(
-                data.get('comparison_context'))._compute_report_balance(
-                child_reports)
-            for report_id, value in comparison_res.items():
-                res[report_id]['comp_bal'] = value['balance']
-                report_acc = res[report_id].get('account')
-                if report_acc:
-                    for account_id, val in comparison_res[report_id].get('account').items():
-                        report_acc[account_id]['comp_bal'] = val['balance']
+            comparison_contexts = data.get('comparison_contexts') or [data.get('comparison_context')]
+            for comparison_index, comparison_context in enumerate(comparison_contexts):
+                comparison_res = self.with_context(comparison_context)._compute_report_balance(child_reports)
+                for report_id, value in comparison_res.items():
+                    report_data = res[report_id]
+                    report_data.setdefault('comp_bal_list', []).append(value['balance'])
+                    if comparison_index == 0:
+                        report_data['comp_bal'] = value['balance']
+                    report_acc = report_data.get('account')
+                    if report_acc:
+                        for account_id, val in comparison_res[report_id].get('account', {}).items():
+                            account_data = report_acc[account_id]
+                            account_data.setdefault('comp_bal_list', []).append(val['balance'])
+                            if comparison_index == 0:
+                                account_data['comp_bal'] = val['balance']
         for report in child_reports:
             vals = {
                 'report_id': report.id,
@@ -115,6 +121,8 @@ class ReportFinancial(models.AbstractModel):
 
             if data['enable_filter']:
                 vals['balance_cmp'] = res[report.id]['comp_bal'] * float(report.sign)
+                vals['balance_cmp_list'] = [value * float(report.sign)
+                                            for value in res[report.id].get('comp_bal_list', [])]
 
             lines.append(vals)
             if report.display_detail == 'no_detail':
@@ -148,7 +156,10 @@ class ReportFinancial(models.AbstractModel):
                         flag = True
                     if data['enable_filter']:
                         vals['balance_cmp'] = value['comp_bal'] * float(report.sign)
-                        if not self.env.company.currency_id.is_zero(vals['balance_cmp']):
+                        vals['balance_cmp_list'] = [amount * float(report.sign)
+                                                    for amount in value.get('comp_bal_list', [])]
+                        if any(not self.env.company.currency_id.is_zero(amount)
+                               for amount in vals['balance_cmp_list']):
                             flag = True
                     if flag:
                         sub_lines.append(vals)
@@ -187,7 +198,7 @@ class ReportFinancial(models.AbstractModel):
                              journal_ids=None, comparison=False, debit_credit=False,
                              comparison_context=None, period_type=None,
                              comparison_mode='previous_period', comparison_date_from=None,
-                             comparison_date_to=None):
+                             comparison_date_to=None, comparison_periods=1):
         """Return the native financial-report hierarchy for the Odoo web client."""
         if not self.env.user.has_group('account.group_account_readonly'):
             from odoo.exceptions import AccessError
@@ -220,40 +231,56 @@ class ReportFinancial(models.AbstractModel):
         data = {
             'account_report_id': (report.id, report.display_name),
             'used_context': context,
-            'enable_filter': bool(comparison),
+            'enable_filter': bool(comparison) and comparison_mode != 'percentage_of',
             'debit_credit': bool(debit_credit),
         }
-        if comparison and comparison_context is not None:
-            data['comparison_context'] = comparison_context
-        elif comparison:
+        if data['enable_filter']:
             start = fields.Date.to_date(date_from) if date_from else False
             end = fields.Date.to_date(date_to) if date_to else fields.Date.context_today(self)
+            periods = int(comparison_periods or 1)
+            if periods < 1:
+                raise UserError(_('The number of comparison periods must be positive.'))
             if comparison_mode == 'custom':
                 comparison_start = fields.Date.to_date(comparison_date_from) if comparison_date_from else False
                 comparison_end = fields.Date.to_date(comparison_date_to) if comparison_date_to else False
                 if not comparison_start or not comparison_end or comparison_start > comparison_end:
                     raise UserError(_('Select a valid comparison date range.'))
+                comparison_contexts = [dict(
+                    context, date_from=comparison_start.isoformat(),
+                    date_to=comparison_end.isoformat(), strict_range=True,
+                )]
+            elif comparison_context is not None:
+                comparison_contexts = [comparison_context]
             elif start:
-                if comparison_mode == 'same_period_last_year':
-                    comparison_start = start - relativedelta(years=1)
-                    comparison_end = end - relativedelta(years=1)
-                elif period_type == 'fiscal_year' or (start.month == 1 and start.day == 1 and period_type is None):
-                    comparison_start = start - relativedelta(years=1)
-                    comparison_end = end - relativedelta(years=1)
-                else:
-                    days = (end - start).days + 1
-                    comparison_start = start - relativedelta(days=days)
-                    comparison_end = start - relativedelta(days=1)
+                comparison_contexts = []
+                period_count = 1 if comparison_mode == 'same_period_last_year' else periods
+                for period_index in range(1, period_count + 1):
+                    if comparison_mode == 'same_period_last_year':
+                        comparison_start = start - relativedelta(years=1)
+                        comparison_end = end - relativedelta(years=1)
+                    elif period_type == 'fiscal_year' or (start.month == 1 and start.day == 1 and period_type is None):
+                        comparison_start = start - relativedelta(years=period_index)
+                        comparison_end = comparison_start + relativedelta(years=1, days=-1)
+                    elif period_type == 'quarter':
+                        comparison_start = start - relativedelta(months=3 * period_index)
+                        comparison_end = comparison_start + relativedelta(months=3, days=-1)
+                    elif period_type == 'month':
+                        comparison_start = start - relativedelta(months=period_index)
+                        comparison_end = comparison_start + relativedelta(months=1, days=-1)
+                    else:
+                        days = (end - start).days + 1
+                        comparison_end = start - relativedelta(days=days * (period_index - 1) + 1)
+                        comparison_start = comparison_end - relativedelta(days=days - 1)
+                    comparison_contexts.append(dict(
+                        context, date_from=comparison_start.isoformat(),
+                        date_to=comparison_end.isoformat(), strict_range=True,
+                    ))
             else:
-                comparison_start = False
-                comparison_end = end - relativedelta(years=1)
-            if comparison_start:
-                data['comparison_context'] = dict(context, date_from=comparison_start.isoformat(),
-                                                  date_to=comparison_end.isoformat(), strict_range=True)
-            else:
-                data['comparison_context'] = dict(
+                comparison_contexts = [dict(
                     context, date_from=False, date_to=(end - relativedelta(years=1)).isoformat(),
-                )
+                )]
+            data['comparison_contexts'] = comparison_contexts
+            data['comparison_context'] = comparison_contexts[0]
         hidden_wrapper = self.env.ref('accounting_pdf_reports.account_financial_report_liabilitysum0')
         current_asset_types = {'asset_cash', 'asset_receivable', 'asset_current', 'asset_prepayments'}
         fixed_asset_types = {'asset_fixed', 'asset_non_current'}
@@ -294,6 +321,15 @@ class ReportFinancial(models.AbstractModel):
                 field: sum(account.get(field, 0.0) for account in accounts)
                 for field in ('debit', 'credit', 'balance', 'balance_cmp')
             }
+            comparison_count = len(data.get('comparison_contexts', []))
+            values['balance_cmp_list'] = [
+                sum((account.get('balance_cmp_list') or [account.get('balance_cmp', 0.0)])[index]
+                    for account in accounts
+                    if index < len(account.get('balance_cmp_list') or [account.get('balance_cmp', 0.0)]))
+                for index in range(comparison_count)
+            ]
+            if values['balance_cmp_list']:
+                values['balance_cmp'] = values['balance_cmp_list'][0]
             account_ids = set()
             for account in accounts:
                 if account.get('account_id'):
@@ -383,7 +419,17 @@ class ReportFinancial(models.AbstractModel):
                 ('account_type', 'in', list(types)),
                 ('company_ids', 'child_of', company.id),
             ])
-            return self.with_context(context)._compute_account_balance(accounts)
+            balances = self.with_context(context)._compute_account_balance(accounts)
+            if data.get('comparison_contexts'):
+                for comparison_context in data['comparison_contexts']:
+                    comparison_balances = self.with_context(comparison_context)._compute_account_balance(accounts)
+                    for account_id, values in balances.items():
+                        values.setdefault('balance_cmp_list', []).append(
+                            comparison_balances[account_id]['balance']
+                        )
+                for values in balances.values():
+                    values['balance_cmp'] = values['balance_cmp_list'][0]
+            return balances
 
         def profit_and_loss_lines(context):
             profit_report = self.env.ref('accounting_pdf_reports.account_financial_report_profitandloss0')
@@ -666,6 +712,7 @@ class ReportFinancial(models.AbstractModel):
             'journal_ids': journals.ids,
             'journals': [{'id': journal.id, 'name': journal.display_name} for journal in journals],
             'comparison_context': data.get('comparison_context') or False,
+            'comparison_contexts': data.get('comparison_contexts', []),
         }
 
     @api.model
