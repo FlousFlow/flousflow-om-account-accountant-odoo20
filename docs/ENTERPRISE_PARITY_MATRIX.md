@@ -4,9 +4,7 @@ This is the living gap-analysis baseline for the FlousFlow Community Accounting
 Suite. It separates native Community coverage from the remaining Enterprise
 parity work; it is not a claim that Community and Enterprise are identical.
 
-Baseline database: `ff_flousflow_om_accountant20_tmp`  
-Odoo: 20.0  
-Last inventory: 2026-10-27
+Baseline database: `flousflow_om_accountant_dev20_20261028`; Odoo 20.0; last inventory: 2026-10-28.
 
 | Enterprise destination / function | Standard Community or suite support | Actual gap | Proposed solution |
 | --- | --- | --- | --- |
@@ -16,7 +14,7 @@ Last inventory: 2026-10-27
 | Annual Report | `accounting_pdf_reports` and suite annual-report menu exist | Enterprise template/configuration behavior needs runtime comparison | Test template setup, period selection and output |
 | General Ledger | Suite exposes General Ledger under Reporting > Ledgers | Enterprise full-page search/grouping/drill-down behavior needs comparison | Preserve native report engine; add targeted UI gaps only |
 | Trial Balance | Suite exposes Trial Balance under Reporting > Ledgers | Enterprise filters and column behavior need comparison | Add missing filters/columns after evidence |
-| Journal Audit | Suite exposes Journals Audit | Enterprise action and result columns need comparison | Compare action payload and result view |
+| Journal Audit | Period presets, entry filters, payment toggle, scale, review action, tax summary, print, XLSX export, Send to Documents and Insert in Article | Main report and date presets are browser-tested; Send to Documents and Insert in Article are missing because Documents and Knowledge are unavailable in local Community | Preserve native report flow; investigate optional integrations when compatible platform modules exist |
 | Partner Ledger and Aged Partner reports | Partner Ledger, Aged Partner Balance, Aged Receivable and Aged Payable are installed | Enterprise interaction and export parity needs runtime proof | Validate filters, partner drill-down and exports |
 | Tax Report | Tax Report menu/action is installed | Enterprise localization and period-lock behavior needs comparison | Reuse native tax engine; close verified gaps only |
 | Daily reports | Day Book, Cash Book and Bank Book are installed | Enterprise grouping and export behavior needs comparison | Compare output and filters |
@@ -32,7 +30,7 @@ Last inventory: 2026-10-27
 
 The database currently has the following integrated modules installed:
 
-- `om_account_accountant` `20.0.1.4.0`
+- `om_account_accountant` `20.0.1.12.0`
 - `ff_account_transfer` `20.0.1.0.0`
 - `flousflow_branch_analytic` `20.0.1.0.0`
 
@@ -105,19 +103,20 @@ native Journal Items action is now also linked from Review > Control, ahead of
 the existing suite-specific Entries to Review queue. The extra queue remains
 available after the three Enterprise destinations. This closes the menu/action
 gap without removing existing functionality. Odoo menu tests passed, including
-the native `account.move.line` action and visibility for an accounting user;
-the upgraded local database reports module version `20.0.1.11.0`. A fresh
-browser visual check is still pending because the local browser session expired
-during the service restart.
+the native `account.move.line` action and visibility for an accounting user.
 
 The live Enterprise **Journal Audit** date menu also exposes Month, Quarter,
 Fiscal Year, and Custom Dates, with previous/next controls for each period.
 The local report previously supported only a numeric calendar year. Its date
 filter now supports the same period types and navigation; Fiscal Year bounds
 come from the active company's configured fiscal-year settings. Custom date
-ranges validate start/end order before reloading the report. Backend tests
-cover fiscal-year boundaries and the default period; browser interaction
-verification is pending.
+ranges validate start/end order before reloading the report. A local Odoo browser
+tour exercised Month, Quarter, next-quarter navigation, Fiscal Year, and custom
+date entry on 2026-10-28; the fiscal-year unit tests and Review menu tests passed
+in the same run (0 failures across 13 tests). The test also exposed and fixed
+eager loading of the Spreadsheet editor's dependencies on unrelated accounting
+pages; the editor now loads its bundle only when a working-file spreadsheet is
+opened.
 
 ## Implemented interactive tranche
 

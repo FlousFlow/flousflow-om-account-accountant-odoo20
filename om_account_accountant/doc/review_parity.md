@@ -7,8 +7,9 @@ Odoo 20 database. Menu names and report options are observations from the live
 Review menu and report screens. Financial totals must be compared only on matched
 company data and period.
 
-The local Review menu follows the live grouping and order: Control (Entries to
-Review, Audit Trail, Journal Audit), Audit (Working Files, Annual Report),
+The local Review menu follows the live grouping and order: Control (Journal
+Items, Audit Trail, Journal Audit, then the suite-specific Entries to Review
+queue), Audit (Working Files, Annual Report),
 Inventory, Regulatory (Unrealized Currencies, Deferred Revenues, Deferred
 Expenses), Purchases, then Sales. `Draft Entries` remains an additional
 community work queue under Accounting.
@@ -17,9 +18,9 @@ community work queue under Accounting.
 
 | Capability | Enterprise | Community | Status |
 | --- | --- | --- | --- |
-| Review menu hierarchy | Control: Entries to Review, Audit Trail, Journal Audit | Same; Journal Items is under Accounting > Transactions and Draft Entries remains under Accounting | Implemented and checked in the local database |
+| Review menu hierarchy | Control: Journal Items, Audit Trail, Journal Audit | Same order, then suite-specific Entries to Review; Draft Entries remains under Accounting | Implemented and verified by Odoo menu tests |
 | Review menu entry and interactive report | Yes | Yes | Implemented |
-| Period, posted/draft/all entries | Year selector; posted, draft, or all | Year selector; posted, draft, or all | Implemented |
+| Period, posted/draft/all entries | Month, Quarter, Fiscal Year and custom dates; posted, draft, or all | Month, Quarter, Fiscal Year and custom dates; posted, draft, or all | Browser tour verified period selection, quarter navigation, and custom date entry |
 | Include payments | Yes | Yes | Implemented |
 | Display scale | Currency, thousands, millions | Currency, thousands, millions | Implemented |
 | Journal totals and expandable entries | Yes | Yes | Implemented |
@@ -35,10 +36,10 @@ Purchases balance. The local development database showed one posted
 Miscellaneous Operations entry with no review pending and zero balance. These
 are different databases and are not evidence of a report-calculation mismatch.
 
-The local Review menu previously included the standard Journal Items menu under
-Control and tied its sequence with Entries to Review. It now places Journal
-Items under Accounting > Transactions and orders the three Control entries to
-match Enterprise. The journal-item action remains available.
+The local Review menu exposes the native Journal Items action at the same
+position as Enterprise. Its pre-existing Entries to Review action remains as
+an additional destination after the three Enterprise entries; the journal-item
+action also remains available under Accounting > Transactions.
 
 ## Balance Sheet and Profit and Loss
 

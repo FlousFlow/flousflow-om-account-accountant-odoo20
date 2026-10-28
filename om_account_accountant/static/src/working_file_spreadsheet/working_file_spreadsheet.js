@@ -169,7 +169,7 @@ export class WorkingFileSpreadsheet extends Component {
     }
 }
 
-registry.category("actions").add(
-    "om_account_accountant.working_file_spreadsheet",
+registry.category("lazy_components").add(
+    "om_account_accountant.WorkingFileSpreadsheet",
     WorkingFileSpreadsheet
 );

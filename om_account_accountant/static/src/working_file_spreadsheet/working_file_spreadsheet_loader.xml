@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="om_account_accountant.WorkingFileSpreadsheetLoader" owl="1">
+        <LazyComponent
+            bundle="'spreadsheet.o_spreadsheet'"
+            Component="'om_account_accountant.WorkingFileSpreadsheet'"
+            props="this.props"
+        />
+    </t>
+</templates>

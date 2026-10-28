@@ -53,9 +53,16 @@
             'om_account_accountant/static/src/deferred_schedule/deferred_schedule.js',
             'om_account_accountant/static/src/deferred_schedule/deferred_schedule.xml',
             'om_account_accountant/static/src/deferred_schedule/deferred_schedule.scss',
+            'om_account_accountant/static/src/working_file_spreadsheet/working_file_spreadsheet_loader.js',
+            'om_account_accountant/static/src/working_file_spreadsheet/working_file_spreadsheet_loader.xml',
+            'om_account_accountant/static/src/working_file_spreadsheet/working_file_spreadsheet.scss',
+        ],
+        'spreadsheet.o_spreadsheet': [
             'om_account_accountant/static/src/working_file_spreadsheet/working_file_spreadsheet.js',
             'om_account_accountant/static/src/working_file_spreadsheet/working_file_spreadsheet.xml',
-            'om_account_accountant/static/src/working_file_spreadsheet/working_file_spreadsheet.scss',
+        ],
+        'web.assets_tests': [
+            'om_account_accountant/static/tests/tours/journal_audit_period_filter.js',
         ],
     },
     'data': [
