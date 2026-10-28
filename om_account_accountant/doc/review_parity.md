@@ -17,7 +17,7 @@ community work queue under Accounting.
 
 | Capability | Enterprise | Community | Status |
 | --- | --- | --- | --- |
-| Review menu hierarchy | Control: Entries to Review, Audit Trail, Journal Audit | Same; Draft Entries remains under Accounting | Implemented and checked in the local database |
+| Review menu hierarchy | Control: Entries to Review, Audit Trail, Journal Audit | Same; Journal Items is under Accounting > Transactions and Draft Entries remains under Accounting | Implemented and checked in the local database |
 | Review menu entry and interactive report | Yes | Yes | Implemented |
 | Period, posted/draft/all entries | Year selector; posted, draft, or all | Year selector; posted, draft, or all | Implemented |
 | Include payments | Yes | Yes | Implemented |
@@ -34,6 +34,11 @@ The live Enterprise report showed three entries awaiting review and a nonzero
 Purchases balance. The local development database showed one posted
 Miscellaneous Operations entry with no review pending and zero balance. These
 are different databases and are not evidence of a report-calculation mismatch.
+
+The local Review menu previously included the standard Journal Items menu under
+Control and tied its sequence with Entries to Review. It now places Journal
+Items under Accounting > Transactions and orders the three Control entries to
+match Enterprise. The journal-item action remains available.
 
 ## Balance Sheet and Profit and Loss
 
@@ -82,9 +87,11 @@ records.
 Enterprise exposes Working Files from Review as an audit dossier, not as a
 Documents folder. The current live cycle screen exposes Cycle and Balances
 navigation. Its audit checklist contains 52 checks grouped by accounting area,
-with review states, notes, evidence uploads, and activity history. A Spreadsheet
-tab was not visible in the selected cycle detail, so its Enterprise location and
-behavior remain unverified.
+with review states, notes, evidence uploads, and activity history. The cycle also
+has a Spreadsheet tab. The observed Enterprise file opens a blank Sheet1 in the
+spreadsheet editor, with File/Edit/View/Insert/Format/Data/Help menus and a
+"Saved" status indicator. Editing and persistence across reloads have not yet
+been exercised.
 
 The Community suite now exposes Working Files under Review with a cycle kanban,
 checklist cards labeled by accounting area, and a Balances tab. New files use the
@@ -96,8 +103,10 @@ and removal are blocked after the working file is validated. The old generic sta
 templates are archived, not deleted; administrator-created active templates remain
 available and are added to future files. Existing working-file snapshots are not
 rewritten when templates change. The list view remains available alongside the
-cycle cards. Spreadsheet parity remains unverified until the Enterprise surface
-that exposes it is identified.
+cycle cards. The local file has no Spreadsheet tab or spreadsheet field/action;
+the installed Community `spreadsheet` and `spreadsheet_dashboard` modules provide
+the spreadsheet data model and dashboard surface, but a working-file editor with
+record-level persistence has not been implemented.
 Accounting managers can validate or reopen a file, and validation is blocked
 until every checklist item is reviewed. Company-scoped access is applied.
 
@@ -109,7 +118,8 @@ opening balances are calculated through the period end, while income and
 expense accounts use the selected date range. A Refresh Accounts action adds
 new company accounts without replacing comments or review statuses.
 
-Parity remains partial because Spreadsheet behavior is unverified. Several
+Parity remains partial because the Enterprise Spreadsheet editor is still a
+confirmed feature gap, its edit/save behavior needs a live check, and several
 Enterprise checklist prompts refer to Belgian GAAP or account numbers 17/42; those
 jurisdiction-specific instructions were observed in the Enterprise company and need
 review before applying them to Egyptian entities. The live Enterprise balance table

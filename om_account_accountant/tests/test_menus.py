@@ -3,6 +3,7 @@ from odoo.tests import TransactionCase, new_test_user, tagged
 
 # where each menu of the accounting apps stands: daily work, reports, settings
 PARENTS = {
+    'account.menu_action_account_moves_all': 'account.account_transactions_menu',
     'om_account_reconcile.menu_bank_reconciliation': 'om_account_reconcile.menu_reconciliation',
     'om_account_reconcile.menu_open_items_reconciliation': 'om_account_reconcile.menu_reconciliation',
     'om_account_reconcile.menu_move_line_match': 'om_account_reconcile.menu_reconciliation',
@@ -53,6 +54,18 @@ class TestMenus(TransactionCase):
                 self.assertEqual(self.env.ref(xmlid).parent_id, self.env.ref(parent))
         for xmlid in REMOVED:
             self.assertFalse(self.env.ref(xmlid, raise_if_not_found=False), xmlid)
+
+    def test_review_control_matches_enterprise_menu(self):
+        control_menu = self.env.ref('account.account_audit_control_menu')
+        actual = control_menu.child_id.filtered('active').sorted(
+            key=lambda menu: (menu.sequence, menu.id)
+        )
+        expected = [
+            self.env.ref('om_account_accountant.menu_review_moves_to_review'),
+            self.env.ref('account.account_audit_trail_menu'),
+            self.env.ref('om_account_accountant.menu_review_journal_audit'),
+        ]
+        self.assertEqual(actual.ids, [menu.id for menu in expected])
 
     def test_no_two_menus_share_a_place(self):
         """ Menus with the same sequence under the same parent come in no given order. """
