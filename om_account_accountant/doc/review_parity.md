@@ -103,10 +103,12 @@ and removal are blocked after the working file is validated. The old generic sta
 templates are archived, not deleted; administrator-created active templates remain
 available and are added to future files. Existing working-file snapshots are not
 rewritten when templates change. The list view remains available alongside the
-cycle cards. The local file has no Spreadsheet tab or spreadsheet field/action;
-the installed Community `spreadsheet` and `spreadsheet_dashboard` modules provide
-the spreadsheet data model and dashboard surface, but a working-file editor with
-record-level persistence has not been implemented.
+cycle cards. A Spreadsheet tab now opens the native Odoo spreadsheet editor for
+the working file. The workbook is stored on the record and autosaves after edits;
+auditors and validated files open read-only. This uses the installed Community
+`spreadsheet` model and editor component rather than the read-only dashboard
+surface. The local navigation opens the editor from the Spreadsheet tab, while
+Enterprise embeds it as a sibling tab in the dossier.
 Accounting managers can validate or reopen a file, and validation is blocked
 until every checklist item is reviewed. Company-scoped access is applied.
 
@@ -118,9 +120,11 @@ opening balances are calculated through the period end, while income and
 expense accounts use the selected date range. A Refresh Accounts action adds
 new company accounts without replacing comments or review statuses.
 
-Parity remains partial because the Enterprise Spreadsheet editor is still a
-confirmed feature gap, its edit/save behavior needs a live check, and several
-Enterprise checklist prompts refer to Belgian GAAP or account numbers 17/42; those
+Parity remains partial because Enterprise embeds the Spreadsheet editor directly
+in the dossier while Community opens it as a full editor action; save/reload
+has server-side snapshot round-trip coverage, but the browser autosave interaction
+has not yet been exercised. Several Enterprise checklist prompts refer to Belgian
+GAAP or account numbers 17/42; those
 jurisdiction-specific instructions were observed in the Enterprise company and need
 review before applying them to Egyptian entities. The live Enterprise balance table
 had 52 accounts; the local company

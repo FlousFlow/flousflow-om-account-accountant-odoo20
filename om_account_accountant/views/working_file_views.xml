@@ -304,6 +304,14 @@
                                 </form>
                             </field>
                         </page>
+                        <page string="Spreadsheet" name="spreadsheet">
+                            <div class="d-flex align-items-center gap-2">
+                                <button name="action_open_spreadsheet" type="object"
+                                        string="Open Spreadsheet" icon="fa-table"
+                                        class="btn-primary" invisible="not id"/>
+                                <span class="text-muted">Spreadsheet changes are saved automatically.</span>
+                            </div>
+                        </page>
                     </notebook>
                 </sheet>
                 <chatter/>

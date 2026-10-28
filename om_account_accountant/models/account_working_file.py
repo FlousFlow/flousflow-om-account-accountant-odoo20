@@ -1,3 +1,5 @@
+import json
+
 from odoo import api, fields, models, _
 from odoo.exceptions import AccessError, UserError, ValidationError
 from dateutil.relativedelta import relativedelta
@@ -18,7 +20,7 @@ class AccountWorkingFileTemplate(models.Model):
 class AccountWorkingFile(models.Model):
     _name = "account.working.file"
     _description = "Accounting Working File"
-    _inherit = ["mail.thread", "mail.activity.mixin"]
+    _inherit = ["mail.thread", "mail.activity.mixin", "spreadsheet.mixin"]
     _order = "date_to desc, id desc"
     _check_company_auto = True
 
@@ -204,6 +206,30 @@ class AccountWorkingFile(models.Model):
             "domain": [("file_id", "=", self.id)],
             "context": {"default_file_id": self.id},
         }
+
+    def action_open_spreadsheet(self):
+        self.ensure_one()
+        can_edit = (
+            self.state != "validated"
+            and (
+                self.env.user.has_group("account.group_account_user")
+                or self.env.user.has_group("account.group_account_manager")
+            )
+        )
+        return {
+            "type": "ir.actions.client",
+            "name": _("Spreadsheet: %(name)s", name=self.name),
+            "tag": "om_account_accountant.working_file_spreadsheet",
+            "params": {"record_id": self.id, "can_edit": can_edit},
+        }
+
+    @api.readonly
+    def get_working_file_spreadsheet_snapshot(self):
+        self.ensure_one()
+        self.check_access("read")
+        if self.spreadsheet_data:
+            return json.loads(self.spreadsheet_data)
+        return self._empty_spreadsheet_data()
 
 
 class AccountWorkingFileCheck(models.Model):
