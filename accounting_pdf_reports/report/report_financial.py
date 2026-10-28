@@ -156,9 +156,36 @@ class ReportFinancial(models.AbstractModel):
         return lines
 
     @api.model
+    def get_interactive_period_dates(self, report_id, period_type, anchor_date):
+        """Return dates for a supported Profit and Loss period preset."""
+        if not self.env.user.has_group('account.group_account_readonly'):
+            from odoo.exceptions import AccessError
+            raise AccessError(_('You are not allowed to read accounting reports.'))
+        report = self.env['account.financial.report'].browse(int(report_id)).exists()
+        profit_loss = self.env.ref('accounting_pdf_reports.account_financial_report_profitandloss0')
+        if report != profit_loss:
+            from odoo.exceptions import AccessError
+            raise AccessError(_('This period selector is only available for Profit and Loss.'))
+
+        anchor = fields.Date.to_date(anchor_date) if anchor_date else fields.Date.context_today(self)
+        if period_type == 'month':
+            date_from = anchor + relativedelta(day=1)
+            date_to = anchor + relativedelta(day=31)
+        elif period_type == 'quarter':
+            quarter_month = ((anchor.month - 1) // 3) * 3 + 1
+            date_from = anchor.replace(month=quarter_month, day=1)
+            date_to = date_from + relativedelta(months=3, days=-1)
+        elif period_type == 'fiscal_year':
+            dates = self.env.company.compute_fiscalyear_dates(anchor)
+            date_from, date_to = dates['date_from'], dates['date_to']
+        else:
+            raise UserError(_('Unsupported report period.'))
+        return {'date_from': fields.Date.to_string(date_from), 'date_to': fields.Date.to_string(date_to)}
+
+    @api.model
     def get_interactive_data(self, report_id, date_from, date_to, target_move='posted',
                              journal_ids=None, comparison=False, debit_credit=False,
-                             comparison_context=None):
+                             comparison_context=None, period_type=None):
         """Return the native financial-report hierarchy for the Odoo web client."""
         if not self.env.user.has_group('account.group_account_readonly'):
             from odoo.exceptions import AccessError
@@ -170,6 +197,10 @@ class ReportFinancial(models.AbstractModel):
             from odoo.exceptions import AccessError
             raise AccessError(_('This report is not available.'))
         company = self.env.company
+        profit_loss = self.env.ref('accounting_pdf_reports.account_financial_report_profitandloss0')
+        if report == profit_loss and not date_from and not date_to:
+            fiscal_dates = company.compute_fiscalyear_dates(fields.Date.context_today(self))
+            date_from, date_to = fiscal_dates['date_from'], fiscal_dates['date_to']
         journals = self.env['account.journal'].search([
             ('company_id', 'child_of', company.id),
         ])
@@ -196,7 +227,7 @@ class ReportFinancial(models.AbstractModel):
             start = fields.Date.to_date(date_from) if date_from else False
             end = fields.Date.to_date(date_to) if date_to else fields.Date.context_today(self)
             if start:
-                if start.month == 1 and start.day == 1:
+                if period_type == 'fiscal_year' or (start.month == 1 and start.day == 1 and period_type is None):
                     comparison_start = start - relativedelta(years=1)
                     comparison_end = end - relativedelta(years=1)
                 else:

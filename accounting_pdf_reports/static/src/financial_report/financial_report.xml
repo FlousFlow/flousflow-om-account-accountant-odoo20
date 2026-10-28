@@ -18,14 +18,45 @@
                     </div>
                 </div>
                 <div class="ff_fr_controls">
-                    <label class="btn btn-outline-secondary"><i class="fa fa-calendar me-1"/>As of
+                    <label t-if="!this.isProfitLoss" class="btn btn-outline-secondary"><i class="fa fa-calendar me-1"/>As of
                         <input type="date" t-att-value="this.state.dateTo" t-on-change="(ev) => this.onDateChange('dateTo', ev)"/>
                     </label>
+                    <div t-if="this.isProfitLoss" class="btn-group ff_fr_period_selector">
+                        <button t-if="this.state.periodType !== 'custom'" class="btn btn-outline-secondary" type="button"
+                                aria-label="Previous period" t-on-click="() => this.movePeriod(-1)">
+                            <i class="fa fa-chevron-left"/>
+                        </button>
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                                aria-label="Report period">
+                            <i class="fa fa-calendar me-1"/><t t-out="this.periodLabel"/>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end p-2 ff_fr_period_menu">
+                            <button class="dropdown-item" t-att-class="this.state.periodType === 'month' ? 'active' : ''"
+                                    type="button" t-on-click="() => this.selectPeriod('month')">Month</button>
+                            <button class="dropdown-item" t-att-class="this.state.periodType === 'quarter' ? 'active' : ''"
+                                    type="button" t-on-click="() => this.selectPeriod('quarter')">Quarter</button>
+                            <button class="dropdown-item" t-att-class="this.state.periodType === 'fiscal_year' ? 'active' : ''"
+                                    type="button" t-on-click="() => this.selectPeriod('fiscal_year')">Fiscal Year</button>
+                            <button class="dropdown-item" t-att-class="this.state.periodType === 'custom' ? 'active' : ''"
+                                    type="button" t-on-click="() => this.selectPeriod('custom')">Custom Dates</button>
+                            <div t-if="this.state.periodType === 'custom'" class="px-3 py-2">
+                                <label class="form-label">Start Date
+                                    <input class="form-control" type="date" t-att-value="this.state.dateFrom"
+                                           t-on-change="(ev) => this.onCustomDateChange('dateFrom', ev)"/>
+                                </label>
+                                <label class="form-label mb-0">End Date
+                                    <input class="form-control" type="date" t-att-value="this.state.dateTo"
+                                           t-on-change="(ev) => this.onCustomDateChange('dateTo', ev)"/>
+                                </label>
+                            </div>
+                        </div>
+                        <button t-if="this.state.periodType !== 'custom'" class="btn btn-outline-secondary" type="button"
+                                aria-label="Next period" t-on-click="() => this.movePeriod(1)">
+                            <i class="fa fa-chevron-right"/>
+                        </button>
+                    </div>
                     <button class="btn btn-outline-secondary" t-att-class="this.state.comparison ? 'btn-primary' : 'btn-outline-secondary'"
                             t-on-click="() => { this.state.comparison = !this.state.comparison; this.loadReport(); }">Comparison</button>
-                    <label t-if="this.state.title === 'Profit and Loss'" class="btn btn-outline-secondary">From
-                        <input type="date" t-att-value="this.state.dateFrom" t-on-change="(ev) => this.onDateChange('dateFrom', ev)"/>
-                    </label>
                     <div class="dropdown">
                         <button class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
                             <i class="fa fa-sliders me-1"/><t t-if="this.state.targetMove === 'posted'">Posted Entries</t><t t-else="">All Entries</t>, Accrual Basis

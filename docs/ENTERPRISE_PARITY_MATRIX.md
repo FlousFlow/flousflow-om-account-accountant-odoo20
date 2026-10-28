@@ -9,7 +9,7 @@ Baseline database: `flousflow_om_accountant_dev20_20261028`; Odoo 20.0; last inv
 | Enterprise destination / function | Standard Community or suite support | Actual gap | Proposed solution |
 | --- | --- | --- | --- |
 | Balance Sheet | The menu opens a full-page in-app report with As of date, comparison, posted/all entries, debit/credit columns, journal filters, amount scaling, draft warning, expandable report rows, account-to-journal-item links and Print options | Browser comparison confirms the asset, liability and equity labels/order, plus formula-info icons. Live-value parity is unproven because the databases contain different data | Continue comparing formulas, options, drill-downs and equivalent fixtures |
-| Profit and Loss | Menu opens the same full-page in-app report with year-to-date dates, comparison, entry state, debit/credit, journal filters, scaling and Print options | Enterprise-specific period presets and hierarchy still need a line-by-line comparison | Compare report rows, date presets, settings, exports and drill-down |
+| Profit and Loss | Full-page report with month, quarter, fiscal-year and custom periods, previous/next period navigation, comparison, entry state, debit/credit, journal filters, scaling and Print options | The local code now provides the period selector; budget selection, cash/accrual parity and hierarchy still need direct comparison | Verify selected dates and comparison on the local runtime, then compare the remaining filters and report lines |
 | Cash Flow Statement | `accounting_pdf_reports` action/menu exists and is installed | Enterprise layout and interaction parity not fully verified | Reconcile report lines, filters and export behavior |
 | Annual Report | `accounting_pdf_reports` and suite annual-report menu exist | Enterprise template/configuration behavior needs runtime comparison | Test template setup, period selection and output |
 | General Ledger | Interactive full-page report with account search, expandable journal items, month/quarter/fiscal-year/custom dates, posting/cash-basis filters, scaling, Print, XLSX and CSV | Report controls and date presets now align with observed Enterprise behavior. Documents and Knowledge actions remain absent; export output still needs direct live-file comparison | Validate exports against matched records; consider Documents and Knowledge integrations where available |
@@ -31,7 +31,7 @@ Baseline database: `flousflow_om_accountant_dev20_20261028`; Odoo 20.0; last inv
 The database currently has the following integrated modules installed:
 
 - `om_account_accountant` `20.0.1.33.0`
-- `accounting_pdf_reports` `20.0.2.0.11`
+- `accounting_pdf_reports` `20.0.2.0.12`
 - `ff_account_transfer` `20.0.1.0.0`
 - `flousflow_branch_analytic` `20.0.1.0.0`
 
@@ -125,7 +125,11 @@ opened.
 
 The local Balance Sheet menu now opens an in-app client action directly,
 without first showing the report wizard. Profit and Loss uses the same report
-shell and opens with a year-to-date range. The toolbar provides `As of`,
+shell and the code now opens with the company's full fiscal year. Its period selector provides
+Month, Quarter, Fiscal Year and Custom Dates, with previous/next navigation for
+the standard periods. Fiscal-year boundaries come from Odoo's company settings,
+and comparison periods follow the selected fiscal year or immediately preceding
+range. Balance Sheet retains its `As of` control. Both reports provide
 Comparison, Posted/All Entries, debit/credit columns, journal selection, amount
 scaling, draft warning and Print options. The account report engine remains the
 source of report values, and account rows link to journal items. Balance Sheet

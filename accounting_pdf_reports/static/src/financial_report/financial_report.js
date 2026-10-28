@@ -22,12 +22,15 @@ export class FinancialReport extends Component {
         const isProfitLoss = String(this.props.action.context?.report_id) === String(
             this.props.action.context?.profit_loss_report_id
         );
+        this.isProfitLoss = isProfitLoss;
         this.state = proxy({
             reportId: this.props.action.context?.report_id,
             printActionXmlid: this.props.action.context?.print_action_xmlid,
             title: "",
-            dateFrom: isProfitLoss ? serializeDate(today.startOf("year")) : "",
-            dateTo: serializeDate(today),
+            dateFrom: isProfitLoss ? false : "",
+            dateTo: isProfitLoss ? false : serializeDate(today),
+            periodType: isProfitLoss ? "fiscal_year" : "as_of",
+            periodAnchor: serializeDate(today),
             targetMove: "posted",
             comparison: false,
             comparisonContext: false,
@@ -72,6 +75,76 @@ export class FinancialReport extends Component {
         return visible;
     }
 
+    get periodLabel() {
+        if (!this.state.dateFrom || !this.state.dateTo) {
+            return _t("Fiscal Year");
+        }
+        const start = DateTime.fromISO(this.state.dateFrom);
+        const end = DateTime.fromISO(this.state.dateTo);
+        if (this.state.periodType === "month") {
+            return `${_t("Month")} ${start.toFormat("LLL yyyy")}`;
+        }
+        if (this.state.periodType === "quarter") {
+            return `${_t("Quarter")} ${start.toFormat("LLL")} – ${end.toFormat("LLL yyyy")}`;
+        }
+        if (this.state.periodType === "fiscal_year") {
+            const years = start.year === end.year ? end.year : `${start.year}–${end.year}`;
+            return `${_t("Fiscal Year")} ${years}`;
+        }
+        return `${start.toLocaleString(DateTime.DATE_MED)} – ${end.toLocaleString(DateTime.DATE_MED)}`;
+    }
+
+    async selectPeriod(periodType) {
+        this.state.periodType = periodType;
+        if (periodType === "custom") {
+            return;
+        }
+        const anchor = serializeDate(DateTime.now().startOf("day"));
+        this.state.periodAnchor = anchor;
+        return this.loadPeriod(periodType, anchor);
+    }
+
+    async loadPeriod(periodType, anchor) {
+        try {
+            const dates = await this.orm.call(
+                "report.accounting_pdf_reports.report_financial",
+                "get_interactive_period_dates",
+                [this.state.reportId, periodType, anchor]
+            );
+            this.state.dateFrom = dates.date_from;
+            this.state.dateTo = dates.date_to;
+            return this.loadReport();
+        } catch (error) {
+            this.notification.add(error.message || _t("The report period could not be loaded."), {
+                type: "danger",
+            });
+        }
+    }
+
+    async movePeriod(direction) {
+        const units = { month: "months", quarter: "months", fiscal_year: "years" };
+        const unit = units[this.state.periodType];
+        if (!unit) {
+            return;
+        }
+        const multiplier = this.state.periodType === "quarter" ? 3 : 1;
+        const anchor = DateTime.fromISO(this.state.periodAnchor).plus({ [unit]: direction * multiplier });
+        this.state.periodAnchor = serializeDate(anchor);
+        return this.loadPeriod(this.state.periodType, this.state.periodAnchor);
+    }
+
+    onCustomDateChange(field, event) {
+        this.state.periodType = "custom";
+        this.state[field] = event.target.value;
+        if (this.state.dateFrom && this.state.dateTo && this.state.dateFrom > this.state.dateTo) {
+            this.notification.add(_t("The start date must be on or before the end date."), {
+                type: "warning",
+            });
+            return;
+        }
+        return this.loadReport();
+    }
+
     isZeroDetail(line) {
         return ["account", "category"].includes(line.type) &&
             Math.abs(line.balance || 0) < 0.005 &&
@@ -113,8 +186,13 @@ export class FinancialReport extends Component {
                 "get_interactive_data",
                 [this.state.reportId, this.state.dateFrom || false, this.state.dateTo,
                     this.state.targetMove, this.state.journalIds, this.state.comparison,
-                    this.state.debitCredit]
+                    this.state.debitCredit, null, this.isProfitLoss ? this.state.periodType : false]
             );
+            if (this.isProfitLoss && this.state.periodType === "fiscal_year" &&
+                    !this.state.dateFrom && !this.state.dateTo) {
+                this.state.dateFrom = data.date_from;
+                this.state.dateTo = data.date_to;
+            }
             this.state.title = data.name;
             this.state.lines = data.lines;
             this.state.comparisonContext = data.comparison_context || false;
