@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_account_working_file_list" model="ir.ui.view">
+        <field name="name">account.working.file.list</field>
+        <field name="model">account.working.file</field>
+        <field name="arch" type="xml">
+            <list string="Working Files" decoration-success="state == 'validated'">
+                <field name="name"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="date_from"/>
+                <field name="date_to"/>
+                <field name="reviewed_count" string="Reviewed"/>
+                <field name="check_count" string="Checks"/>
+                <field name="progress" widget="progressbar"/>
+                <field name="state" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_account_working_file_form" model="ir.ui.view">
+        <field name="name">account.working.file.form</field>
+        <field name="model">account.working.file</field>
+        <field name="arch" type="xml">
+            <form string="Working File">
+                <header>
+                    <button name="action_validate" type="object" string="Validate"
+                            class="btn-primary" groups="account.group_account_manager"
+                            invisible="state != 'in_progress'"/>
+                    <button name="action_reopen" type="object" string="Reopen"
+                            groups="account.group_account_manager"
+                            invisible="state != 'validated'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="in_progress,validated" readonly="1"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="date_from"/>
+                            <field name="date_to"/>
+                        </group>
+                        <group>
+                            <field name="progress" widget="progressbar"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Review Checks" name="checks">
+                            <field name="check_ids" readonly="state == 'validated'">
+                                <list editable="bottom" default_order="sequence,id">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="section"/>
+                                    <field name="name"/>
+                                    <field name="state" widget="badge"/>
+                                    <field name="reviewer_id" optional="hide"/>
+                                    <field name="reviewed_on" optional="hide"/>
+                                    <field name="note" optional="show"/>
+                                </list>
+                                <form string="Review Check">
+                                    <sheet>
+                                        <group>
+                                            <field name="file_id" invisible="1"/>
+                                            <field name="section"/>
+                                            <field name="name"/>
+                                            <field name="description"/>
+                                            <field name="state"/>
+                                            <field name="reviewer_id" readonly="1"/>
+                                            <field name="reviewed_on" readonly="1"/>
+                                            <field name="note" placeholder="Review notes and findings..."/>
+                                            <field name="evidence" filename="evidence_filename"/>
+                                            <field name="evidence_filename" invisible="1"/>
+                                        </group>
+                                    </sheet>
+                                </form>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_account_working_file_search" model="ir.ui.view">
+        <field name="name">account.working.file.search</field>
+        <field name="model">account.working.file</field>
+        <field name="arch" type="xml">
+            <search string="Working Files">
+                <field name="name"/>
+                <field name="date_from"/>
+                <field name="date_to"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <filter name="in_progress" string="In Progress" domain="[('state', '=', 'in_progress')]"/>
+                <filter name="validated" string="Validated" domain="[('state', '=', 'validated')]"/>
+                <filter name="group_period" string="Start Date" context="{'group_by': 'date_from'}"/>
+                <filter name="group_company" string="Company" context="{'group_by': 'company_id'}" groups="base.group_multi_company"/>
+                <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_account_working_file" model="ir.actions.act_window">
+        <field name="name">Working Files</field>
+        <field name="res_model">account.working.file</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_account_working_file_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create an accounting working file</p>
+            <p>Track period review checks, findings, and supporting evidence.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_review_working_files" name="Working Files"
+              action="action_account_working_file"
+              parent="account.account_audit_menu"
+              groups="account.group_account_readonly" sequence="35"/>
+</odoo>

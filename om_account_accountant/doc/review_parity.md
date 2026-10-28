@@ -61,7 +61,23 @@ records.
 
 ## Working Files
 
-Enterprise exposes Working Files from Review. The local Community addon path
-and development database have no Odoo Documents module. This requires a separate
-local document-storage/integration decision; it is not currently represented
-by an equivalent Review action.
+Enterprise exposes Working Files from Review as an audit dossier, not as a
+Documents folder. The live record has Cycles, Balances, and Spreadsheet tabs;
+its audit checklist contains 52 checks grouped by accounting area, with review
+states, notes, evidence uploads, and activity history.
+
+The Community suite now exposes a Working Files destination under Review. A
+file is tied to a company and a user-entered date range and starts with a generic checklist;
+reviewers can mark checks Pending Review or Reviewed, add notes and one evidence
+attachment per check, and use chatter. Accounting managers can validate or
+reopen a file, and validation is blocked until every check is reviewed. Company
+rules and accounting-role access are applied. The starter checklist has 9
+generic checks and is not the Enterprise 52-check template.
+
+Parity remains partial: Cycles and balances are not implemented, there is no
+Spreadsheet tab, the checklist taxonomy and depth differ, and evidence storage
+supports one attachment per check rather than the observed Enterprise upload
+workflow. Local runtime verification confirmed the Review menu, action,
+empty-state list, and form load. The database has no fiscal-year records, so the
+file uses explicit start/end dates rather than depending on configured fiscal
+years. The new destination does not claim Enterprise parity for these gaps.

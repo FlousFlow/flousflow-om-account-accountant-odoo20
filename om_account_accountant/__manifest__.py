@@ -56,6 +56,8 @@
     'data': [
         'security/group.xml',
         'security/ir.access.csv',
+        'data/working_file_template.xml',
+        'views/working_file_views.xml',
         'views/menu.xml',
         'views/review_menu.xml',
         'views/settings.xml',
