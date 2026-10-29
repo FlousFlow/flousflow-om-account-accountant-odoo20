@@ -45,7 +45,7 @@ class TestInteractiveCustomerStatement(AccountTestInvoicingCommon):
         with self.assertRaises(AccessError):
             report.with_user(user).get_interactive_data()
 
-    def test_vendor_statement_reports_payable_balance_as_positive(self):
+    def test_vendor_statement_keeps_enterprise_payable_sign(self):
         vendor = self.env['res.partner'].create({'name': 'Statement Vendor', 'supplier_rank': 1})
         self.init_invoice('in_invoice', partner=vendor, amounts=[125.0], taxes=[],
                           invoice_date='2025-02-12', post=True)
@@ -54,9 +54,27 @@ class TestInteractiveCustomerStatement(AccountTestInvoicingCommon):
             account_scopes=['payable'], partner_ids=[vendor.commercial_partner_id.id], target_move='posted',
         )
         self.assertEqual(result['line_count'], 1)
-        self.assertEqual(result['partners'][0]['lines'][0]['amount'], 125.0)
-        self.assertEqual(result['partners'][0]['lines'][0]['amount_currency'], 125.0)
-        self.assertEqual(result['partners'][0]['amount'], 125.0)
+        self.assertEqual(result['partners'][0]['lines'][0]['amount'], -125.0)
+        self.assertEqual(result['partners'][0]['lines'][0]['amount_currency'], -125.0)
+        self.assertEqual(result['partners'][0]['amount'], -125.0)
+
+    def test_vendor_statement_matches_enterprise_fiscal_year_balances(self):
+        vendors = {
+            'Gemini Furniture': 3095.50,
+            'Ready Mat': 6936.00,
+        }
+        for name, amount in vendors.items():
+            vendor = self.env['res.partner'].create({'name': name, 'supplier_rank': 1})
+            self.init_invoice('in_invoice', partner=vendor, amounts=[amount], taxes=[],
+                              invoice_date='2026-05-15', post=True)
+
+        result = self.env['report.accounting_pdf_reports.customer_statement_data'].get_interactive_data(
+            period_type='fiscal_year', period_anchor='2026-10-29',
+            account_scopes=['payable'], target_move='posted',
+        )
+        balances = {partner['name']: partner['amount'] for partner in result['partners']}
+        self.assertEqual(balances, {'Gemini Furniture': -3095.50, 'Ready Mat': -6936.00})
+        self.assertEqual(sum(balances.values()), -10031.50)
 
     def test_print_and_send_preserve_report_filters(self):
         invoice = self.init_invoice('out_invoice', partner=self.partner_a, amounts=[80.0], taxes=[],
