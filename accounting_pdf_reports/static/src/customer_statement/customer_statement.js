@@ -88,7 +88,9 @@ export class CustomerStatement extends Component {
     get reportTitle() {
         const hasReceivable = this.state.accountScopes.some((scope) => scope.includes("receivable"));
         const hasPayable = this.state.accountScopes.some((scope) => scope.includes("payable"));
-        if (hasReceivable && !hasPayable) return _t("Customer Statement");
+        // The Enterprise Customer Statement keeps its customer heading for the
+        // combined trade-partner scope; only a payable-only report is a vendor statement.
+        if (hasReceivable) return _t("Customer Statement");
         if (hasPayable && !hasReceivable) return _t("Vendor Statement");
         return _t("Customer / Vendor Statement");
     }
@@ -219,8 +221,42 @@ export class CustomerStatement extends Component {
             views: [[false, "form"]], target: "current" });
     }
 
-    printReport() {
-        window.print();
+    getReportFilters() {
+        return {
+            period_type: this.state.periodType,
+            period_anchor: this.state.periodAnchor,
+            custom_date_from: this.state.customDateFrom,
+            custom_date_to: this.state.customDateTo,
+            account_scopes: this.state.accountScopes,
+            partner_ids: this.state.selectedPartners.map((partner) => partner.id),
+            partner_tag_ids: this.state.selectedTagIds,
+            target_move: this.state.targetMove,
+            scale: this.state.scale,
+        };
+    }
+
+    async printReport() {
+        try {
+            const action = await this.orm.call(
+                "report.accounting_pdf_reports.customer_statement_data",
+                "get_print_action", [this.getReportFilters()]
+            );
+            await this.action.doAction(action);
+        } catch (error) {
+            this.notification.add(error.message || _t("The statement could not be printed."), { type: "danger" });
+        }
+    }
+
+    async sendReport() {
+        try {
+            const action = await this.orm.call(
+                "report.accounting_pdf_reports.customer_statement_data",
+                "get_send_action", [this.getReportFilters()]
+            );
+            await this.action.doAction(action);
+        } catch (error) {
+            this.notification.add(error.message || _t("The statement could not be prepared for sending."), { type: "danger" });
+        }
     }
 }
 

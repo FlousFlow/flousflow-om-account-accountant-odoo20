@@ -12,7 +12,7 @@
     'maintainer': 'Odoo Mates',
     'support': 'odoomates@gmail.com',
     'website': 'https://www.youtube.com/watch?v=yA4NLwOLZms',
-    'depends': ['account'],
+    'depends': ['account', 'mail'],
     'assets': {
         'web.assets_backend': [
             'accounting_pdf_reports/static/src/general_ledger/general_ledger.js',
@@ -69,6 +69,7 @@
         'report/report_journal_audit.xml',
         'report/report_journal_entries.xml',
         'report/report_cash_flow.xml',
+        'report/report_customer_statement.xml',
     ],
     'pre_init_hook': '_pre_init_clean_m2m_models',
     'images': ['static/description/banner.gif'],

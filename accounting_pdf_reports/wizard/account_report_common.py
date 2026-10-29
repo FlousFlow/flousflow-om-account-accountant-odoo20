@@ -21,6 +21,8 @@ class AccountCommonReport(models.TransientModel):
     target_move = fields.Selection([('posted', 'All Posted Entries'),
                                     ('all', 'All Entries'),
                                     ], string='Target Moves', required=True, default='posted')
+    customer_statement_partner_id = fields.Many2one('res.partner', readonly=True)
+    customer_statement_filters = fields.Json(readonly=True)
     draft_entry_count = fields.Integer(
         string='Draft Entries',
         compute='_compute_draft_entry_count',

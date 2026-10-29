@@ -1,7 +1,7 @@
 from collections import defaultdict
 
 from odoo import api, fields, models, _
-from odoo.exceptions import AccessError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 
 
 ACCOUNT_SCOPES = {
@@ -15,6 +15,10 @@ REPORT_GROUPS = (
     'account.group_account_invoice',
     'account.group_account_user',
     'account.group_account_manager',
+)
+REPORT_FILTER_KEYS = (
+    'period_type', 'period_anchor', 'custom_date_from', 'custom_date_to',
+    'account_scopes', 'partner_ids', 'partner_tag_ids', 'target_move',
 )
 
 
@@ -164,3 +168,107 @@ class ReportCustomerStatement(models.AbstractModel):
         self._check_report_access()
         tags = self.env['res.partner.category'].search([], order='name', limit=200)
         return [{'id': tag.id, 'name': tag.name} for tag in tags]
+
+    @api.model
+    def get_print_action(self, filters):
+        self._check_report_access()
+        filters = dict(filters or {})
+        report_data = self._get_data_for_filters(filters)
+        recipients = self._create_report_recipients(report_data, filters)
+        if not recipients:
+            raise UserError(_('There are no statement lines to print for the selected filters.'))
+        action = self.env.ref('accounting_pdf_reports.action_report_customer_statement')
+        return action.report_action(recipients, config=False)
+
+    @api.model
+    def get_send_action(self, filters):
+        self._check_report_access()
+        filters = dict(filters or {})
+        report_data = self._get_data_for_filters(filters)
+        recipients = self._create_report_recipients(report_data, filters)
+        if not recipients:
+            raise UserError(_('There are no statement recipients for the selected filters.'))
+        template = self.env.ref('accounting_pdf_reports.email_template_customer_statement')
+        scopes = filters.get('account_scopes') or []
+        title = _('Send Vendor Statements') if scopes and all(
+            scope in ('payable', 'non_trade_payable') for scope in scopes
+        ) else _('Send Customer Statements')
+        return {
+            'type': 'ir.actions.act_window',
+            'name': title,
+            'res_model': 'mail.compose.message',
+            'view_mode': 'form',
+            'views': [(False, 'form')],
+            'target': 'new',
+            'context': {
+                'default_model': recipients._name,
+                'default_res_ids': recipients.ids,
+                'default_template_id': template.id,
+                'default_composition_mode': 'comment' if len(recipients) == 1 else 'mass_mail',
+            },
+        }
+
+    @api.model
+    def _create_report_recipients(self, report_data, filters):
+        return self.env['account.common.report'].create([
+            {
+                'customer_statement_partner_id': partner['id'],
+                'customer_statement_filters': filters,
+            }
+            for partner in report_data['partners']
+        ])
+
+    @api.model
+    def _get_data_for_filters(self, filters):
+        return self.get_interactive_data(**{
+            key: filters[key] for key in REPORT_FILTER_KEYS if key in filters
+        })
+
+
+class ReportInteractiveCustomerStatement(models.AbstractModel):
+    _name = 'report.accounting_pdf_reports.report_customer_statement'
+    _description = 'Interactive Customer and Vendor Statement PDF'
+
+    @api.model
+    def _get_report_values(self, docids, data=None):
+        self.env['report.accounting_pdf_reports.customer_statement_data']._check_report_access()
+        recipients = self.env['account.common.report'].browse(docids or [])
+        statement_report = self.env['report.accounting_pdf_reports.customer_statement_data']
+        statements = []
+        for recipient in recipients:
+            filters = dict(recipient.customer_statement_filters or {})
+            filters['partner_ids'] = [recipient.customer_statement_partner_id.id]
+            report_data = statement_report._get_data_for_filters(filters)
+            scopes = filters.get('account_scopes') or []
+            if scopes and all(scope in ('payable', 'non_trade_payable') for scope in scopes):
+                title = _('Vendor Statement')
+            elif any(scope in ('receivable', 'non_trade_receivable') for scope in scopes):
+                title = _('Customer Statement')
+            else:
+                title = _('Customer / Vendor Statement')
+            scale = filters.get('scale', 'unit')
+            scale_data = {
+                'unit': (1, ''),
+                'rounded': (1, ''),
+                'thousand': (1000, 'k'),
+                'million': (1000000, 'M'),
+            }
+            divisor, suffix = scale_data.get(scale, scale_data['unit'])
+            for statement_partner in report_data['partners']:
+                statement_partner['scaled_amount'] = statement_partner['amount'] / divisor
+                for line in statement_partner['lines']:
+                    line['scaled_amount'] = line['amount'] / divisor
+            statements.append({
+                'recipient': recipient,
+                'report_data': report_data,
+                'report_title': title,
+                'period': (report_data['date_from'], report_data['date_to']),
+                'scale_suffix': suffix,
+            })
+        return {
+            'doc_ids': docids,
+            'doc_model': recipients._name,
+            'docs': recipients,
+            'statements': statements,
+            'currency': self.env.company.currency_id,
+        }
