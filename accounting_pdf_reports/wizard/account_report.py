@@ -46,6 +46,7 @@ class AccountingReport(models.TransientModel):
     )
     comparison_mode = fields.Char(default='none')
     percentage_of_row_key = fields.Char()
+    financial_budget_id = fields.Many2one('account.financial.budget', string='Financial Budget')
 
     def _build_comparison_context(self, data):
         result = {}
@@ -66,7 +67,7 @@ class AccountingReport(models.TransientModel):
             'account_report_id', 'date_from_cmp', 'date_to_cmp', 'journal_ids',
             'filter_cmp', 'target_move', 'comparison_period_ranges',
             'comparison_sort', 'comparison_display', 'enable_filter',
-            'comparison_mode', 'percentage_of_row_key',
+            'comparison_mode', 'percentage_of_row_key', 'financial_budget_id',
         ])[0]}
         for field in ['account_report_id']:
             if isinstance(data['form'][field], tuple):
@@ -82,6 +83,7 @@ class AccountingReport(models.TransientModel):
             'account_report_id', 'enable_filter', 'label_filter', 'target_move',
             'comparison_period_ranges', 'comparison_sort', 'comparison_display',
             'comparison_mode', 'percentage_of_row_key',
+            'financial_budget_id',
         ])[0])
         return self.env.ref('accounting_pdf_reports.action_report_financial').report_action(
             self, data=data, config=False)
@@ -107,6 +109,9 @@ class AccountingReport(models.TransientModel):
             form.get('comparison_context'),
             comparison_mode=form.get('comparison_mode') or 'previous_period',
             comparison_period_ranges=form.get('comparison_period_ranges') or None,
+            financial_budget_id=(form.get('financial_budget_id') or [False])[0]
+            if isinstance(form.get('financial_budget_id'), (list, tuple))
+            else form.get('financial_budget_id') or False,
         )
 
     def _prepare_export_data(self, form, report_data):
@@ -183,6 +188,8 @@ class AccountingReport(models.TransientModel):
         return {
             **report_data,
             'period_columns': columns,
+            'show_budget': bool(report_data.get('financial_budget')),
+            'budget_label': (report_data.get('financial_budget') or {}).get('name', ''),
             'show_comparison_change': show_change,
             'comparison_display': comparison_display,
             'comparison_mode': comparison_mode,
@@ -208,6 +215,7 @@ class AccountingReport(models.TransientModel):
             'enable_filter', 'label_filter', 'debit_credit',
             'comparison_period_ranges', 'comparison_sort', 'comparison_display',
             'comparison_mode', 'percentage_of_row_key',
+            'financial_budget_id',
         ])[0]
         if self.enable_filter:
             form['comparison_context'] = self._build_comparison_context({'form': form})
@@ -246,6 +254,8 @@ class AccountingReport(models.TransientModel):
         if self.debit_credit:
             headers.extend([_('Debit'), _('Credit')])
         headers.extend(column['label'] for column in report_data['period_columns'])
+        if report_data['show_budget']:
+            headers.append(report_data['budget_label'])
         if report_data['show_comparison_change']:
             headers.append(report_data['comparison_change_label'])
         header_row = 5 if self.date_from or self.date_to else 4
@@ -275,6 +285,13 @@ class AccountingReport(models.TransientModel):
                     amount = amounts[period_column['index']] if period_column['index'] < len(amounts) else 0.0
                 if show_amount:
                     sheet.write_number(row_index, column, amount,
+                                       bold_number_format if bold else number_format)
+                else:
+                    sheet.write_blank(row_index, column, None)
+                column += 1
+            if report_data['show_budget']:
+                if show_amount and line.get('budget_amount') is not None:
+                    sheet.write_number(row_index, column, line['budget_amount'],
                                        bold_number_format if bold else number_format)
                 else:
                     sheet.write_blank(row_index, column, None)

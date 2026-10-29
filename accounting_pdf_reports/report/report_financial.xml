@@ -34,6 +34,9 @@
                                     <th t-foreach="period_columns" t-as="period_column" class="text-end">
                                         <span t-out="period_column['label']"/>
                                     </th>
+                                    <th t-if="show_budget" class="text-end">
+                                        <span t-out="budget_label"/>
+                                    </th>
                                     <th t-if="show_comparison_change" class="text-end">
                                         <span t-out="comparison_change_label"/>
                                     </th>
@@ -55,6 +58,11 @@
                                     <td t-foreach="period_columns" t-as="period_column" class="text-end text-nowrap">
                                         <t t-set="period_amount" t-value="line.get('balance', 0.0) if period_column['current'] else ((line.get('balance_cmp_list') or [line.get('balance_cmp', 0.0)])[period_column['index']] if period_column['index'] &lt; len(line.get('balance_cmp_list') or [line.get('balance_cmp', 0.0)]) else 0.0)"/>
                                         <span t-if="line.get('show_amount', True)" t-out="period_amount" t-options="{'widget': 'monetary', 'display_currency': res_company.currency_id}"/>
+                                    </td>
+                                    <td t-if="show_budget" class="text-end text-nowrap">
+                                        <span t-if="line.get('show_amount', True) and line.get('budget_amount') is not None"
+                                              t-out="line.get('budget_amount')"
+                                              t-options="{'widget': 'monetary', 'display_currency': res_company.currency_id}"/>
                                     </td>
                                     <td t-if="show_comparison_change" class="text-end text-nowrap">
                                         <t t-if="line.get('show_amount', True) and comparison_display == 'percentage'" t-out="line.get('comparison_change')"/>

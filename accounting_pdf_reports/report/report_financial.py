@@ -810,4 +810,6 @@ class ReportFinancial(models.AbstractModel):
             'show_comparison_change': report_data['show_comparison_change'],
             'comparison_display': report_data['comparison_display'],
             'comparison_change_label': report_data['comparison_change_label'],
+            'show_budget': report_data['show_budget'],
+            'budget_label': report_data['budget_label'],
         }

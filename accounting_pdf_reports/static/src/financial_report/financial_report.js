@@ -543,6 +543,7 @@ export class FinancialReport extends Component {
             default_comparison_display: this.state.comparisonDisplay,
             default_comparison_mode: this.state.comparisonMode,
             default_percentage_of_row_key: this.state.percentageOfRowKey || false,
+            default_financial_budget_id: this.state.budgetId || false,
         };
         return this.action.doAction(action);
     }
@@ -571,6 +572,7 @@ export class FinancialReport extends Component {
                 comparison_display: this.state.comparisonDisplay,
                 comparison_mode: this.state.comparisonMode,
                 percentage_of_row_key: this.state.percentageOfRowKey || false,
+                financial_budget_id: this.state.budgetId || false,
             }]);
             const action = await this.orm.call(
                 "accounting.report", "action_export_xlsx", [[wizardIds[0]]]
