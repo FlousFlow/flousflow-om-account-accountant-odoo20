@@ -199,7 +199,7 @@ class ReportFinancial(models.AbstractModel):
                              comparison_context=None, period_type=None,
                              comparison_mode='previous_period', comparison_date_from=None,
                              comparison_date_to=None, comparison_periods=1,
-                             comparison_period_ranges=None):
+                             comparison_period_ranges=None, financial_budget_id=None):
         """Return the native financial-report hierarchy for the Odoo web client."""
         if not self.env.user.has_group('account.group_account_readonly'):
             from odoo.exceptions import AccessError
@@ -212,6 +212,13 @@ class ReportFinancial(models.AbstractModel):
             raise AccessError(_('This report is not available.'))
         company = self.env.company
         profit_loss = self.env.ref('accounting_pdf_reports.account_financial_report_profitandloss0')
+        financial_budget = self.env['account.financial.budget']
+        if financial_budget_id:
+            if report != profit_loss:
+                raise UserError(_('Financial budgets are only available on the Profit and Loss report.'))
+            financial_budget = financial_budget.browse(int(financial_budget_id)).exists()
+            if not financial_budget or financial_budget.company_id != company:
+                raise UserError(_('The selected financial budget is unavailable for this company.'))
         if report == profit_loss and not date_from and not date_to:
             fiscal_dates = company.compute_fiscalyear_dates(fields.Date.context_today(self))
             date_from, date_to = fiscal_dates['date_from'], fiscal_dates['date_to']
@@ -332,6 +339,26 @@ class ReportFinancial(models.AbstractModel):
 
         def account_ids_for_types(types):
             return self.env['account.account'].search(account_domain_for_types(types)).ids
+
+        def accounts_for_report_node(node, seen=None):
+            seen = set(seen or ())
+            if not node or node.id in seen:
+                return set()
+            seen.add(node.id)
+            if node.type == 'accounts':
+                return set(self.env['account.account'].search([
+                    ('id', 'in', node.account_ids.ids),
+                    ('company_ids', 'child_of', company.id),
+                ]).ids)
+            if node.type == 'account_type':
+                return set(self.env['account.account'].search([
+                    ('account_type', 'in', node.account_type_ids.mapped('type')),
+                    ('company_ids', 'child_of', company.id),
+                ]).ids)
+            if node.type == 'account_report':
+                return accounts_for_report_node(node.account_report_id, seen)
+            return set().union(*(accounts_for_report_node(child, seen)
+                                 for child in node.children_ids)) if node.children_ids else set()
 
         def amount_row(name, row_type, row_key, level, accounts, show_amount=True,
                        extra_account_ids=()):
@@ -473,6 +500,8 @@ class ReportFinancial(models.AbstractModel):
                 index += 1
                 continue
             section = self.env['account.financial.report'].browse(line['report_id']) if line.get('report_id') else False
+            if financial_budget and section:
+                line['account_ids'] = sorted(accounts_for_report_node(section))
             equity_report = self.env.ref('accounting_pdf_reports.account_financial_report_equity0')
             parent = section.parent_id if section else self.env['account.financial.report']
             while parent:
@@ -716,6 +745,31 @@ class ReportFinancial(models.AbstractModel):
             drafts_domain.append(('date', '>=', date_from))
         if date_to:
             drafts_domain.append(('date', '<=', date_to))
+        budget_lines = []
+        if financial_budget:
+            budget_lines = self.env['account.financial.budget.line'].search_read(
+                [('budget_id', '=', financial_budget.id)], ['id', 'account_id', 'planned_amount'])
+            budget_start = financial_budget.date_from
+            budget_end = financial_budget.date_to
+            report_start = fields.Date.to_date(date_from) if date_from else budget_start
+            report_end = fields.Date.to_date(date_to) if date_to else budget_end
+            overlap_start = max(report_start, budget_start)
+            overlap_end = min(report_end, budget_end)
+            overlap_days = max((overlap_end - overlap_start).days + 1, 0)
+            budget_days = (budget_end - budget_start).days + 1
+            period_ratio = overlap_days / budget_days if budget_days else 0.0
+            amounts_by_account = {
+                row['account_id'][0]: row['planned_amount'] * period_ratio for row in budget_lines
+            }
+            line_ids_by_account = {row['account_id'][0]: row['id'] for row in budget_lines}
+            for line in lines:
+                account_id = line.get('account_id')
+                account_ids = [account_id] if account_id else line.get('account_ids', [])
+                if account_ids:
+                    line['budget_amount'] = sum(amounts_by_account.get(account, 0.0)
+                                                for account in account_ids)
+                if account_id:
+                    line['budget_line_id'] = line_ids_by_account.get(account_id)
         return {
             'name': report.display_name,
             'lines': [add_formula_info(line) for line in lines],
@@ -731,6 +785,9 @@ class ReportFinancial(models.AbstractModel):
             'journals': [{'id': journal.id, 'name': journal.display_name} for journal in journals],
             'comparison_context': data.get('comparison_context') or False,
             'comparison_contexts': data.get('comparison_contexts', []),
+            'financial_budget': {'id': financial_budget.id, 'name': financial_budget.name}
+                                 if financial_budget else False,
+            'can_edit_financial_budget': self.env.user.has_group('account.group_account_manager'),
         }
 
     @api.model

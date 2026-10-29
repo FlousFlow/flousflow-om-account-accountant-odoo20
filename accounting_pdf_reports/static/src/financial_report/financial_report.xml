@@ -55,6 +55,16 @@
                             <i class="fa fa-chevron-right"/>
                         </button>
                     </div>
+                    <div t-if="this.isProfitLoss" class="btn-group ff_fr_budget_selector">
+                        <select class="form-select" aria-label="Budget" t-att-value="this.state.budgetId || ''"
+                                t-on-change="this.onBudgetChange">
+                            <option value="">Budget</option>
+                            <option t-foreach="this.state.budgets" t-as="budget" t-key="budget.id"
+                                    t-att-value="budget.id" t-out="budget.name"/>
+                        </select>
+                        <button t-if="this.state.canEditFinancialBudget" type="button" class="btn btn-outline-secondary"
+                                t-on-click="this.openBudgetDialog">Create</button>
+                    </div>
                     <div class="dropdown">
                         <button class="btn btn-outline-secondary dropdown-toggle" t-att-class="this.state.comparison ? 'btn-primary' : 'btn-outline-secondary'"
                                 type="button" data-bs-toggle="dropdown">Comparison</button>
@@ -155,6 +165,7 @@
                             <th t-foreach="this.periodColumns" t-as="periodColumn" t-key="periodColumn.key" class="text-end">
                                 <t t-out="this.formatPeriodRange(periodColumn.date_from, periodColumn.date_to, this.state.periodType)"/>
                             </th>
+                            <th t-if="this.state.budgetId" class="text-end"><t t-out="this.selectedBudget?.name || 'Budget'"/></th>
                             <th t-if="this.state.comparison and (this.state.comparisonMode === 'percentage_of' or this.state.comparisonContexts.length === 1)" class="text-end">
                                 <t t-if="this.state.comparisonMode === 'percentage_of'">% of <t t-out="this.percentageOfBaseLine?.name || ''"/></t>
                                 <t t-elif="this.state.comparisonDisplay === 'percentage'">Change (%)</t>
@@ -179,6 +190,12 @@
                                 <button t-if="line.show_amount !== false and (line.account_id || line.account_ids?.length)" class="btn btn-link p-0 ff_fr_amount_link" t-on-click="() => this.openLineDetails({...line, detail_date_from: periodColumn.date_from, detail_date_to: periodColumn.date_to})" t-out="this.formatAmount(this.periodColumnAmount(line, periodColumn))"/>
                                 <t t-elif="line.show_amount !== false" t-out="this.formatAmount(this.periodColumnAmount(line, periodColumn))"/>
                             </td>
+                            <td t-if="this.state.budgetId" class="text-end ff_fr_amount">
+                                <input t-if="this.state.canEditFinancialBudget and line.account_id and line.show_amount !== false"
+                                       class="form-control form-control-sm text-end ff_fr_budget_amount" type="number" step="0.01"
+                                       t-att-value="line.budget_amount || 0" t-on-change="(ev) => this.saveBudgetLine(line, ev)"/>
+                                <t t-elif="line.show_amount !== false" t-out="this.formatAmount(line.budget_amount || 0)"/>
+                            </td>
                             <td t-if="this.state.comparison and (this.state.comparisonMode === 'percentage_of' or this.state.comparisonContexts.length === 1)" class="text-end ff_fr_amount"><t t-if="line.show_amount !== false" t-out="this.comparisonChange(line)"/></td>
                             <td class="ff_fr_info_cell">
                                 <button type="button" class="btn btn-link ff_fr_info_button" title="Show formula details"
@@ -196,6 +213,33 @@
                             </td>
                         </tr>
                     </tbody></table>
+                </div>
+            </div>
+            <div t-if="this.state.budgetDialog" class="modal d-block" tabindex="-1" role="dialog">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header"><h4 class="modal-title">Create Financial Budget</h4>
+                            <button type="button" class="btn-close" aria-label="Close" t-on-click="() => this.state.budgetDialog = false"/>
+                        </div>
+                        <div class="modal-body">
+                            <label class="form-label">Budget Name
+                                <input class="form-control" type="text" t-att-value="this.state.budgetName"
+                                       t-on-input="(ev) => this.state.budgetName = ev.target.value"/>
+                            </label>
+                            <label class="form-label">Start Date
+                                <input class="form-control" type="date" t-att-value="this.state.budgetDateFrom"
+                                       t-on-change="(ev) => this.state.budgetDateFrom = ev.target.value"/>
+                            </label>
+                            <label class="form-label">End Date
+                                <input class="form-control" type="date" t-att-value="this.state.budgetDateTo"
+                                       t-on-change="(ev) => this.state.budgetDateTo = ev.target.value"/>
+                            </label>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" t-on-click="this.createFinancialBudget">Create</button>
+                            <button type="button" class="btn btn-secondary" t-on-click="() => this.state.budgetDialog = false">Cancel</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

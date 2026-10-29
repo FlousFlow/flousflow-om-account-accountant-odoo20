@@ -55,6 +55,13 @@ export class FinancialReport extends Component {
             currencyId: false,
             companyId: false,
             companyName: "",
+            budgetId: false,
+            budgets: [],
+            budgetDialog: false,
+            budgetName: "",
+            budgetDateFrom: "",
+            budgetDateTo: "",
+            canEditFinancialBudget: false,
             formulaInfoKey: null,
         });
         onWillStart(() => this.loadReport());
@@ -146,6 +153,10 @@ export class FinancialReport extends Component {
         return this.comparisonBaseLines.find((line) =>
             String(this.formulaInfoKey(line)) === String(this.state.percentageOfRowKey)
         );
+    }
+
+    get selectedBudget() {
+        return this.state.budgets.find((budget) => budget.id === this.state.budgetId);
     }
 
     formatPeriodRange(dateFrom, dateTo, periodType) {
@@ -261,7 +272,8 @@ export class FinancialReport extends Component {
                     this.state.targetMove, this.state.journalIds, this.state.comparison,
                     this.state.debitCredit, null, this.isProfitLoss ? this.state.periodType : false,
                     this.state.comparisonMode, this.state.comparisonDateFrom || false,
-                    this.state.comparisonDateTo || false, this.state.comparisonPeriods]
+                    this.state.comparisonDateTo || false, this.state.comparisonPeriods,
+                    null, this.state.budgetId || false]
             );
             if (this.isProfitLoss && this.state.periodType === "fiscal_year" &&
                     !this.state.dateFrom && !this.state.dateTo) {
@@ -282,6 +294,19 @@ export class FinancialReport extends Component {
             this.state.currencyId = data.currency_id;
             this.state.companyId = data.company_id;
             this.state.companyName = data.company_name;
+            this.state.canEditFinancialBudget = data.can_edit_financial_budget;
+            if (this.isProfitLoss) {
+                this.state.budgets = await this.orm.searchRead(
+                    "account.financial.budget",
+                    [["company_id", "=", data.company_id]],
+                    ["name", "date_from", "date_to"],
+                    { order: "date_from desc, name" }
+                );
+                this.state.budgets = this.state.budgets.map((budget) => ({
+                    ...budget,
+                    name: budget.name,
+                }));
+            }
             this.state.dismissedDraftWarning = false;
         } catch (error) {
             this.notification.add(error.message || _t("The report could not be loaded."), {
@@ -289,6 +314,70 @@ export class FinancialReport extends Component {
             });
         } finally {
             this.state.loading = false;
+        }
+    }
+
+    async onBudgetChange(event) {
+        this.state.budgetId = Number(event.target.value) || false;
+        await this.loadReport();
+    }
+
+    openBudgetDialog() {
+        this.state.budgetName = "";
+        this.state.budgetDateFrom = this.state.dateFrom || "";
+        this.state.budgetDateTo = this.state.dateTo || "";
+        this.state.budgetDialog = true;
+    }
+
+    async createFinancialBudget() {
+        const { budgetName, budgetDateFrom, budgetDateTo } = this.state;
+        if (!budgetName.trim() || !budgetDateFrom || !budgetDateTo || budgetDateFrom > budgetDateTo) {
+            this.notification.add(_t("Enter a name and a valid date range for the budget."), {
+                type: "warning",
+            });
+            return;
+        }
+        try {
+            const ids = await this.orm.create("account.financial.budget", [{
+                name: budgetName.trim(),
+                date_from: budgetDateFrom,
+                date_to: budgetDateTo,
+                company_id: this.state.companyId,
+            }]);
+            this.state.budgetId = ids[0];
+            this.state.budgetDialog = false;
+            await this.loadReport();
+            this.notification.add(_t("Budget created. Enter planned amounts in the budget column."), {
+                type: "success",
+            });
+        } catch (error) {
+            this.notification.add(error.message || _t("The budget could not be created."), {
+                type: "danger",
+            });
+        }
+    }
+
+    async saveBudgetLine(line, event) {
+        const amount = Number(event.target.value || 0);
+        if (!Number.isFinite(amount) || !this.state.budgetId || !line.account_id) {
+            return;
+        }
+        try {
+            const values = {
+                budget_id: this.state.budgetId,
+                account_id: line.account_id,
+                planned_amount: amount,
+            };
+            if (line.budget_line_id) {
+                await this.orm.write("account.financial.budget.line", [line.budget_line_id], values);
+            } else {
+                await this.orm.create("account.financial.budget.line", [values]);
+            }
+            await this.loadReport();
+        } catch (error) {
+            this.notification.add(error.message || _t("The budget amount could not be saved."), {
+                type: "danger",
+            });
         }
     }
 

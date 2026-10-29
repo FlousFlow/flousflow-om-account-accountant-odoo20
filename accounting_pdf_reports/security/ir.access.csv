@@ -26,4 +26,10 @@ access_account_cash_flow_report,access.account.cash.flow.report,account.cash.flo
 access_account_cash_flow_report_manager,access.account.cash.flow.report.manager,account.cash.flow.report,account.group_account_manager,crud,
 access_account_annual_report,access.account.annual.report,account.annual.report,account.group_account_readonly,crud,
 access_account_annual_report_manager,access.account.annual.report.manager,account.annual.report,account.group_account_manager,crud,
+access_account_financial_budget_readonly,account.financial.budget.readonly,account.financial.budget,account.group_account_readonly,r,"[('company_id','in',company_ids)]"
+access_account_financial_budget_user,account.financial.budget.user,account.financial.budget,account.group_account_user,r,"[('company_id','in',company_ids)]"
+access_account_financial_budget_manager,account.financial.budget.manager,account.financial.budget,account.group_account_manager,crud,"[('company_id','in',company_ids)]"
+access_account_financial_budget_line_readonly,account.financial.budget.line.readonly,account.financial.budget.line,account.group_account_readonly,r,"[('company_id','in',company_ids)]"
+access_account_financial_budget_line_user,account.financial.budget.line.user,account.financial.budget.line,account.group_account_user,r,"[('company_id','in',company_ids)]"
+access_account_financial_budget_line_manager,account.financial.budget.line.manager,account.financial.budget.line,account.group_account_manager,crud,"[('company_id','in',company_ids)]"
 access_account_tax_closing_wizard,access.account.tax.closing.wizard,account.tax.closing.wizard,account.group_account_manager,crud,
