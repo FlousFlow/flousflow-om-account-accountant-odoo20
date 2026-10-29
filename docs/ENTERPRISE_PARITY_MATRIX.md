@@ -16,7 +16,7 @@ Baseline database: `flousflow_om_accountant_dev20_20261028`; Odoo 20.0; last inv
 | Audit Trail | Searchable audit log with Journal Entry, Account, Taxes, Partners, Company, Restricted and Date filters; grouping and export; Enterprise also exposes Spreadsheet and Knowledge actions plus custom-field editing | Review menu destination and filters match locally. Enterprise additionally offers Link/Insert List in Spreadsheet, Insert View/Template in Knowledge, and Studio custom fields; local actions show Export only. Row counts differ because the databases have different audit data | Keep core Review destinations equivalent; consider optional integrations only when compatible apps are installed |
 | Trial Balance | Full-page interactive report with opening balance, period debit/credit, ending balance, previous-period comparison, period presets, journal and entry filters, accrual/cash-basis selection, search, scaling, drill-down, and Print | Core table and filters now match the observed Enterprise Trial Balance screen. Export/settings actions and matched live-value comparison remain open | Verify export/settings behavior and reconcile figures on matched entries |
 | Journal Audit | Period presets, entry filters, payment toggle, scale, per-journal audit action, tax summary, print, XLSX export, Send to Documents and Insert in Article | Local Community report supports the core report and XLSX. Send to Documents and Insert in Article are absent; Documents is not available in the local addons path and Knowledge is uninstallable in this Community database | Keep the core report independent of Enterprise apps; add these two actions only through a compatible optional-app integration |
-| Customer / Vendor Statement and Partner Ledger | Local Partner Ledger and Aged Partner reports are installed; Follow-Ups also provides partner-level Customer/Vendor Statement PDF, XLSX and email actions | Enterprise has a separate full-page interactive Customer Statement at `/odoo/customer-statement`. Local Partner Ledger opens a modal, limits account types to trade receivable/payable, and prints a different grouped report. It lacks Enterprise period presets, partner tags, non-trade account scopes, currency scaling and interactive drill-down. The local print action currently falls back to HTML because its PDF engine is unavailable. | Add a dedicated interactive customer/vendor statement without replacing Partner Ledger or follow-up workflows; align available filters and drill-downs, then restore and verify local PDF rendering. |
+| Customer / Vendor Statement and Partner Ledger | Local `accounting_pdf_reports` 2.0.24 adds a dedicated full-page statement with period presets, trade/non-trade account scopes, partner/tag filters, posted/draft/all, scaling, move drill-down and browser Print. Existing Partner Ledger and Follow-Ups workflows remain available. | Isolated backend tests passed for period, partner, tag, account and access filtering; the local 8077 route rendered and showed an empty state. SQL confirms the local DB has no posted partner journal lines, so live values could not be matched. Remaining gaps: Send, Odoo PDF output, pagination above 10,000 lines, non-trade mapping confirmation, and matched Enterprise row comparison. | Compare customer and vendor statements using matched accounting records. Add a real send flow and pagination. Repair local Odoo PDF rendering and verify print output while preserving the other statement workflows. |
 | Tax Report | Tax Report menu/action is installed | Enterprise localization and period-lock behavior needs comparison | Reuse native tax engine; close verified gaps only |
 | Daily reports | Day Book, Cash Book and Bank Book are installed | Enterprise grouping and export behavior needs comparison | Compare output and filters |
 | Reconciliation | Bank Reconciliation, Open Items and Match Journal Items are installed | Enterprise reconciliation UX is not yet proven equivalent | Run representative reconciliation flows and document deltas |
@@ -126,18 +126,18 @@ observed in the local UI with the aligned placements.
 This is navigation parity only. General Ledger opens the suite's interactive
 report; Trial Balance still opens the Community report wizard, while
 Enterprise's report destinations use an interactive report interface.
-Enterprise also has a distinct interactive
-Customer Statement with period, account (including non-trade receivable/payable),
-partner/tag, posting-state and currency filters. Its table shows date, due date,
-amount and transaction-currency amount, and the report offers Print and Send.
-The local Partner Ledger is a different modal wizard with start/end dates,
-partner/journal selection, reconciled-entry and optional foreign-currency
-controls, followed by a grouped debit/credit/running-balance print report. The
-separate Follow-Ups Customer/Vendor Statement actions are PDF/XLSX/email flows,
-not an equivalent interactive reporting destination. This gap was confirmed
-again in the local and Enterprise UIs on 2026-10-29. Generating the local
-Partner Ledger currently shows an Odoo warning that the PDF engine is missing
-and falls back to HTML; this is an independent runtime issue.
+Enterprise has a distinct interactive Customer Statement with period, account
+(including non-trade receivable/payable), partner/tag, posting-state and currency
+filters. Its table shows date, due date, amount and transaction-currency amount,
+and the report offers Print and Send. Local `accounting_pdf_reports` 2.0.24 now
+adds a dedicated interactive Customer / Vendor Statement route with the core
+filters and move drill-down, while retaining the separate Partner Ledger wizard
+and Follow-Ups PDF/XLSX/email actions. Local Print currently uses the browser's
+print function; Send and full PDF output are still open. The local development
+database has no posted partner journal lines, and the live Enterprise report
+was empty for the observed scope, so row-level values remain unverified. The
+legacy Partner Ledger still reports a missing Odoo PDF engine and falls back
+to HTML; that runtime issue is tracked separately.
 
 ## Verified Review menu increment — 2026-10-28
 

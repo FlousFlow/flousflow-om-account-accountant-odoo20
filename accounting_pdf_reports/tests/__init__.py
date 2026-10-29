@@ -13,4 +13,5 @@ from . import test_partner_ledger
 from . import test_general_ledger
 from . import test_general_ledger_export
 from . import test_trial_balance_interactive
+from . import test_customer_statement
 from . import test_financial_report_formula_tour

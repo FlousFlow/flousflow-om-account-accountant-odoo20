@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="accounting_pdf_reports.CustomerStatement">
+        <div class="o_action ff_customer_statement">
+            <div class="ff_cs_toolbar">
+                <button class="btn btn-primary" t-on-click="this.printReport">
+                    <i class="fa fa-print me-1"/> Print
+                </button>
+                <div class="ff_cs_filters">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button"
+                                t-on-click="() => this.state.periodOpen = !this.state.periodOpen">
+                            <i class="fa fa-calendar me-1"/><t t-out="this.periodLabel"/>
+                        </button>
+                        <div t-if="this.state.periodOpen" class="dropdown-menu show p-2 ff_cs_period_menu">
+                            <t t-foreach="['month', 'quarter', 'fiscal_year']" t-as="period" t-key="period">
+                                <div class="d-flex align-items-center gap-1">
+                                    <button t-att-class="'dropdown-item ' + (this.state.periodType === period ? 'active' : '')"
+                                            t-on-click="() => this.setPeriod(period)">
+                                        <t t-if="period === 'month'">Month</t>
+                                        <t t-elif="period === 'quarter'">Quarter</t>
+                                        <t t-else="">Fiscal Year</t>
+                                    </button>
+                                    <button class="btn btn-light btn-sm" t-att-aria-label="'Previous ' + period"
+                                            t-on-click="() => this.movePeriod(period, -1)"><i class="fa fa-chevron-left"/></button>
+                                    <span class="text-nowrap text-center ff_cs_period_option_label" t-out="this.getPeriodOptionLabel(period)"/>
+                                    <button class="btn btn-light btn-sm" t-att-aria-label="'Next ' + period"
+                                            t-on-click="() => this.movePeriod(period, 1)"><i class="fa fa-chevron-right"/></button>
+                                </div>
+                            </t>
+                            <button t-att-class="'dropdown-item ' + (this.state.periodType === 'custom' ? 'active' : '')"
+                                    t-on-click="() => this.setPeriod('custom')">Custom Dates</button>
+                            <div t-if="this.state.periodType === 'custom'" class="d-flex gap-2 p-2">
+                                <input class="form-control form-control-sm" type="date" aria-label="Start Date"
+                                       t-att-value="this.state.customDateFrom"
+                                       t-on-change="(ev) => this.setCustomDate('customDateFrom', ev)"/>
+                                <input class="form-control form-control-sm" type="date" aria-label="End Date"
+                                       t-att-value="this.state.customDateTo"
+                                       t-on-change="(ev) => this.setCustomDate('customDateTo', ev)"/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button"
+                                t-on-click="() => this.state.filterOpen = !this.state.filterOpen">
+                            <i class="fa fa-user me-1"/><t t-out="this.accountScopeLabel"/>
+                        </button>
+                        <div t-if="this.state.filterOpen" class="dropdown-menu show p-3 ff_cs_account_menu">
+                            <div class="form-check" t-foreach="[
+                                    ['receivable', 'Trade Receivable'],
+                                    ['non_trade_receivable', 'Non-trade Receivable'],
+                                    ['payable', 'Trade Payable'],
+                                    ['non_trade_payable', 'Non-trade Payable']
+                                ]" t-as="scope" t-key="scope[0]">
+                                <input class="form-check-input" type="checkbox" t-att-checked="this.state.accountScopes.includes(scope[0])"
+                                       t-on-change="() => this.toggleAccountScope(scope[0])"/>
+                                <label class="form-check-label" t-out="scope[1]"/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dropdown ff_cs_partner_picker">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button"
+                                data-bs-toggle="dropdown" data-bs-auto-close="outside"><i class="fa fa-users me-1"/> Partners</button>
+                        <div class="dropdown-menu p-2 ff_cs_partner_menu">
+                            <input class="form-control form-control-sm mb-2" type="search" placeholder="Search partners"
+                                   t-att-value="this.state.partnerSearch"
+                                   t-on-input="(ev) => { this.state.partnerSearch = ev.target.value; this.searchPartners(); }"
+                                   t-on-click="(ev) => ev.stopPropagation()"/>
+                            <button t-foreach="this.state.partnerOptions" t-as="partner" t-key="partner.id"
+                                    class="dropdown-item" type="button" t-on-click="() => this.addPartner(partner)"
+                                    t-out="partner.name"/>
+                            <div t-if="!this.state.partnerOptions.length" class="dropdown-item-text text-muted">No partners found</div>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                                data-bs-auto-close="outside">
+                            <i class="fa fa-folder-open me-1"/> Tags
+                        </button>
+                        <div class="dropdown-menu p-3 ff_cs_tag_menu">
+                            <label class="form-check" t-foreach="this.state.tags" t-as="tag" t-key="tag.id">
+                                <input class="form-check-input" type="checkbox" t-att-checked="this.state.selectedTagIds.includes(tag.id)"
+                                       t-on-change="() => this.toggleTag(tag.id)"/>
+                                <span class="form-check-label" t-out="tag.name"/>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fa fa-sliders me-1"/><t t-if="this.state.targetMove === 'posted'">Posted Entries</t>
+                            <t t-elif="this.state.targetMove === 'draft'">Draft Entries</t><t t-else="">All Entries</t>
+                        </button>
+                        <div class="dropdown-menu">
+                            <button t-foreach="[['posted', 'Posted Entries'], ['draft', 'Draft Entries'], ['all', 'All Entries']]"
+                                    t-as="option" t-key="option[0]" class="dropdown-item" type="button"
+                                    t-on-click="() => this.setTargetMove(option[0])" t-out="option[1]"/>
+                        </div>
+                    </div>
+                    <select class="form-select ff_cs_scale" aria-label="Currency scale"
+                            t-att-value="this.state.scale" t-on-change="(ev) => this.state.scale = ev.target.value">
+                        <option value="unit">In .$</option><option value="rounded">In $</option>
+                        <option value="thousand">In k$</option><option value="million">In M$</option>
+                    </select>
+                </div>
+            </div>
+            <div class="o_content">
+                <div class="ff_cs_report_header"><h2>Customer Statement</h2><span t-out="this.state.companyName"/></div>
+                <div t-if="this.state.selectedPartners.length" class="ff_cs_selected_partners">
+                    <span t-foreach="this.state.selectedPartners" t-as="partner" t-key="partner.id" class="badge rounded-pill text-bg-secondary">
+                        <t t-out="partner.name"/>
+                        <button type="button" class="btn-close btn-close-white ms-1" aria-label="Remove partner"
+                                t-on-click="() => this.removePartner(partner.id)"/>
+                    </span>
+                </div>
+                <div t-if="this.state.loading" class="text-center p-5"><i class="fa fa-spinner fa-spin me-2"/>Loading…</div>
+                <div t-elif="this.state.partners.length" class="ff_cs_table_wrap">
+                    <table class="table table-hover ff_cs_table">
+                        <thead><tr><th>Date</th><th>Due Date</th>
+                            <th class="text-end">Amount</th><th class="text-end">Amount in Currency</th></tr></thead>
+                        <tbody t-foreach="this.state.partners" t-as="partner" t-key="partner.id">
+                            <tr class="ff_cs_partner_row"><th colspan="2" t-out="partner.name"/>
+                                <th class="text-end" t-out="this.formatAmount(partner.amount)"/><th/></tr>
+                            <tr t-foreach="partner.lines" t-as="line" t-key="line.id" class="ff_cs_move_row">
+                                <td><button class="btn btn-link p-0" t-att-title="line.reference || line.label"
+                                            t-on-click="() => this.openMove(line.move_id)"
+                                            t-out="this.formatDate(line.date)"/></td>
+                                <td><t t-out="this.formatDate(line.date_maturity)"/></td>
+                                <td class="text-end" t-out="this.formatAmount(line.amount)"/>
+                                <td class="text-end" t-out="this.formatForeignAmount(line)"/>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div t-elif="!this.state.loading" class="ff_cs_empty">No statement lines found for the selected filters.</div>
+            </div>
+        </div>
+    </t>
+</templates>

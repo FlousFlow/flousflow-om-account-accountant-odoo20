@@ -1,0 +1,46 @@
+from odoo.exceptions import AccessError, ValidationError
+from odoo.tests import new_test_user, tagged
+
+from odoo.addons.account.tests.common import AccountTestInvoicingCommon
+
+
+@tagged('post_install', '-at_install')
+class TestInteractiveCustomerStatement(AccountTestInvoicingCommon):
+
+    def test_period_partner_state_and_tag_filters(self):
+        self.init_invoice('out_invoice', partner=self.partner_a, amounts=[100.0], taxes=[],
+                          invoice_date='2025-02-10', post=True)
+        self.init_invoice('out_invoice', partner=self.partner_b, amounts=[200.0], taxes=[],
+                          invoice_date='2025-02-11', post=True)
+        tag = self.env['res.partner.category'].create({'name': 'Statement Test'})
+        self.partner_a.category_id = [(4, tag.id)]
+        report = self.env['report.accounting_pdf_reports.customer_statement_data']
+
+        result = report.get_interactive_data(
+            period_type='custom', custom_date_from='2025-02-01', custom_date_to='2025-02-28',
+            account_scopes=['receivable'], partner_ids=[self.partner_a.commercial_partner_id.id],
+            partner_tag_ids=[tag.id], target_move='posted',
+        )
+        self.assertEqual(result['line_count'], 1)
+        self.assertEqual(result['partners'][0]['id'], self.partner_a.commercial_partner_id.id)
+        self.assertEqual(result['partners'][0]['lines'][0]['amount'], 100.0)
+        self.assertEqual(result['date_from'], '2025-02-01')
+        self.assertEqual(result['date_to'], '2025-02-28')
+
+        without_tag_match = report.get_interactive_data(
+            period_type='custom', custom_date_from='2025-02-01', custom_date_to='2025-02-28',
+            account_scopes=['receivable'], partner_ids=[self.partner_b.commercial_partner_id.id],
+            partner_tag_ids=[tag.id], target_move='posted',
+        )
+        self.assertEqual(without_tag_match['line_count'], 0)
+
+    def test_access_and_filter_validation(self):
+        report = self.env['report.accounting_pdf_reports.customer_statement_data']
+        with self.assertRaises(ValidationError):
+            report.get_interactive_data(account_scopes=['invalid'])
+        user = new_test_user(
+            self.env, login='statement_no_account', groups='base.group_user',
+            company_id=self.env.company.id,
+        )
+        with self.assertRaises(AccessError):
+            report.with_user(user).get_interactive_data()

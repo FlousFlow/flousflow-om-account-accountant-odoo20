@@ -1,6 +1,6 @@
 {
     'name': 'Odoo 20 Accounting Financial Reports',
-    'version': '2.0.23',
+    'version': '2.0.24',
     'category': 'Invoicing Management',
     'description': 'Accounting Reports For Odoo 20, Annual Report, Accounting Financial '
                    'Reports, Odoo 20 Financial Reports',
@@ -24,6 +24,9 @@
             'accounting_pdf_reports/static/src/financial_report/financial_report.js',
             'accounting_pdf_reports/static/src/financial_report/financial_report.xml',
             'accounting_pdf_reports/static/src/financial_report/financial_report.scss',
+            'accounting_pdf_reports/static/src/customer_statement/customer_statement.js',
+            'accounting_pdf_reports/static/src/customer_statement/customer_statement.xml',
+            'accounting_pdf_reports/static/src/customer_statement/customer_statement.scss',
         ],
         'web.assets_tests': [
             'accounting_pdf_reports/static/tests/tours/financial_report_formula_info.js',
@@ -42,6 +45,7 @@
         'views/account_account_views.xml',
         'wizard/account_report_common_view.xml',
         'wizard/partner_ledger.xml',
+        'wizard/customer_statement.xml',
         'wizard/general_ledger.xml',
         'wizard/trial_balance.xml',
         'wizard/balance_sheet.xml',

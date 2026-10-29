@@ -13,6 +13,7 @@ FINANCIAL_MENUS = (
     'accounting_pdf_reports.menu_account_report_annual',
 )
 PARTNER_MENUS = (
+    'accounting_pdf_reports.menu_interactive_customer_statement',
     'accounting_pdf_reports.menu_partner_ledger',
     'accounting_pdf_reports.menu_aged_trial_balance',
     'accounting_pdf_reports.menu_aged_receivable',
