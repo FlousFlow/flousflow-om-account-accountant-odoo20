@@ -44,3 +44,16 @@ class TestInteractiveCustomerStatement(AccountTestInvoicingCommon):
         )
         with self.assertRaises(AccessError):
             report.with_user(user).get_interactive_data()
+
+    def test_vendor_statement_reports_payable_balance_as_positive(self):
+        vendor = self.env['res.partner'].create({'name': 'Statement Vendor', 'supplier_rank': 1})
+        self.init_invoice('in_invoice', partner=vendor, amounts=[125.0], taxes=[],
+                          invoice_date='2025-02-12', post=True)
+        result = self.env['report.accounting_pdf_reports.customer_statement_data'].get_interactive_data(
+            period_type='custom', custom_date_from='2025-02-01', custom_date_to='2025-02-28',
+            account_scopes=['payable'], partner_ids=[vendor.commercial_partner_id.id], target_move='posted',
+        )
+        self.assertEqual(result['line_count'], 1)
+        self.assertEqual(result['partners'][0]['lines'][0]['amount'], 125.0)
+        self.assertEqual(result['partners'][0]['lines'][0]['amount_currency'], 125.0)
+        self.assertEqual(result['partners'][0]['amount'], 125.0)

@@ -87,7 +87,12 @@ class ReportCustomerStatement(models.AbstractModel):
         partner_totals = defaultdict(float)
         for line in move_lines:
             partner = line.partner_id.commercial_partner_id
-            amount = line.debit - line.credit
+            # Present payable balances from the vendor's perspective: bills are
+            # positive amounts owed, matching the existing vendor statement.
+            direction = -1 if line.account_id.account_type in (
+                'liability_payable', 'liability_current'
+            ) else 1
+            amount = (line.debit - line.credit) * direction
             partner_totals[partner.id] += amount
             grouped[partner.id].append({
                 'id': line.id,
@@ -97,7 +102,7 @@ class ReportCustomerStatement(models.AbstractModel):
                 'label': line.name or line.move_id.ref or line.move_id.name,
                 'reference': line.move_id.ref or line.move_id.name,
                 'amount': amount,
-                'amount_currency': line.amount_currency,
+                'amount_currency': line.amount_currency * direction,
                 'currency_id': line.currency_id.id,
                 'currency_name': line.currency_id.name,
                 'currency_symbol': line.currency_id.symbol,

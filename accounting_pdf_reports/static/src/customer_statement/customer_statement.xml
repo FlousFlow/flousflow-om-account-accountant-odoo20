@@ -104,7 +104,7 @@
                 </div>
             </div>
             <div class="o_content">
-                <div class="ff_cs_report_header"><h2>Customer Statement</h2><span t-out="this.state.companyName"/></div>
+                <div class="ff_cs_report_header"><h2 t-out="this.reportTitle"/><span t-out="this.state.companyName"/></div>
                 <div t-if="this.state.selectedPartners.length" class="ff_cs_selected_partners">
                     <span t-foreach="this.state.selectedPartners" t-as="partner" t-key="partner.id" class="badge rounded-pill text-bg-secondary">
                         <t t-out="partner.name"/>

@@ -85,6 +85,14 @@ export class CustomerStatement extends Component {
         return this.state.accountScopes.map((scope) => labels[scope]).join(", ");
     }
 
+    get reportTitle() {
+        const hasReceivable = this.state.accountScopes.some((scope) => scope.includes("receivable"));
+        const hasPayable = this.state.accountScopes.some((scope) => scope.includes("payable"));
+        if (hasReceivable && !hasPayable) return _t("Customer Statement");
+        if (hasPayable && !hasReceivable) return _t("Vendor Statement");
+        return _t("Customer / Vendor Statement");
+    }
+
     async loadReport() {
         this.state.loading = true;
         try {
