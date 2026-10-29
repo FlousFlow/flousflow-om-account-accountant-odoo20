@@ -39,6 +39,7 @@ export class CustomerStatement extends Component {
             scale: "unit",
             loading: true,
             partners: [],
+            expandedPartnerIds: [],
             lineCount: 0,
             companyName: "",
             currencyId: false,
@@ -214,6 +215,36 @@ export class CustomerStatement extends Component {
 
     formatForeignAmount(line) {
         return formatMonetary(line.amount_currency || 0, { currencyId: line.currency_id });
+    }
+
+    isPartnerExpanded(partnerId) {
+        return this.state.expandedPartnerIds.includes(partnerId);
+    }
+
+    togglePartner(partnerId) {
+        const expanded = new Set(this.state.expandedPartnerIds);
+        expanded.has(partnerId) ? expanded.delete(partnerId) : expanded.add(partnerId);
+        this.state.expandedPartnerIds = [...expanded];
+    }
+
+    get totalAmount() {
+        return this.state.partners.reduce((total, partner) => total + partner.amount, 0);
+    }
+
+    openPartner(partnerId) {
+        return this.action.doAction({ type: "ir.actions.act_window", res_model: "res.partner", res_id: partnerId,
+            views: [[false, "form"]], target: "current" });
+    }
+
+    openPartnerJournalItems(partner) {
+        return this.action.doAction({
+            type: "ir.actions.act_window",
+            name: _t("Journal Items"),
+            res_model: "account.move.line",
+            views: [[false, "list"], [false, "form"]],
+            domain: [["id", "in", partner.lines.map((line) => line.id)]],
+            target: "current",
+        });
     }
 
     openMove(moveId) {

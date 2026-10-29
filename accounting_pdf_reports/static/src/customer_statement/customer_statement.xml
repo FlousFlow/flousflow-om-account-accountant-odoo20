@@ -121,9 +121,24 @@
                         <thead><tr><th>Date</th><th>Due Date</th>
                             <th class="text-end">Amount</th><th class="text-end">Amount in Currency</th></tr></thead>
                         <tbody t-foreach="this.state.partners" t-as="partner" t-key="partner.id">
-                            <tr class="ff_cs_partner_row"><th colspan="2" t-out="partner.name"/>
+                            <tr class="ff_cs_partner_row">
+                                <th colspan="2">
+                                    <button class="btn btn-link p-0 me-2" type="button"
+                                            t-att-aria-expanded="this.isPartnerExpanded(partner.id)"
+                                            t-att-aria-label="this.isPartnerExpanded(partner.id) ? 'Collapse partner' : 'Expand partner'"
+                                            t-on-click="() => this.togglePartner(partner.id)">
+                                        <i t-att-class="this.isPartnerExpanded(partner.id) ? 'fa fa-caret-down' : 'fa fa-caret-right'"/>
+                                    </button>
+                                    <span t-out="partner.name"/>
+                                    <span class="ff_cs_partner_controls ms-3">
+                                        <button class="btn btn-link btn-sm" type="button"
+                                                t-on-click="() => this.openPartner(partner.id)">Partner</button>
+                                        <button class="btn btn-link btn-sm" type="button"
+                                                t-on-click="() => this.openPartnerJournalItems(partner)">Journal Items</button>
+                                    </span>
+                                </th>
                                 <th class="text-end" t-out="this.formatAmount(partner.amount)"/><th/></tr>
-                            <tr t-foreach="partner.lines" t-as="line" t-key="line.id" class="ff_cs_move_row">
+                            <tr t-if="this.isPartnerExpanded(partner.id)" t-foreach="partner.lines" t-as="line" t-key="line.id" class="ff_cs_move_row">
                                 <td><button class="btn btn-link p-0" t-att-title="line.reference || line.label"
                                             t-on-click="() => this.openMove(line.move_id)"
                                             t-out="this.formatDate(line.date)"/></td>
@@ -132,6 +147,10 @@
                                 <td class="text-end" t-out="this.formatForeignAmount(line)"/>
                             </tr>
                         </tbody>
+                        <tfoot><tr class="fw-bold ff_cs_total_row">
+                            <th colspan="2">Total</th>
+                            <th class="text-end" t-out="this.formatAmount(this.totalAmount)"/><th/>
+                        </tr></tfoot>
                     </table>
                 </div>
                 <div t-elif="!this.state.loading" class="ff_cs_empty">No statement lines found for the selected filters.</div>

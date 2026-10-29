@@ -30,7 +30,10 @@
     .ff_cs_table { margin: 0; }
     .ff_cs_table th, .ff_cs_table td { white-space: nowrap; }
     .ff_cs_partner_row { border-top: 2px solid #d8dde3; background: #e9ecef; }
+    .ff_cs_partner_controls { display: inline-flex; gap: .25rem; }
+    .ff_cs_partner_controls .btn { padding: 0 .25rem; }
     .ff_cs_move_row td { border-bottom-color: #e4e7ea; }
+    .ff_cs_total_row { border-top: 2px solid #6c757d; }
     .ff_cs_empty { max-width: 78rem; margin: 0 auto; padding: 3rem; text-align: center; color: #6c757d; background: #fff; border: 1px solid #dee2e6; }
 }
 
