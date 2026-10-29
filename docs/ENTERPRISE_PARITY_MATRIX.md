@@ -16,7 +16,7 @@ Baseline database: `flousflow_om_accountant_dev20_20261028`; Odoo 20.0; last inv
 | Audit Trail | Searchable audit log with Journal Entry, Account, Taxes, Partners, Company, Restricted and Date filters; grouping and export; Enterprise also exposes Spreadsheet and Knowledge actions plus custom-field editing | Review menu destination and filters match locally. Enterprise additionally offers Link/Insert List in Spreadsheet, Insert View/Template in Knowledge, and Studio custom fields; local actions show Export only. Row counts differ because the databases have different audit data | Keep core Review destinations equivalent; consider optional integrations only when compatible apps are installed |
 | Trial Balance | Full-page interactive report with opening balance, period debit/credit, ending balance, previous-period comparison, period presets, journal and entry filters, accrual/cash-basis selection, search, scaling, drill-down, and Print | Core table and filters now match the observed Enterprise Trial Balance screen. Export/settings actions and matched live-value comparison remain open | Verify export/settings behavior and reconcile figures on matched entries |
 | Journal Audit | Period presets, entry filters, payment toggle, scale, per-journal audit action, tax summary, print, XLSX export, Send to Documents and Insert in Article | Local Community report supports the core report and XLSX. Send to Documents and Insert in Article are absent; Documents is not available in the local addons path and Knowledge is uninstallable in this Community database | Keep the core report independent of Enterprise apps; add these two actions only through a compatible optional-app integration |
-| Partner Ledger and Aged Partner reports | Partner Ledger, Aged Partner Balance, Aged Receivable and Aged Payable are installed | Enterprise interaction and export parity needs runtime proof | Validate filters, partner drill-down and exports |
+| Customer / Vendor Statement and Partner Ledger | Local Partner Ledger and Aged Partner reports are installed; Follow-Ups also provides partner-level Customer/Vendor Statement PDF, XLSX and email actions | Enterprise has a separate full-page interactive Customer Statement at `/odoo/customer-statement`. Local Partner Ledger opens a modal, limits account types to trade receivable/payable, and prints a different grouped report. It lacks Enterprise period presets, partner tags, non-trade account scopes, currency scaling and interactive drill-down. The local print action currently falls back to HTML because its PDF engine is unavailable. | Add a dedicated interactive customer/vendor statement without replacing Partner Ledger or follow-up workflows; align available filters and drill-downs, then restore and verify local PDF rendering. |
 | Tax Report | Tax Report menu/action is installed | Enterprise localization and period-lock behavior needs comparison | Reuse native tax engine; close verified gaps only |
 | Daily reports | Day Book, Cash Book and Bank Book are installed | Enterprise grouping and export behavior needs comparison | Compare output and filters |
 | Reconciliation | Bank Reconciliation, Open Items and Match Journal Items are installed | Enterprise reconciliation UX is not yet proven equivalent | Run representative reconciliation flows and document deltas |
@@ -127,9 +127,17 @@ This is navigation parity only. General Ledger opens the suite's interactive
 report; Trial Balance still opens the Community report wizard, while
 Enterprise's report destinations use an interactive report interface.
 Enterprise also has a distinct interactive
-Customer Statement with period, account, partner, posting-state and currency
-filters; the local Partner Ledger is a different wizard and is not a verified
-equivalent. Those behavioral gaps remain open.
+Customer Statement with period, account (including non-trade receivable/payable),
+partner/tag, posting-state and currency filters. Its table shows date, due date,
+amount and transaction-currency amount, and the report offers Print and Send.
+The local Partner Ledger is a different modal wizard with start/end dates,
+partner/journal selection, reconciled-entry and optional foreign-currency
+controls, followed by a grouped debit/credit/running-balance print report. The
+separate Follow-Ups Customer/Vendor Statement actions are PDF/XLSX/email flows,
+not an equivalent interactive reporting destination. This gap was confirmed
+again in the local and Enterprise UIs on 2026-10-29. Generating the local
+Partner Ledger currently shows an Odoo warning that the PDF engine is missing
+and falls back to HTML; this is an independent runtime issue.
 
 ## Verified Review menu increment — 2026-10-28
 
