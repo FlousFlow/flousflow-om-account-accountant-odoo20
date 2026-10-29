@@ -55,15 +55,31 @@
                             <i class="fa fa-chevron-right"/>
                         </button>
                     </div>
-                    <div t-if="this.isProfitLoss" class="btn-group ff_fr_budget_selector">
-                        <select class="form-select" aria-label="Budget" t-att-value="this.state.budgetId || ''"
-                                t-on-change="this.onBudgetChange">
-                            <option value="">Budget</option>
-                            <option t-foreach="this.state.budgets" t-as="budget" t-key="budget.id"
-                                    t-att-value="budget.id" t-out="budget.name"/>
-                        </select>
-                        <button t-if="this.state.canEditFinancialBudget" type="button" class="btn btn-outline-secondary"
-                                t-on-click="this.openBudgetDialog">Create</button>
+                    <div t-if="this.isProfitLoss" class="dropdown ff_fr_budget_selector">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button"
+                                data-bs-toggle="dropdown" aria-label="Budget">
+                            <i class="fa fa-bar-chart me-1"/><t t-out="this.selectedBudget?.name || 'Budget'"/>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end p-2 ff_fr_budget_menu">
+                            <input class="form-control form-control-sm mb-2" type="search" aria-label="Search budgets"
+                                   placeholder="Search budgets" t-att-value="this.state.budgetSearch"
+                                   t-on-click="(ev) => ev.stopPropagation()"
+                                   t-on-input="(ev) => this.state.budgetSearch = ev.target.value"/>
+                            <div class="ff_fr_budget_options">
+                                <button t-if="this.state.budgetId" class="dropdown-item" type="button"
+                                        t-on-click="() => this.selectBudget(false)">Clear budget</button>
+                                <button t-foreach="this.visibleBudgets" t-as="budget" t-key="budget.id"
+                                        class="dropdown-item" type="button"
+                                        t-on-click="() => this.selectBudget(budget.id)"
+                                        t-out="budget.name"/>
+                                <div t-if="!this.visibleBudgets.length" class="dropdown-item-text text-muted">
+                                    No budgets found
+                                </div>
+                            </div>
+                            <div t-if="this.state.canEditFinancialBudget" class="dropdown-divider"/>
+                            <button t-if="this.state.canEditFinancialBudget" class="dropdown-item" type="button"
+                                    t-on-click="this.openBudgetDialog">Create</button>
+                        </div>
                     </div>
                     <div class="dropdown">
                         <button class="btn btn-outline-secondary dropdown-toggle" t-att-class="this.state.comparison ? 'btn-primary' : 'btn-outline-secondary'"

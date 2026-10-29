@@ -57,6 +57,7 @@ export class FinancialReport extends Component {
             companyName: "",
             budgetId: false,
             budgets: [],
+            budgetSearch: "",
             budgetDialog: false,
             budgetName: "",
             budgetDateFrom: "",
@@ -157,6 +158,14 @@ export class FinancialReport extends Component {
 
     get selectedBudget() {
         return this.state.budgets.find((budget) => budget.id === this.state.budgetId);
+    }
+
+    get visibleBudgets() {
+        const search = this.state.budgetSearch.trim().toLocaleLowerCase();
+        if (!search) {
+            return this.state.budgets;
+        }
+        return this.state.budgets.filter((budget) => budget.name.toLocaleLowerCase().includes(search));
     }
 
     formatPeriodRange(dateFrom, dateTo, periodType) {
@@ -317,13 +326,15 @@ export class FinancialReport extends Component {
         }
     }
 
-    async onBudgetChange(event) {
-        this.state.budgetId = Number(event.target.value) || false;
+    async selectBudget(budgetId) {
+        this.state.budgetId = Number(budgetId) || false;
+        this.state.budgetSearch = "";
         await this.loadReport();
     }
 
     openBudgetDialog() {
-        this.state.budgetName = "";
+        this.state.budgetName = this.state.budgetSearch.trim();
+        this.state.budgetSearch = "";
         this.state.budgetDateFrom = this.state.dateFrom || "";
         this.state.budgetDateTo = this.state.dateTo || "";
         this.state.budgetDialog = true;
