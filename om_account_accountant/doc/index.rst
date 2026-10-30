@@ -1,53 +1,28 @@
-==================
-Odoo 20 Accounting
-==================
+Accounting Suite for Odoo 20 Community
+======================================
 
-This Module will adds following accounting features to Odoo 20 community edition:
-Financial Reports, Asset Management, Budget Management, Bank Reconciliation,
-Daily Reports, Customer Follow Ups and Recurring Payments
-
-Common FAQ
-==========
-1. How to skip in payment status and directly move to paid status ?
-a) https://www.youtube.com/watch?v=eWxfy86Byog
+The suite adds accounting reports, reconciliation, cash-management tools,
+assets, budgets, customer follow-up, currency tools, and dashboards to Odoo 20
+Community Edition.
 
 Installation
 ============
 
-To install this module, you need to:
+Add this repository and the standard Odoo 20 Community addon paths to
+``addons_path``, restart Odoo, update the Apps list, then install
+``om_account_accountant``.
 
-Download the module and add it to your Odoo addons folder. Afterward, log on to
-your Odoo server and go to the Apps menu. Trigger the debug mode and update the
-list by clicking on the "Update Apps List" link. Now install the module by
-clicking on the install button.
-
-
-Upgrade
+Requirements
 ============
 
-To upgrade this module, you need to:
+* Odoo 20.0 Community Edition.
+* An Odoo-compatible ``wkhtmltopdf`` build with patched Qt for on-premise PDF
+  rendering.
+* Tesseract and Poppler on the Odoo host for local vendor-bill OCR.
 
-Download the module and add it to your Odoo addons folder. Restart the server
-and log on to your Odoo server. Select the Apps menu and upgrade the module by
-clicking on the upgrade button.
+Licensing
+=========
 
-
-Configuration
-=============
-
-There is Nothing to Configure
-
-
-Credits
-=======
-
-Contributors
-------------
-
-* Odoo Mates <odoomates@gmail.com>
-
-
-Author & Maintainer
--------------------
-
-This module is maintained by the Odoo Mates
+Each addon has its own license in its manifest. The root suite is LGPL-3;
+``ff_account_transfer`` is OPL-1. Preserve upstream attribution notices when
+redistributing components.

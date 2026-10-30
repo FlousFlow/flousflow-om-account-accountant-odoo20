@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 {
-    'name': 'Flous Flow Internal Account Transfers',
+    'name': 'Internal Transfers',
     'version': '20.0.1.0.0',
     'category': 'Accounting/Accounting',
     'summary': 'Paired internal transfers between bank and cash journals',

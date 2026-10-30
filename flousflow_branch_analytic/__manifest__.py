@@ -1,5 +1,5 @@
 {
-    'name': 'Branch Analytic Accounting',
+    'name': 'Branch Analytics',
     'version': '20.0.1.0.0',
     'category': 'Sales/Point of Sale',
     'sequence': 10,

@@ -1,22 +1,16 @@
 {
-    'name': 'FlousFlow Community Accounting Suite',
-    'version': '20.0.1.34.35',
+    'name': 'Accounting Suite',
+    'version': '20.0.1.34.36',
     'category': 'Accounting',
-    'summary': 'Annual Report, Bank Reconciliation Statement, Accounting Reports, '
-               'Asset Management and Budget, Recurring Payments, '
-               'Lock Dates, Fiscal Year, Period Closing, Accounting Dashboard, Financial Reports, '
-               'Cash Flow Statement, Cash Forecast, Customer Follow up Management, Bank Reconciliation, '
-               'Cheque Printing, Automatic Currency Rates, Currency Revaluation, Bank Statement Import, '
-               'Vendor Bill OCR, Working File Balance Review',
-    'description': 'Odoo 20 Financial Reports, Asset Management and '
-                   'Budget, Financial Reports, Cash Flow Statement, Cash Forecast, '
-                   'Recurring Payments, Bank Reconciliation, Customer Follow Up Management, '
-                   'Account Lock Date, Fiscal Year and Period Closing, Cheque Printing, '
-                   'Automatic Currency Rates, Accounting Dashboard, Vendor Bill OCR, '
-                   'Working File Audit Checklist and Comparative Account Balances',
-    'live_test_url': 'https://www.youtube.com/c/OdooMates',
+    'summary': 'Odoo 20 Community accounting reports, reconciliation and dashboards. '
+               'Manage payments, assets, budgets and cash flow. '
+               'Financial statements, ledgers and tax reports. '
+               'Includes follow-up, bank reconciliation and statement imports. '
+               'Also includes cheque printing, currency updates and revaluation. '
+               'Vendor bill OCR and working-file review.',
+    'description': 'Accounting reports, journals, reconciliation, payments, assets, budgets, follow-up, cash forecast, OCR, currency tools and dashboards for Odoo 20 Community.',
     'sequence': '1',
-    'author': 'FlousFlow (based on Odoo Community modules)',
+    'author': 'FlousFlow',
     'maintainer': 'FlousFlow',
     'license': 'LGPL-3',
     'support': 'support@flousflow.com',
@@ -98,6 +92,15 @@
         'views/account_journal.xml',
     ],
     'application': True,
-    'images': ['static/description/banner.gif'],
+    'images': [
+        'static/description/accounting_dashboard.png',
+        'static/description/accounting_menus.png',
+        'static/description/financial_reports.png',
+        'static/description/cash_flow_statement.png',
+        'static/description/customer_statement.png',
+        'static/description/annual_report.png',
+        'static/description/bank_reconciliation.png',
+        'static/description/vendor_bill_ocr.png',
+    ],
 }
 

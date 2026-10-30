@@ -1,6 +1,6 @@
 {
-    'name': 'Odoo 20 Automatic Currency Rates',
-    'version': '1.0.0',
+    'name': 'Currency Rate Updates',
+    'version': '20.0.1.0.0',
     'category': 'Accounting',
     'summary': 'Update the exchange rates automatically from the European Central Bank, Frankfurter, '
                'Open Exchange Rates or ExchangeRate-API',

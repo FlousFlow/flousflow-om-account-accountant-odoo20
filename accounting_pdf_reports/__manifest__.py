@@ -1,6 +1,6 @@
 {
-    'name': 'Odoo 20 Accounting Financial Reports',
-    'version': '2.0.79',
+    'name': 'Accounting Reports',
+    'version': '20.0.2.0.79',
     'category': 'Invoicing Management',
     'description': 'Accounting Reports For Odoo 20, Annual Report, Accounting Financial '
                    'Reports, Odoo 20 Financial Reports',
@@ -11,7 +11,6 @@
     'company': 'Odoo Mates',
     'maintainer': 'Odoo Mates',
     'support': 'odoomates@gmail.com',
-    'website': 'https://www.youtube.com/watch?v=yA4NLwOLZms',
     'depends': ['account', 'mail', 'base_report_wkhtmltox'],
     'assets': {
         'web.assets_backend': [
@@ -51,7 +50,12 @@
             'accounting_pdf_reports/static/tests/tours/trial_balance.js',
         ],
     },
-    'live_test_url': 'https://www.youtube.com/watch?v=yA4NLwOLZms',
+    'images': [
+        'static/description/financial_reports.png',
+        'static/description/annual_report.png',
+        'static/description/ledger_reports.png',
+        'static/description/tax_journal_reports.png',
+    ],
     'data': [
         'security/ir.access.csv',
         'security/annual_report_document_rules.xml',
