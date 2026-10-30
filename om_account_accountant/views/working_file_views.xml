@@ -69,6 +69,26 @@
         </field>
     </record>
 
+    <record id="view_account_working_file_check_search" model="ir.ui.view">
+        <field name="name">account.working.file.check.search</field>
+        <field name="model">account.working.file.check</field>
+        <field name="arch" type="xml">
+            <search string="Review Checks">
+                <field name="name"/>
+                <field name="section"/>
+                <field name="note"/>
+                <filter name="pending" string="Pending Review" domain="[('state', '=', 'pending')]"/>
+                <filter name="reviewed" string="Reviewed" domain="[('state', '=', 'reviewed')]"/>
+                <filter name="supervised" string="Supervised" domain="[('state', '=', 'supervised')]"/>
+                <filter name="exception" string="Exception" domain="[('state', '=', 'exception')]"/>
+                <group name="group_by">
+                    <filter name="group_section" string="Section" context="{'group_by': 'section'}"/>
+                    <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
     <record id="view_account_working_file_check_list" model="ir.ui.view">
         <field name="name">account.working.file.check.list</field>
         <field name="model">account.working.file.check</field>
@@ -124,12 +144,12 @@
         <field name="name">account.working.file.list</field>
         <field name="model">account.working.file</field>
         <field name="arch" type="xml">
-            <list string="Working Files" decoration-success="state == 'validated'">
+            <list string="Working Files" decoration-success="state in ['reviewed', 'validated']">
                 <field name="name"/>
                 <field name="company_id" groups="base.group_multi_company"/>
                 <field name="date_from"/>
                 <field name="date_to"/>
-                <field name="reviewed_count" string="Reviewed"/>
+                <field name="reviewed_count" string="Resolved"/>
                 <field name="check_count" string="Checks"/>
                 <field name="progress" widget="progressbar"/>
                 <field name="state" widget="badge"/>
@@ -168,7 +188,7 @@
                         </div>
                         <field name="balance_progress" widget="progressbar"/>
                         <div class="mt-2">
-                            <field name="reviewed_count"/> / <field name="check_count"/> <span>checks reviewed</span>
+                            <field name="reviewed_count"/> / <field name="check_count"/> <span>checks resolved</span>
                         </div>
                         <field name="progress" widget="progressbar"/>
                     </t>
@@ -183,13 +203,19 @@
         <field name="arch" type="xml">
             <form string="Working File">
                 <header>
-                    <button name="action_validate" type="object" string="Validate"
+                    <button name="action_mark_reviewed" type="object" string="Mark Reviewed"
                             class="btn-primary" groups="account.group_account_manager"
                             invisible="state != 'in_progress'"/>
+                    <button name="action_validate" type="object" string="Validate"
+                            groups="account.group_account_manager"
+                            invisible="state != 'in_progress'"/>
+                    <button name="action_validate" type="object" string="Certify"
+                            class="btn-primary" groups="account.group_account_manager"
+                            invisible="state != 'reviewed'"/>
                     <button name="action_reopen" type="object" string="Reopen"
                             groups="account.group_account_manager"
-                            invisible="state != 'validated'"/>
-                    <field name="state" widget="statusbar" statusbar_visible="in_progress,validated" readonly="1"/>
+                            invisible="state == 'in_progress'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="in_progress,reviewed,validated" readonly="1"/>
                 </header>
                 <sheet>
                     <div class="oe_title">
@@ -211,77 +237,8 @@
                                 <button name="action_open_checks" type="object" string="Open Checklist List"
                                         icon="fa-list" invisible="not id"/>
                             </div>
-                            <field name="check_ids" mode="kanban" readonly="state == 'validated'">
-                                <kanban class="o_kanban_small_column"
-                                        group_create="false" group_delete="false" group_edit="false"
-                                        quick_create="false">
-                                    <field name="section"/>
-                                    <field name="name"/>
-                                    <field name="description"/>
-                                    <field name="state"/>
-                                    <field name="note"/>
-                                    <field name="evidence_filename"/>
-                                    <field name="evidence_attachment_count"/>
-                                    <templates>
-                                        <t t-name="card">
-                                            <div class="text-muted small text-uppercase mb-1">
-                                                <field name="section"/>
-                                            </div>
-                                            <div class="d-flex justify-content-between align-items-start">
-                                                <strong><field name="name"/></strong>
-                                                <field name="state" widget="badge"/>
-                                            </div>
-                                            <div class="text-muted mt-2" t-if="record.description.raw_value">
-                                                <field name="description"/>
-                                            </div>
-                                            <div class="mt-2" t-if="record.note.raw_value">
-                                                <span class="fw-bold">Last Comment:</span>
-                                                <field name="note"/>
-                                            </div>
-                                            <div class="mt-2" t-if="record.evidence_filename.raw_value">
-                                                <i class="fa fa-paperclip me-1"/>
-                                                <field name="evidence_filename"/>
-                                            </div>
-                                            <div class="mt-2" t-if="record.evidence_attachment_count.raw_value">
-                                                <i class="fa fa-paperclip me-1"/>
-                                                <field name="evidence_attachment_count"/>
-                                                <span>supporting files</span>
-                                            </div>
-                                        </t>
-                                    </templates>
-                                </kanban>
-                                <list editable="bottom" default_order="sequence,id">
-                                    <field name="sequence" widget="handle"/>
-                                    <field name="section"/>
-                                    <field name="name"/>
-                                    <field name="state" widget="badge"/>
-                                    <field name="reviewer_id" optional="hide"/>
-                                    <field name="reviewed_on" optional="hide"/>
-                                    <field name="note" optional="show"/>
-                                    <field name="evidence_attachment_count" string="Evidence Files" optional="show"/>
-                                    <field name="evidence" filename="evidence_filename" optional="hide"/>
-                                    <field name="evidence_filename" column_invisible="True"/>
-                                </list>
-                                <form string="Review Check">
-                                    <sheet>
-                                        <group>
-                                            <field name="file_id" invisible="1"/>
-                                            <field name="section"/>
-                                            <field name="name"/>
-                                            <field name="description"/>
-                                            <field name="state"/>
-                                            <field name="reviewer_id" readonly="1"/>
-                                            <field name="reviewed_on" readonly="1"/>
-                                            <field name="note" placeholder="Review notes and findings..."/>
-                                            <field name="evidence_attachment_ids" widget="many2many_binary"/>
-                                            <group string="Previously Uploaded Evidence" invisible="not evidence_filename">
-                                                <field name="evidence" filename="evidence_filename" string="Legacy Evidence"/>
-                                                <field name="evidence_filename" invisible="1"/>
-                                            </group>
-                                        </group>
-                                    </sheet>
-                                </form>
-                            </field>
+                            <field name="check_ids" widget="ff_working_file_check_cards"
+                                   readonly="state == 'validated'"/>
                         </page>
                         <page string="Balances" name="balances">
                             <group>
@@ -339,7 +296,8 @@
                 <field name="date_to"/>
                 <field name="company_id" groups="base.group_multi_company"/>
                 <filter name="in_progress" string="In Progress" domain="[('state', '=', 'in_progress')]"/>
-                <filter name="validated" string="Validated" domain="[('state', '=', 'validated')]"/>
+                <filter name="reviewed" string="Reviewed" domain="[('state', '=', 'reviewed')]"/>
+                <filter name="validated" string="Certified" domain="[('state', '=', 'validated')]"/>
                 <filter name="group_period" string="Start Date" context="{'group_by': 'date_from'}"/>
                 <filter name="group_company" string="Company" context="{'group_by': 'company_id'}" groups="base.group_multi_company"/>
                 <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>

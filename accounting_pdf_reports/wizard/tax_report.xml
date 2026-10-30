@@ -41,10 +41,16 @@
         <field name="target">new</field>
     </record>
 
+    <record id="action_interactive_tax_report" model="ir.actions.client">
+        <field name="name">Tax Report</field>
+        <field name="tag">accounting_pdf_reports.tax_report</field>
+        <field name="target">main</field>
+    </record>
+
     <menuitem id="menu_account_report"
               name="Tax Report"
               sequence="10"
-              action="action_account_tax_report"
+              action="action_interactive_tax_report"
               parent="account.account_reports_taxes_and_fiscal_menu"
               groups="account.group_account_readonly,account.group_account_manager"/>
 

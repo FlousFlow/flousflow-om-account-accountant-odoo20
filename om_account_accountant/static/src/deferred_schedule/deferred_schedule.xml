@@ -4,8 +4,7 @@
         <div class="o_action_manager o_ff_deferred_schedule">
             <div class="o_control_panel d-flex flex-wrap justify-content-between align-items-center gap-2 px-3 py-2">
                 <div>
-                    <h2 class="mb-0" t-out="this.title"/>
-                    <span class="text-muted" t-out="this.state.companyName"/>
+                    <h2 class="mb-0 ff_deferred_title" t-out="this.title"/>
                     <div class="dropdown d-inline-block ms-2">
                         <button class="btn btn-light btn-sm" title="Report options"
                                 t-att-aria-expanded="this.state.settingsOpen"

@@ -1,3 +1,5 @@
+from dateutil.relativedelta import relativedelta
+from odoo import fields
 from odoo.exceptions import AccessError, ValidationError
 from odoo.tests import new_test_user, tagged
 
@@ -6,6 +8,17 @@ from odoo.addons.account.tests.common import AccountTestInvoicingCommon
 
 @tagged('post_install', '-at_install')
 class TestInteractiveCustomerStatement(AccountTestInvoicingCommon):
+
+    def test_default_period_matches_the_enterprise_previous_month(self):
+        today = fields.Date.context_today(self.env.company)
+        expected_to = today.replace(day=1) - relativedelta(days=1)
+        expected_from = expected_to.replace(day=1)
+
+        result = self.env['report.accounting_pdf_reports.customer_statement_data'].get_interactive_data()
+
+        self.assertEqual(result['period_type'], 'month')
+        self.assertEqual(result['date_from'], fields.Date.to_string(expected_from))
+        self.assertEqual(result['date_to'], fields.Date.to_string(expected_to))
 
     def test_period_partner_state_and_tag_filters(self):
         self.init_invoice('out_invoice', partner=self.partner_a, amounts=[100.0], taxes=[],

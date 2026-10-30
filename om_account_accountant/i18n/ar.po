@@ -79,6 +79,11 @@ msgstr "البنك والنقد"
 msgid "Audit"
 msgstr "تدقيق"
 
+#. module: om_account_accountant
+#: om_account_accountant/static/src/journal_audit/journal_audit.xml
+msgid "Mark Reviewed"
+msgstr "تعليم كمُراجَع"
+
 #. odoo-javascript
 #: om_account_accountant/static/src/journal_audit/journal_audit.js
 msgid "Taxes Applied"
@@ -679,6 +684,46 @@ msgid "Reviewed"
 msgstr "تمت المراجعة"
 
 #. module: om_account_accountant
+msgid "Supervised"
+msgstr "خاضع للإشراف"
+
+#. module: om_account_accountant
+msgid "Exception"
+msgstr "حالة استثنائية"
+
+#. module: om_account_accountant
+msgid "Resolved"
+msgstr "تمت المعالجة"
+
+#. module: om_account_accountant
+msgid "checks resolved"
+msgstr "فحوصات تمت معالجتها"
+
+#. module: om_account_accountant
+msgid "Every review check must be resolved before certification."
+msgstr "يجب معالجة جميع فحوصات المراجعة قبل اعتماد الملف."
+
+#. module: om_account_accountant
+msgid "Mark Reviewed"
+msgstr "وضع علامة تمت المراجعة"
+
+#. module: om_account_accountant
+msgid "Certified"
+msgstr "معتمد"
+
+#. module: om_account_accountant
+msgid "Certify"
+msgstr "اعتماد"
+
+#. module: om_account_accountant
+msgid "Working file marked as reviewed."
+msgstr "تم وضع علامة تمت المراجعة على ملف العمل."
+
+#. module: om_account_accountant
+msgid "Working file certified."
+msgstr "تم اعتماد ملف العمل."
+
+#. module: om_account_accountant
 msgid "Accounts"
 msgstr "الحسابات"
 
@@ -726,3 +771,31 @@ msgstr "يقتصر تحديث أرصدة ملف المراجعة على مستخ
 #. module: om_account_accountant
 msgid "Reopen the working file before changing its balance reviews."
 msgstr "أعد فتح ملف المراجعة قبل تعديل مراجعات الأرصدة."
+
+#. module: om_account_accountant
+msgid "Add notes..."
+msgstr "أضف ملاحظات..."
+
+#. module: om_account_accountant
+msgid "Upload File"
+msgstr "تحميل ملف"
+
+#. module: om_account_accountant
+msgid "Remove file"
+msgstr "إزالة الملف"
+
+#. module: om_account_accountant
+msgid "Review notes"
+msgstr "ملاحظات المراجعة"
+
+#. module: om_account_accountant
+msgid "Review status"
+msgstr "حالة المراجعة"
+
+#. module: om_account_accountant
+msgid "Loading review checks…"
+msgstr "جارٍ تحميل فحوصات المراجعة…"
+
+#. module: om_account_accountant
+msgid "No review checks are available."
+msgstr "لا توجد فحوصات مراجعة متاحة."

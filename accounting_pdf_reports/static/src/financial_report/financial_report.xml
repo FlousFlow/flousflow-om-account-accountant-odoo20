@@ -136,7 +136,7 @@
                     </div>
                     <div class="dropdown">
                         <button class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
-                            <i class="fa fa-sliders me-1"/><t t-if="this.state.targetMove === 'posted'">Posted Entries</t><t t-else="">All Entries</t>, Accrual Basis
+                            <i class="fa fa-sliders me-1"/><t t-if="this.state.targetMove === 'posted'">Posted Entries</t><t t-else="">All Entries</t>, <t t-if="this.state.cashBasis">Cash Basis</t><t t-else="">Accrual Basis</t>
                             <t t-if="this.state.debitCredit">, Debit/Credit</t>
                         </button>
                         <div class="dropdown-menu p-3 ff_fr_filter_menu">
@@ -144,6 +144,8 @@
                                 t-on-change="() => { this.state.targetMove = 'posted'; this.loadReport(); }"/><span class="form-check-label">All Posted Entries</span></label>
                             <label class="form-check mb-2"><input class="form-check-input" type="radio" name="ff_target_move" t-att-checked="this.state.targetMove === 'all'"
                                 t-on-change="() => { this.state.targetMove = 'all'; this.loadReport(); }"/><span class="form-check-label">All Entries</span></label>
+                            <label class="form-check mb-2"><input class="form-check-input ff_fr_cash_basis" type="checkbox" t-att-checked="this.state.cashBasis"
+                                t-on-change="() => { this.state.cashBasis = !this.state.cashBasis; this.loadReport(); }"/><span class="form-check-label">Cash Basis Method</span></label>
                             <div class="dropdown-divider"/>
                             <button class="dropdown-item" type="button" t-on-click="this.toggleAllLines">
                                 <t t-if="this.areAllLinesExpanded()">Fold All</t><t t-else="">Unfold All</t>
@@ -224,7 +226,7 @@
                                     <div class="ff_fr_formula_row"><span>Label</span><strong t-out="line.formula_info.label"/></div>
                                     <div class="ff_fr_formula_row"><span>Formula</span><code dir="auto" t-out="line.formula_info.formula"/></div>
                                     <div t-if="line.formula_info.subformula" class="ff_fr_formula_row"><span>Subformula</span><code t-out="line.formula_info.subformula"/></div>
-                                    <div class="ff_fr_formula_row"><span>Value</span><strong t-out="this.formatAmount(line.formula_info.value)"/></div>
+                                    <div class="ff_fr_formula_row"><span>Value</span><strong t-out="this.formatFormulaValue(line.formula_info.value)"/></div>
                                 </div>
                             </td>
                         </tr>

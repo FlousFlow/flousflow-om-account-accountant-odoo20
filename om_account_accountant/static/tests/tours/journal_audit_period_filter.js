@@ -37,6 +37,30 @@ async function fillDateAndWait(input, value) {
 registry.category("web_tour.tours").add("ff_journal_audit_period_filter", {
     steps: () => [
         {
+            trigger: ".o_ff_journal_audit .ff_journal_audit_control_panel",
+            async run() {
+                const filters = document.querySelector(".ff_journal_audit_filters");
+                const toggle = document.querySelector(".ff_journal_audit_filter_toggle");
+                if (window.innerWidth >= 768) {
+                    if (!filters || getComputedStyle(filters).display === "none") {
+                        throw new Error("Journal Audit filters should be visible on desktop.");
+                    }
+                    if (toggle && getComputedStyle(toggle).display !== "none") {
+                        throw new Error("The filter toggle should be hidden on desktop.");
+                    }
+                } else {
+                    if (!filters || getComputedStyle(filters).display !== "none") {
+                        throw new Error("Journal Audit filters should start collapsed on mobile.");
+                    }
+                    toggle?.click();
+                    await waitFor(
+                        () => getComputedStyle(filters).display !== "none",
+                        "The mobile filter toggle should show Journal Audit filters."
+                    );
+                }
+            },
+        },
+        {
             trigger: ".o_ff_journal_audit .ff_journal_audit_table",
             run() {
                 const zeroPendingJournals = [...document.querySelectorAll(".ff_journal_audit_journal")]
@@ -141,6 +165,63 @@ registry.category("web_tour.tours").add("ff_journal_audit_period_filter", {
                         .join(" ");
                     return groupByText.includes("Taxes") && groupByText.includes("Account");
                 }, "Taxes Applied should be grouped by tax and account.");
+            },
+        },
+    ],
+});
+
+registry.category("web_tour.tours").add("ff_journal_audit_mobile_filters", {
+    steps: () => [
+        {
+            trigger: ".o_ff_journal_audit .ff_journal_audit_control_panel",
+            async run() {
+                if (window.innerWidth >= 768) {
+                    throw new Error(`Expected mobile viewport, got ${window.innerWidth}px.`);
+                }
+                const filters = document.querySelector(".ff_journal_audit_filters");
+                const toggle = document.querySelector(".ff_journal_audit_filter_toggle");
+                if (!filters || !toggle || getComputedStyle(toggle).display === "none") {
+                    throw new Error("The mobile filter toggle should be visible.");
+                }
+                if (getComputedStyle(filters).display !== "none") {
+                    throw new Error("Journal Audit filters should start collapsed on mobile.");
+                }
+                toggle.click();
+                await waitFor(
+                    () => getComputedStyle(filters).display !== "none",
+                    "The mobile filter toggle should show Journal Audit filters."
+                );
+                if (toggle.getAttribute("aria-expanded") !== "true") {
+                    throw new Error("The mobile filter toggle should report its expanded state.");
+                }
+            },
+        },
+        { trigger: ".ff_journal_audit_period_picker > button" },
+    ],
+});
+
+registry.category("web_tour.tours").add("ff_journal_audit_entry_group", {
+    steps: () => [
+        {
+            trigger: ".ff_journal_audit_journal .ff_journal_audit_review",
+            run: "click",
+        },
+        {
+            trigger: ".o_list_view",
+            async run() {
+                await waitFor(() => {
+                    return [...document.querySelectorAll(".o_searchview_facet")].some((facet) =>
+                        facet.querySelector(".o_facet_groupby") && facet.innerText.includes("Journal Entry")
+                    );
+                }, "Journal Audit should open Journal Items grouped by Journal Entry.");
+                await waitFor(() => {
+                    const columns = [...document.querySelectorAll(".o_list_view thead th")]
+                        .map((header) => header.innerText.trim())
+                        .filter(Boolean);
+                    return JSON.stringify(columns) === JSON.stringify([
+                        "Invoice Date", "Account", "Description", "Taxes", "Debit", "Credit",
+                    ]);
+                }, "Journal Audit drill-down columns should match Enterprise.");
             },
         },
     ],

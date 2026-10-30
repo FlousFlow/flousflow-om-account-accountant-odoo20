@@ -10,6 +10,7 @@
                 <xpath expr="//field[@name='journal_ids']" position="before">
                     <field name="partner_ids" widget="many2many_tags"
                            options="{'no_open': True, 'no_create': True}"/>
+                    <field name="document_type"/>
                 </xpath>
                 <xpath expr="//field[@name='target_move']" position="after">
                     <field name="result_selection"/>
@@ -31,11 +32,17 @@
         <field name="binding_type">report</field>
     </record>
 
+    <record id="action_interactive_partner_ledger" model="ir.actions.client">
+        <field name="name">Partner Ledger</field>
+        <field name="tag">accounting_pdf_reports.partner_ledger</field>
+        <field name="target">main</field>
+    </record>
+
     <menuitem id="menu_partner_ledger"
               name="Partner Ledger"
               sequence="10"
               parent="account.account_reports_partners_reports_menu"
-              action="action_account_partner_ledger_menu"
+              action="action_interactive_partner_ledger"
               groups="account.group_account_invoice,account.group_account_readonly"/>
 
      <!-- Add to Partner Print button -->

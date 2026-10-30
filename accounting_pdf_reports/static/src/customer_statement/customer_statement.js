@@ -19,16 +19,19 @@ export class CustomerStatement extends Component {
         this.action = useService("action");
         this.notification = useService("notification");
         const today = DateTime.now();
+        const previousMonth = today.minus({ months: 1 });
         this.state = proxy({
             title: _t("Customer / Vendor Statement"),
             periodType: "month",
-            periodAnchor: serializeDate(today),
+            periodAnchor: serializeDate(previousMonth),
             dateFrom: "",
             dateTo: "",
-            customDateFrom: serializeDate(today.startOf("month")),
-            customDateTo: serializeDate(today),
+            customDateFrom: serializeDate(previousMonth.startOf("month")),
+            customDateTo: serializeDate(previousMonth.endOf("month")),
             periodOpen: false,
             filterOpen: false,
+            partnerFilterOpen: false,
+            infoOpenFor: false,
             targetMove: "posted",
             accountScopes: ["receivable", "payable"],
             partnerSearch: "",
@@ -36,6 +39,9 @@ export class CustomerStatement extends Component {
             selectedPartners: [],
             tags: [],
             selectedTagIds: [],
+            moveActionOpenFor: false,
+            moreOpen: false,
+            settingsOpen: false,
             scale: "unit",
             loading: true,
             partners: [],
@@ -86,6 +92,15 @@ export class CustomerStatement extends Component {
         return this.state.accountScopes.map((scope) => labels[scope]).join(", ");
     }
 
+    get accountScopeOptions() {
+        return [
+            ["receivable", _t("Trade Receivable")],
+            ["non_trade_receivable", _t("Non-trade Receivable")],
+            ["payable", _t("Trade Payable")],
+            ["non_trade_payable", _t("Non-trade Payable")],
+        ];
+    }
+
     get reportTitle() {
         const hasReceivable = this.state.accountScopes.some((scope) => scope.includes("receivable"));
         const hasPayable = this.state.accountScopes.some((scope) => scope.includes("payable"));
@@ -125,9 +140,18 @@ export class CustomerStatement extends Component {
     }
 
     async setPeriod(periodType) {
+        if (periodType === "custom") {
+            if (this.state.periodType !== "custom") {
+                this.state.customDateFrom = this.state.dateFrom;
+                this.state.customDateTo = this.state.dateTo;
+            }
+            this.state.periodType = "custom";
+            return;
+        }
         this.state.periodType = periodType;
-        if (periodType === "custom") return;
-        this.state.periodAnchor = serializeDate(DateTime.now());
+        if (!this.state.periodAnchor) {
+            this.state.periodAnchor = serializeDate(DateTime.now());
+        }
         await this.loadReport();
     }
 
@@ -214,6 +238,9 @@ export class CustomerStatement extends Component {
     }
 
     formatForeignAmount(line) {
+        if (!line.currency_id || line.currency_id === this.state.currencyId) {
+            return "";
+        }
         return formatMonetary(line.amount_currency || 0, { currencyId: line.currency_id });
     }
 
@@ -225,6 +252,30 @@ export class CustomerStatement extends Component {
         const expanded = new Set(this.state.expandedPartnerIds);
         expanded.has(partnerId) ? expanded.delete(partnerId) : expanded.add(partnerId);
         this.state.expandedPartnerIds = [...expanded];
+    }
+
+    toggleInfo(target) {
+        this.state.infoOpenFor = this.state.infoOpenFor === target ? false : target;
+    }
+
+    get statementInfoRows() {
+        return [
+            {
+                label: "_currency_amount_currency",
+                formula: "_report_engine_partner_ledger_report",
+                subFormula: "_currency_amount_currency",
+                value: "1",
+            },
+            {
+                label: "amount",
+                formula: "_report_engine_partner_ledger_report",
+                subFormula: "amount",
+                value: this.formatAmount(this.totalAmount),
+            },
+            { label: "amount_currency", formula: "_report_engine_partner_ledger_report", subFormula: "amount_currency", value: "" },
+            { label: "date_maturity", formula: "_report_engine_partner_ledger_report", subFormula: "date_maturity", value: "" },
+            { label: "invoice_date", formula: "_report_engine_partner_ledger_report", subFormula: "invoice_date", value: "" },
+        ];
     }
 
     get totalAmount() {
@@ -248,8 +299,13 @@ export class CustomerStatement extends Component {
     }
 
     openMove(moveId) {
+        this.state.moveActionOpenFor = false;
         return this.action.doAction({ type: "ir.actions.act_window", res_model: "account.move", res_id: moveId,
             views: [[false, "form"]], target: "current" });
+    }
+
+    toggleMoveAction(lineId) {
+        this.state.moveActionOpenFor = this.state.moveActionOpenFor === lineId ? false : lineId;
     }
 
     getReportFilters() {
@@ -266,6 +322,26 @@ export class CustomerStatement extends Component {
         };
     }
 
+    exportXlsx() {
+        const params = new URLSearchParams({
+            period_type: this.state.periodType,
+            period_anchor: this.state.periodAnchor,
+            custom_date_from: this.state.customDateFrom,
+            custom_date_to: this.state.customDateTo,
+            account_scopes: this.state.accountScopes.join(","),
+            partner_ids: this.state.selectedPartners.map((partner) => partner.id).join(","),
+            partner_tag_ids: this.state.selectedTagIds.join(","),
+            target_move: this.state.targetMove,
+            scale: this.state.scale,
+        });
+        this.state.settingsOpen = false;
+        return this.action.doAction({
+            type: "ir.actions.act_url",
+            url: `/accounting_pdf_reports/customer_statement/export?${params.toString()}`,
+            target: "download",
+        });
+    }
+
     async printReport() {
         try {
             const action = await this.orm.call(
@@ -279,6 +355,7 @@ export class CustomerStatement extends Component {
     }
 
     async sendReport() {
+        this.state.moreOpen = false;
         try {
             const action = await this.orm.call(
                 "report.accounting_pdf_reports.customer_statement_data",

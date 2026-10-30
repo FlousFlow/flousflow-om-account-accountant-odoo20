@@ -3,7 +3,7 @@
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
-import { formatMonetary } from "@web/views/fields/formatters";
+import { formatFloat, formatMonetary } from "@web/views/fields/formatters";
 import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 import { serializeDate } from "@web/core/l10n/dates";
 import { Component, onWillStart, proxy, useProps } from "@odoo/owl";
@@ -32,6 +32,8 @@ export class FinancialReport extends Component {
             periodType: isProfitLoss ? "fiscal_year" : "as_of",
             periodAnchor: serializeDate(today),
             targetMove: "posted",
+            cashBasis: false,
+            cashBasisDomain: [],
             comparison: false,
             comparisonMode: "previous_period",
             comparisonPeriods: 1,
@@ -282,7 +284,7 @@ export class FinancialReport extends Component {
                     this.state.debitCredit, null, this.isProfitLoss ? this.state.periodType : false,
                     this.state.comparisonMode, this.state.comparisonDateFrom || false,
                     this.state.comparisonDateTo || false, this.state.comparisonPeriods,
-                    null, this.state.budgetId || false]
+                    null, this.state.budgetId || false, this.state.cashBasis]
             );
             if (this.isProfitLoss && this.state.periodType === "fiscal_year" &&
                     !this.state.dateFrom && !this.state.dateTo) {
@@ -300,6 +302,7 @@ export class FinancialReport extends Component {
                 this.state.journalIds = data.journal_ids;
             }
             this.state.draftCount = data.draft_count;
+            this.state.cashBasisDomain = data.cash_basis_domain || [];
             this.state.currencyId = data.currency_id;
             this.state.companyId = data.company_id;
             this.state.companyName = data.company_name;
@@ -508,6 +511,10 @@ export class FinancialReport extends Component {
         })}${scale.suffix}`;
     }
 
+    formatFormulaValue(value) {
+        return formatFloat(value || 0, { digits: [69, 2] });
+    }
+
     async openLineDetails(line) {
         const accountIds = line.account_ids || (line.account_id ? [line.account_id] : []);
         if (!accountIds.length) {
@@ -523,6 +530,9 @@ export class FinancialReport extends Component {
         action.domain.push(["company_id", "child_of", this.state.companyId]);
         if (Array.isArray(this.state.journalIds)) {
             action.domain.push(["journal_id", "in", this.state.journalIds]);
+        }
+        if (this.state.cashBasis) {
+            action.domain.push(...this.state.cashBasisDomain);
         }
         return this.action.doAction(action);
     }
@@ -540,6 +550,7 @@ export class FinancialReport extends Component {
             default_date_from: this.state.dateFrom || false,
             default_date_to: this.state.dateTo,
             default_target_move: this.state.targetMove,
+            default_cash_basis: this.state.cashBasis,
             default_journal_ids: this.state.journalIds,
             default_enable_filter: hasPeriodComparison,
             default_label_filter: this.comparisonSourceLabel,
@@ -570,6 +581,7 @@ export class FinancialReport extends Component {
                 date_to: this.state.dateTo,
                 journal_ids: [[6, 0, this.state.journalIds || []]],
                 target_move: this.state.targetMove,
+                cash_basis: this.state.cashBasis,
                 enable_filter: hasPeriodComparison,
                 label_filter: this.comparisonSourceLabel,
                 filter_cmp: hasPeriodComparison ? "filter_date" : "filter_no",

@@ -18,12 +18,12 @@ export class DeferredScheduleReport extends Component {
         this.action = useService("action");
         this.notification = useService("notification");
         const params = this.props.action.params || {};
-        const today = DateTime.now();
+        const defaultMonth = DateTime.now().minus({ months: 1 }).startOf("month");
         this.state = proxy({
             reportType: params.report_type || "expense",
-            period: today.toFormat("yyyy-MM"),
+            period: defaultMonth.toFormat("yyyy-MM"),
             periodType: "month",
-            periodAnchor: today.toISODate(),
+            periodAnchor: defaultMonth.toISODate(),
             periodPickerOpen: false,
             dateFrom: "",
             dateTo: "",
@@ -46,7 +46,6 @@ export class DeferredScheduleReport extends Component {
             journalIds: [],
             journalPickerOpen: false,
             loading: true,
-            companyName: "",
             currencyId: false,
             periods: [],
             rows: [],
@@ -103,7 +102,6 @@ export class DeferredScheduleReport extends Component {
                     this.state.comparisonMode, this.state.sortOrder, this.state.periodType,
                     this.state.periodAnchor, this.state.customDateFrom, this.state.customDateTo]
             );
-            this.state.companyName = data.company_name;
             this.state.currencyId = data.currency_id;
             this.state.rows = data.rows;
             this.state.expandedRows = this.state.unfoldAll ? data.rows.map((row) => row.key) : [];

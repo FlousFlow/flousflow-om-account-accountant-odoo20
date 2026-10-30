@@ -21,6 +21,7 @@ export class JournalAudit extends Component {
         this.state = proxy({
             periodType: "fiscal_year",
             periodAnchor: DateTime.now().toISODate(),
+            filtersOpen: false,
             periodFilterOpen: false,
             dateFrom: "",
             dateTo: "",
@@ -38,7 +39,6 @@ export class JournalAudit extends Component {
             companyName: "",
             canAudit: false,
             expanded: [],
-            movePages: {},
             auditingJournalId: false,
             settingsOpen: false,
         });
@@ -87,6 +87,13 @@ export class JournalAudit extends Component {
 
     togglePeriodFilter() {
         this.state.periodFilterOpen = !this.state.periodFilterOpen;
+    }
+
+    toggleFilters() {
+        this.state.filtersOpen = !this.state.filtersOpen;
+        if (!this.state.filtersOpen) {
+            this.state.periodFilterOpen = false;
+        }
     }
 
     async setPeriod(periodType, anchorDate = this.state.periodAnchor, keepMenuOpen = false, reload = true) {
@@ -161,16 +168,6 @@ export class JournalAudit extends Component {
         await this.loadReport();
     }
 
-    get totals() {
-        return this.state.journals.reduce((total, row) => ({
-            documents: total.documents + row.documents,
-            toReview: total.toReview + row.to_review,
-            debit: total.debit + row.debit,
-            credit: total.credit + row.credit,
-            balance: total.balance + row.balance,
-        }), { documents: 0, toReview: 0, debit: 0, credit: 0, balance: 0 });
-    }
-
     async loadReport() {
         this.state.loading = true;
         try {
@@ -186,7 +183,6 @@ export class JournalAudit extends Component {
             this.state.companyName = data.company_name;
             this.state.canAudit = data.can_audit;
             this.state.expanded = [];
-            this.state.movePages = {};
         } catch (error) {
             this.notification.add(error.message || _t("The Journal Audit report could not be loaded."), {
                 type: "danger",
@@ -242,34 +238,45 @@ export class JournalAudit extends Component {
             return;
         }
         this.state.expanded = [...this.state.expanded, key];
-        if (!this.state.movePages[key]) {
-            this.state.movePages[key] = { rows: [], offset: 0, hasMore: false, loading: true };
-            await this.loadJournalMoves(journal.id, 0);
-        }
     }
 
-    async loadJournalMoves(journalId, offset) {
-        const key = journalId;
-        const current = this.state.movePages[key] || { rows: [], offset: 0, hasMore: false };
-        this.state.movePages[key] = { ...current, loading: true };
-        try {
-            const result = await this.orm.call(
-                "account.journal.audit.report",
-                "get_journal_moves",
-                [journalId, this.dateFrom, this.dateTo, this.state.targetMove, this.state.includePayments, offset, PAGE_SIZE]
-            );
-            this.state.movePages[key] = {
-                rows: [...current.rows, ...result.rows],
-                offset: result.offset,
-                hasMore: result.has_more,
-                loading: false,
-            };
-        } catch (error) {
-            this.state.movePages[key] = { ...current, loading: false };
-            this.notification.add(error.message || _t("Journal entries could not be loaded."), {
-                type: "danger",
-            });
+    async openJournalItems(journal, account = false) {
+        const action = await this.action.loadAction("om_account_accountant.action_journal_audit_items");
+        action.name = _t("Journal Items");
+        action.domain = [
+            ["company_id", "=", this.state.companyId],
+            ["journal_id", "=", journal.journal_id],
+            ["move_id.move_type", "=", journal.move_type],
+            ["date", ">=", this.dateFrom],
+            ["date", "<=", this.dateTo],
+        ];
+        if (account) {
+            action.domain.push(["account_id", "=", account.account_id]);
         }
+        if (this.state.targetMove === "posted") {
+            action.domain.push(["parent_state", "=", "posted"]);
+        } else if (this.state.targetMove === "draft") {
+            action.domain.push(["parent_state", "=", "draft"]);
+        } else {
+            action.domain.push(["parent_state", "!=", "cancel"]);
+        }
+        if (!this.state.includePayments) {
+            action.domain.push(["move_id.origin_payment_id", "=", false]);
+        }
+        action.context = {
+            ...action.context,
+            search_default_posted: false,
+            search_default_group_by_move: 1,
+        };
+        return this.action.doAction(action);
+    }
+
+    openGroupJournalItems(journal) {
+        return this.openJournalItems(journal);
+    }
+
+    openAccountJournalItems(journal, account) {
+        return this.openJournalItems(journal, account);
     }
 
     async auditJournal(journal) {
@@ -281,7 +288,7 @@ export class JournalAudit extends Component {
             const count = await this.orm.call(
                 "account.journal.audit.report",
                 "mark_journal_reviewed",
-                [journal.id, this.dateFrom, this.dateTo, this.state.includePayments]
+                [journal.journal_id, this.dateFrom, this.dateTo, this.state.includePayments, journal.move_type]
             );
             this.notification.add(_t("%s entries marked as reviewed.", count), {
                 type: "success",
@@ -297,13 +304,17 @@ export class JournalAudit extends Component {
         }
     }
 
-    async openTaxLines(tax) {
+    getTaxLineDomain(tax = false, journal = false) {
         const domain = [
             ["company_id", "=", this.state.companyId],
-            ["tax_line_id", "=", tax.id],
+            tax ? ["tax_line_id", "=", tax.id] : ["tax_line_id", "!=", false],
             ["date", ">=", this.dateFrom],
             ["date", "<=", this.dateTo],
         ];
+        if (journal) {
+            domain.push(["journal_id", "=", journal.journal_id]);
+            domain.push(["move_id.move_type", "=", journal.move_type]);
+        }
         if (this.state.targetMove === "posted") {
             domain.push(["parent_state", "=", "posted"]);
         } else if (this.state.targetMove === "draft") {
@@ -314,12 +325,27 @@ export class JournalAudit extends Component {
         if (!this.state.includePayments) {
             domain.push(["move_id.origin_payment_id", "=", false]);
         }
+        return domain;
+    }
+
+    async openTaxLines(tax, journal = false) {
         return this.action.doAction({
             type: "ir.actions.act_window",
             name: _t("Tax Journal Items"),
             res_model: "account.move.line",
             views: [[false, "list"], [false, "form"]],
-            domain,
+            domain: this.getTaxLineDomain(tax, journal),
+            target: "current",
+        });
+    }
+
+    async openJournalAppliedTaxes(journal) {
+        return this.action.doAction({
+            type: "ir.actions.act_window",
+            name: _t("Applied Taxes"),
+            res_model: "account.move.line",
+            views: [[false, "list"], [false, "form"]],
+            domain: this.getTaxLineDomain(false, journal),
             target: "current",
         });
     }

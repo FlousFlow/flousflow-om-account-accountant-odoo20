@@ -4,6 +4,7 @@ CASH_FLOW_ACTIVITIES = [
     ('operating', 'Operating Activities'),
     ('investing', 'Investing Activities'),
     ('financing', 'Financing Activities'),
+    ('unclassified', 'Unclassified Activities'),
 ]
 
 

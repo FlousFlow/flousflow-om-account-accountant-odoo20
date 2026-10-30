@@ -24,6 +24,7 @@
         <field name="sequence">50</field><field name="section">Treasury and financing</field>
         <field name="name">Review of Guarantees</field>
         <field name="description">Prepare a complete inventory of guarantees received or granted (pledges, mortgages, guarantees).</field>
+        <field name="evidence_required">True</field>
     </record>
     <record id="working_file_check_enterprise_06" model="account.working.file.template">
         <field name="sequence">60</field><field name="section">Treasury and financing</field>
@@ -85,6 +86,7 @@
         <field name="sequence">170</field><field name="section">Fixed Assets</field>
         <field name="name">Subsidiaries and Investments Summary</field>
         <field name="description">Prepare a summary of subsidiaries and investments, including ownership percentages, acquisition values, net equity, earnings, and dividends.</field>
+        <field name="evidence_required">True</field>
     </record>
     <record id="working_file_check_enterprise_18" model="account.working.file.template">
         <field name="sequence">180</field><field name="section">Fixed Assets</field>
@@ -106,6 +108,7 @@
         <field name="sequence">210</field><field name="section">Regulatory</field>
         <field name="name">Events of the Period</field>
         <field name="description">Summarize the main events that occurred during this fiscal period.</field>
+        <field name="evidence_required">True</field>
     </record>
     <record id="working_file_check_enterprise_22" model="account.working.file.template">
         <field name="sequence">220</field><field name="section">Regulatory</field>
@@ -116,11 +119,13 @@
         <field name="sequence">230</field><field name="section">Regulatory</field>
         <field name="name">Accounting Process</field>
         <field name="description">Document the current accounting processes, especially where they are performed internally.</field>
+        <field name="evidence_required" eval="True"/>
     </record>
     <record id="working_file_check_enterprise_24" model="account.working.file.template">
         <field name="sequence">240</field><field name="section">Regulatory</field>
         <field name="name">Asset Register</field>
         <field name="description">Summarize the main events that occurred during this fiscal period.</field>
+        <field name="evidence_required" eval="True"/>
     </record>
     <record id="working_file_check_enterprise_25" model="account.working.file.template">
         <field name="sequence">250</field><field name="section">Regulatory</field>
@@ -168,6 +173,7 @@
         <field name="sequence">330</field><field name="section">Inventory</field>
         <field name="name">Obtain Signed Inventory Valuation</field>
         <field name="description">Obtain a detailed physical inventory, with valuation and signature from the company manager.</field>
+        <field name="evidence_required">True</field>
     </record>
     <record id="working_file_check_enterprise_34" model="account.working.file.template">
         <field name="sequence">340</field><field name="section">Inventory</field>
@@ -240,6 +246,7 @@
         <field name="sequence">470</field><field name="section">Capital</field>
         <field name="name">Annual General Meeting Minutes on Dividend Distribution</field>
         <field name="description">Obtain and archive signed annual general meeting minutes documenting the distribution of the prior-year result.</field>
+        <field name="evidence_required">True</field>
     </record>
 
     <record id="working_file_check_enterprise_48" model="account.working.file.template">

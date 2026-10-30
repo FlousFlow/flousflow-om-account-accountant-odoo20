@@ -6,4 +6,6 @@ from . import purchase_order_line_review_date
 from . import sale_order_line_review_cost
 from . import account_working_file
 from . import res_company
+from . import res_partner
+from . import dashboard_kpi
 from . import settings

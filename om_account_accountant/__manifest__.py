@@ -1,6 +1,6 @@
 {
     'name': 'FlousFlow Community Accounting Suite',
-    'version': '20.0.1.33.0',
+    'version': '20.0.1.34.35',
     'category': 'Accounting',
     'summary': 'Annual Report, Bank Reconciliation Statement, Accounting Reports, '
                'Asset Management and Budget, Recurring Payments, '
@@ -62,6 +62,12 @@
             'om_account_accountant/static/src/working_file_spreadsheet/working_file_spreadsheet.scss',
             'om_account_accountant/static/src/working_file_balance/working_file_balance.js',
             'om_account_accountant/static/src/working_file_balance/working_file_balance.xml',
+            'om_account_accountant/static/src/working_file_check_cards/working_file_check_cards.js',
+            'om_account_accountant/static/src/working_file_check_cards/working_file_check_cards.xml',
+            'om_account_accountant/static/src/working_file_check_cards/working_file_check_cards.scss',
+            'om_account_accountant/static/src/dashboard_kpi/dashboard_kpi.js',
+            'om_account_accountant/static/src/dashboard_kpi/dashboard_kpi.xml',
+            'om_account_accountant/static/src/dashboard_kpi/dashboard_kpi.scss',
         ],
         'spreadsheet.o_spreadsheet': [
             'om_account_accountant/static/src/working_file_spreadsheet/working_file_spreadsheet.js',

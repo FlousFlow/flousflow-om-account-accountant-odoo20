@@ -37,4 +37,9 @@ class AccountCashFlowReport(models.TransientModel):
     def _print_report(self, data):
         self._check_dates()
         data['form'].update(self.read(['display_detail'])[0])
-        return self.env.ref('accounting_pdf_reports.action_report_cash_flow').report_action(self, data=data)
+        # Interactive financial reports should print immediately. The layout
+        # configurator is optional company branding setup and otherwise blocks
+        # the user from the PDF action on a fresh database.
+        return self.env.ref('accounting_pdf_reports.action_report_cash_flow').report_action(
+            self, data=data, config=False,
+        )

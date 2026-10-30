@@ -13,6 +13,10 @@ Inventory Valuation, Regulatory
 (Unrealized Currencies, Deferred Revenues, Deferred Expenses), Purchases, then
 Sales. Inventory Valuation is a direct Review destination to match Enterprise.
 `Draft Entries` remains an additional community work queue under Accounting.
+The 2026-10-30 live comparison and local database menu records confirmed this
+ordered hierarchy. Journal Audit exposes one **Audit** action for the scoped
+journal-item drill-down; the duplicate **Journal Items** button was removed
+because it invoked the same action.
 
 ## Journal Audit
 
@@ -26,6 +30,7 @@ Sales. Inventory Valuation is a direct Review destination to match Enterprise.
 | Journal totals and expandable entries | Yes | Yes | Implemented |
 | Review action | Marks entries reviewed; the per-journal action remains visible at zero pending | Calls Odoo's native `set_moves_checked` for eligible posted entries; the action is visible at zero pending and returns 0 without writes | Browser verified on the local zero-pending journal; handler remains company, period, state and group scoped |
 | Tax summary and drill-down | Tax Summary links to the Taxes Applied journal-item list, grouped by Taxes then Account | Same destination and grouping; company, report period, target move state, and payment inclusion follow Journal Audit | Browser tour verified the destination and both active groupings; tax rows can also be opened individually |
+| Audit drill-down grouping | Opens Journal Items scoped to the selected journal group and groups the lines by Journal Entry | The same core Journal Items action now receives `search_default_group_by_move`, in addition to the scoped company, journal, type, date, move-state, and payment filters | Enterprise UI confirmed invoice-level groups and expandable account lines. Local browser tour asserts the Journal Entry group-by facet after opening Audit. |
 | Print | Yes | Yes | Implemented |
 | XLSX export | Yes | Yes; Journals, Entries, and Taxes worksheets | Implemented and downloaded/validated |
 | Send to Documents | Yes | No Documents module in the local addon path/database | Remaining platform integration |
@@ -61,8 +66,7 @@ unit-of-measure conversion; Total Cost multiplies that unit cost by the delivere
 or invoiced quantity at the selected As of date. The independent date picker
 passes the date into Odoo's accrual context and reloads the same report. The
 purchase queue uses that date to select eligible lines; both purchase and sales
-group totals recalculate date-sensitive quantities and amounts. Grouped cost
-totals remain available. The cost fields are limited to accounting read groups.
+group totals recalculate date-sensitive quantities and amounts. Unit Cost remains aggregated on grouped rows; Total Cost remains visible per line without a grouped subtotal, matching Enterprise. The cost fields are limited to accounting read groups.
 No journal entries are created by these reports.
 
 The date picker and grouped historical quantities are covered by Odoo model and
@@ -120,12 +124,14 @@ date-range selections; no comparison or a selected number of previous periods;
 ascending or descending ordering; comparison by amount or percentage; grouping
 by account, product category, or product; options to show all entries and hide
 zero lines; currency scale; print; and XLSX, Documents, and article actions.
-The live screen currently has no rows. Deferred Revenues is also available under
-Review.
+On 2026-10-30, both Deferred Expenses and Deferred Revenues opened on September
+2026, the previous calendar month. The live Deferred Revenues screen had no
+rows. Deferred Revenues is also available under Review.
 
 The local suite has `om_account_asset` asset and revenue-recognition boards.
 Review now exposes separate Deferred Expenses and Deferred Revenues interactive
-reports. They use the monthly asset schedule moves and their actual recognition
+reports. Both now default to the previous calendar month to match Enterprise.
+They use the monthly asset schedule moves and their actual recognition
 account lines, with month/quarter/fiscal-year/custom date selection,
 posted/all entries, account/category/product grouping, the journal selector,
 a selected count of preceding-period comparisons, amount or percentage changes,
@@ -144,14 +150,20 @@ detail amounts and comparisons reconcile to the parent, and the browser tour
 checks the option-menu toggle. A live nonempty Enterprise schedule is still
 needed to confirm its exact hierarchy and presentation.
 
-Remaining differences: the Enterprise actions to send the report to Documents
+Remaining differences: the local report also exposes a Posted/All Entries
+filter that is not present in the inspected Enterprise filter panel. The local
+Deferred Expenses toolbar also exposes a journal selector, while the inspected
+Enterprise Deferred Expenses page has no journal filter (Deferred Revenues does
+have one). The Enterprise actions to send the report to Documents
 or insert it into an article are unavailable because those apps are absent from
 the local Odoo 20 addons path. Existing assets created before the
 source-invoice-line field was added have no product link and fall back to the
-asset name for product grouping. At the time of comparison, the local database
-had zero assets, asset categories, asset schedule moves, and invoice lines
-assigned to asset categories. The live Enterprise report also had no rows, so
-nonzero schedule arithmetic has not yet been validated against matched records.
+asset name for product grouping. At the 2026-10-30 recheck, the local database
+returned no deferred-revenue rows for September (matching the live Enterprise
+page); the deferred-expense report returned one account group with two posted
+entries totaling 583.33. The database has three asset categories and three
+assets. These are different datasets, so the nonzero schedule arithmetic has
+not yet been validated against matched records.
 An isolated accounting fixture now verifies nonzero quarter totals and prior-
 period comparison against three posted depreciation moves (300.00 each total),
 and confirms that a February drill-down returns only the February move. A live
@@ -250,3 +262,80 @@ view therefore still needs a matched-period comparison against the Enterprise
 ledger before numeric parity is established. The local database has no
 fiscal-year records, so the
 Community date range does not depend on a configured fiscal year.
+
+### Live approval and data recheck — 2026-10-30
+
+The Enterprise file `Audit 2025` currently has 52 checks, 18 resolved, and 34
+still pending. A read-only open of a pending check's status menu showed exactly
+Pending Review, Reviewed, Supervised, and Exception, matching the four choices
+in the local OWL component. The parent header displays Reviewed and its Certify
+button is enabled with those 34 checks pending. No certification action was
+triggered during this read-only comparison.
+
+The local database `flousflow_om_accountant_dev20_20261028` now has
+`om_account_accountant` `20.0.1.34.33` installed, 52 active templates across
+the same eight sections, and seven evidence-required templates, matching the
+seven upload actions currently visible on Enterprise's `Audit 2025` checklist.
+An earlier count of five missed Accounting Process and Asset Register. Upgrade
+`20.0.1.34.33` restores those two defaults on templates and both linked and
+legacy check rows (older rows without `template_id`); it only changes the
+evidence-required flag. The local page at `/odoo/action-651/14` now renders
+seven Upload File actions, matching the live view. Its sole working
+file has 52 pending checks and 50 balance rows; it covers
+2026-10-28 through 2026-10-29, so its progress and balances are not directly
+comparable to Enterprise's 2025 file. The local check selector implements the
+same four states, notes, and evidence uploads. Local files now have In Progress,
+Reviewed, and Certified stages; Mark Reviewed permits pending checks, while
+certification still requires all checks to be resolved. Existing Validate from
+In Progress remains for backward compatibility. The Enterprise Certify button
+being enabled does not prove that its server accepts certification with pending
+checks; this still requires a disposable Enterprise record, so the local gate
+remains unchanged pending evidence. Local stage visuals are now confirmed after
+upgrade; note autosave and evidence upload/removal remain open. Supervised is now enforced on
+the server as manager-only for both record creation and updates, matching the
+permission used to expose that state in the UI. The full
+`TestWorkingFileBalances` class passed 12 tests after the upgrade. Enterprise's
+Certify control was enabled with 34 pending checks, but its server-side gate
+cannot be established without changing the live audit record. Keep that gate as
+an open parity question for a disposable Enterprise record. The local browser
+session expired during this recheck, so local visual, note autosave, and evidence
+upload/removal verification remain open.
+
+## Bills To Receive live comparison — 2026-10-30
+
+Enterprise `/odoo/action-843` showed an as-of date of 2026-10-30, Gemini
+Furniture with 2 records, quantity 25, received 25, billed 0, average unit price
+110.75, and amount 3,095.00. The local ORM returned the same date-scoped P00005
+lines: Office Lamp 20 × 132.50 and Office Chair 5 × 89.00. Quantity, received,
+billed, average unit price, and amount match. The local list's hidden optional
+Description field is extra; Enterprise's **Add Custom Field** menu action is an
+Odoo Studio capability unavailable in the Community runtime. Local UI rendering
+and a nonempty Billed Not Received comparison remain unverified.
+
+## Sales Review grouped-cost parity — 2026-10-30
+
+Enterprise `/odoo/action-446` showed a grouped Unit Cost of 4,200 for three
+Acme lines but no grouped Total Cost subtotal. Its detail Total Costs were
+30,000, 8,000 and 7,000. Local `review_menu.xml` formerly requested a grouped
+sum for Total Cost in both sales Review queues. Those two view aggregators have
+been removed; the per-line cost calculation and field remain, and Unit Cost
+still aggregates. The local database has no matching sales records and the local
+browser session is unauthenticated, so its rendered UI and values remain
+unverified. The focused suite passed 9 tests, including line-cost calculations
+and a view regression check; the local module is installed as `20.0.1.34.20`.
+
+## Annual Report New dialog comparison — 2026-10-30
+
+Enterprise Review > Audit > Annual Report currently opens a setup Kanban.
+Selecting New displays title, start/end dates, responsible users and the Annual
+Report template; the live defaults are January 1–December 31, 2025 and the
+current user. Its title placeholder is `Example, Annual Financial Overview FY`
+(shown as `مثال، نظرة عامة على الوضع المالي السنوي AR` in the live Arabic UI).
+The local default-get result matches the dates, current-user assignment, and
+template. `accounting_pdf_reports` `2.0.71` now matches the title placeholder
+and includes the observed Arabic translation. Its focused annual-document
+suite passed 6 tests with no failures, and the new view is installed in the
+local 8077 database. The local browser session remains unauthenticated and the
+database has no Arabic language enabled, so dialog geometry and translated
+rendering remain unverified. No Enterprise report was created; the New dialog
+was dismissed without saving.

@@ -223,6 +223,29 @@ class TestReviewAccrualCosts(AccountTestInvoicingCommon):
         )
         self.assertAlmostEqual(grouped_rows[0]["price_unit:sum"], 23872.0)
 
+    def test_sales_review_cost_columns_match_enterprise_grouping(self):
+        delivered_view = self.env.ref(
+            "om_account_accountant.view_sale_invoice_to_be_issued_list"
+        )
+        delivered_arch = etree.fromstring(delivered_view.arch_db)
+        unit_cost = delivered_arch.xpath(
+            "//field[@name='review_accrual_unit_cost']"
+        )[0]
+        total_cost = delivered_arch.xpath(
+            "//field[@name='review_accrual_delivered_total_cost']"
+        )[0]
+        self.assertEqual(unit_cost.get("sum"), "Unit Cost")
+        self.assertIsNone(total_cost.get("sum"))
+
+        invoiced_view = self.env.ref(
+            "om_account_accountant.view_sale_invoiced_not_delivered_list"
+        )
+        invoiced_arch = etree.fromstring(invoiced_view.arch_db)
+        invoiced_total_cost = invoiced_arch.xpath(
+            "//field[@name='review_accrual_invoiced_total_cost']"
+        )[0]
+        self.assertIsNone(invoiced_total_cost.get("sum"))
+
     def test_review_accrual_actions_default_to_enterprise_grouping_and_period(self):
         purchase_action = self.env.ref(
             "om_account_accountant.action_purchase_bill_to_receive"

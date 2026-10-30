@@ -1785,6 +1785,24 @@ msgid "Tax"
 msgstr ""
 
 #. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/tax_report/tax_report.xml:0
+msgid "General Tax Report"
+msgstr ""
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/tax_report/tax_report.xml:0
+msgid "Group by: Account > Tax"
+msgstr ""
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/tax_report/tax_report.xml:0
+msgid "Group by: Tax > Account"
+msgstr ""
+
+#. module: accounting_pdf_reports
 #: model_terms:ir.ui.view,arch_db:accounting_pdf_reports.report_journal
 msgid "Tax Amount"
 msgstr ""
@@ -2123,4 +2141,40 @@ msgstr ""
 #. module: accounting_pdf_reports
 #: model_terms:ir.ui.view,arch_db:accounting_pdf_reports.report_annual
 msgid "· Tax ID"
+msgstr ""
+
+#. module: accounting_pdf_reports
+#. odoo-python
+#: code:addons/accounting_pdf_reports/report/report_financial.py:0
+msgid "Gross Profit"
+msgstr ""
+
+#. module: accounting_pdf_reports
+#. odoo-python
+#: code:addons/accounting_pdf_reports/report/report_financial.py:0
+msgid "Operating Expenses"
+msgstr ""
+
+#. module: accounting_pdf_reports
+#. odoo-python
+#: code:addons/accounting_pdf_reports/report/report_financial.py:0
+msgid "Operating Income (or Loss)"
+msgstr ""
+
+#. module: accounting_pdf_reports
+#. odoo-python
+#: code:addons/accounting_pdf_reports/report/report_financial.py:0
+msgid "Other Expenses"
+msgstr ""
+
+#. module: accounting_pdf_reports
+#. odoo-python
+#: code:addons/accounting_pdf_reports/report/report_financial.py:0
+msgid "Net Income"
+msgstr ""
+
+#. module: accounting_pdf_reports
+#. odoo-python
+#: code:addons/accounting_pdf_reports/report/report_financial.py:0
+msgid "Distributions and Withdrawals"
 msgstr ""

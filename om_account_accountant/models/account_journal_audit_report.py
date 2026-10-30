@@ -63,38 +63,81 @@ class AccountJournalAuditReport(models.AbstractModel):
             date_from, date_to, target_move, include_payments
         )
         move_groups = self.env["account.move"]._read_group(
-            move_domain, ["journal_id", "review_state"], ["__count"]
+            move_domain, ["journal_id", "move_type", "review_state"], ["__count"]
         )
-        line_groups = self.env["account.move.line"]._read_group(
-            line_domain,
-            ["journal_id"],
-            ["debit:sum", "credit:sum", "balance:sum"],
-        )
-
+        move_type_labels = dict(self.env["account.move"]._fields["move_type"]._description_selection(self.env))
         journals = {}
-        for journal, review_state, count in move_groups:
+        for journal, move_type, review_state, count in move_groups:
             if not journal:
                 continue
-            row = journals.setdefault(journal.id, {
-                "id": journal.id,
+            group_key = f"{journal.id}:{move_type}"
+            row = journals.setdefault(group_key, {
+                "id": group_key,
+                "journal_id": journal.id,
                 "name": journal.display_name,
+                "move_type": move_type,
+                "document_type": self._get_document_type_label(move_type, move_type_labels),
                 "documents": 0,
                 "to_review": 0,
                 "debit": 0.0,
                 "credit": 0.0,
                 "balance": 0.0,
+                "accounts": [],
+                "taxes": {},
             })
             row["documents"] += count
             if review_state in ("todo", "anomaly"):
                 row["to_review"] += count
 
-        for journal, debit, credit, balance in line_groups:
-            if journal and journal.id in journals:
-                journals[journal.id].update({
-                    "debit": debit or 0.0,
-                    "credit": credit or 0.0,
-                    "balance": balance or 0.0,
+        move_types = {row["move_type"] for row in journals.values()}
+        for move_type in move_types:
+            line_groups = self.env["account.move.line"]._read_group(
+                line_domain + [("move_id.move_type", "=", move_type)],
+                ["journal_id", "account_id"],
+                ["debit:sum", "credit:sum", "balance:sum"],
+            )
+            for journal, account, debit, credit, balance in line_groups:
+                if not journal or not account:
+                    continue
+                row = journals.get(f"{journal.id}:{move_type}")
+                if not row:
+                    continue
+                debit, credit, balance = debit or 0.0, credit or 0.0, balance or 0.0
+                row["debit"] += debit
+                row["credit"] += credit
+                row["balance"] += balance
+                row["accounts"].append({
+                    "account_id": account.id,
+                    "code": account.code or "",
+                    "name": account.display_name,
+                    "debit": debit,
+                    "credit": credit,
+                    "balance": balance,
                 })
+
+        grouped_tax_lines = self.env["account.move.line"]._read_group(
+            line_domain + [("tax_line_id", "!=", False)],
+            ["journal_id", "move_id", "tax_line_id"],
+            ["tax_base_amount:sum", "debit:sum", "credit:sum", "balance:sum"],
+        )
+        for journal, move, tax, base, debit, credit, balance in grouped_tax_lines:
+            if not journal or not move or not tax:
+                continue
+            row = journals.get(f"{journal.id}:{move.move_type}")
+            if not row:
+                continue
+            tax_row = row["taxes"].setdefault(tax.id, {
+                "id": tax.id,
+                "name": tax.display_name,
+                "base": 0.0,
+                "debit": 0.0,
+                "credit": 0.0,
+                "balance": 0.0,
+            })
+            tax_row["base"] += base or 0.0
+            tax_row["debit"] += debit or 0.0
+            tax_row["credit"] += credit or 0.0
+            tax_row["balance"] += balance or 0.0
 
         tax_groups = self.env["account.move.line"]._read_group(
             line_domain + [("tax_line_id", "!=", False)],
@@ -114,9 +157,12 @@ class AccountJournalAuditReport(models.AbstractModel):
             if tax
         ]
 
+        for row in journals.values():
+            row["taxes"] = sorted(row["taxes"].values(), key=lambda tax: tax["name"].casefold())
+
         currency = self.env.company.currency_id
         return {
-            "journals": sorted(journals.values(), key=lambda row: row["name"].casefold()),
+            "journals": sorted(journals.values(), key=lambda row: (row["name"].casefold(), row["document_type"].casefold())),
             "taxes": taxes,
             "currency_id": currency.id,
             "company_id": self.env.company.id,
@@ -124,6 +170,14 @@ class AccountJournalAuditReport(models.AbstractModel):
             "can_audit": self.env.user.has_group("account.group_account_user")
             or self.env.user.has_group("account.group_account_manager"),
         }
+
+    @api.model
+    def _get_document_type_label(self, move_type, move_type_labels):
+        if move_type in ("in_invoice", "out_invoice"):
+            return _("Invoice")
+        if move_type in ("in_refund", "out_refund"):
+            return _("Credit Note")
+        return move_type_labels.get(move_type, move_type)
 
     @api.model
     def get_journal_moves(self, journal_id, date_from, date_to, target_move="posted", include_payments=False, offset=0, limit=100):
@@ -176,7 +230,7 @@ class AccountJournalAuditReport(models.AbstractModel):
         }
 
     @api.model
-    def mark_journal_reviewed(self, journal_id, date_from, date_to, include_payments=False):
+    def mark_journal_reviewed(self, journal_id, date_from, date_to, include_payments=False, move_type=None):
         """Mark only posted entries still awaiting review in this journal and period."""
         if not (
             self.env.user.has_group("account.group_account_user")
@@ -193,6 +247,11 @@ class AccountJournalAuditReport(models.AbstractModel):
             ("journal_id", "=", journal.id),
             ("review_state", "in", ["todo", "anomaly"]),
         ]
+        if move_type:
+            valid_move_types = dict(self.env["account.move"]._fields["move_type"]._description_selection(self.env))
+            if move_type not in valid_move_types:
+                raise ValidationError(_("Unsupported document type."))
+            move_domain.append(("move_type", "=", move_type))
         moves = self.env["account.move"].search(move_domain)
         count = len(moves)
         moves.set_moves_checked()

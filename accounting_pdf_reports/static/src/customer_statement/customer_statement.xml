@@ -1,14 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
-    <t t-name="accounting_pdf_reports.CustomerStatement">
+    <t t-name="accounting_pdf_reports.CustomerStatement" owl="1">
         <div class="o_action ff_customer_statement">
             <div class="ff_cs_toolbar">
                 <button class="btn btn-primary" t-on-click="this.printReport">
                     <i class="fa fa-print me-1"/> Print
                 </button>
-                <button class="btn btn-secondary" t-on-click="this.sendReport">
-                    <i class="fa fa-envelope me-1"/> Send
-                </button>
+                <h2 class="ff_cs_title" t-out="this.reportTitle"/>
+                <div class="dropdown ff_cs_more">
+                    <button class="btn btn-link" type="button" title="More" aria-label="More"
+                            t-att-aria-expanded="this.state.moreOpen"
+                            t-on-click="() => this.state.moreOpen = !this.state.moreOpen">
+                        <i class="fa fa-ellipsis-v"/>
+                    </button>
+                    <div t-if="this.state.moreOpen" class="dropdown-menu show">
+                        <button class="dropdown-item" type="button" t-on-click="this.sendReport">
+                            <i class="fa fa-envelope-o me-2"/>Send
+                        </button>
+                    </div>
+                </div>
+                <div class="dropdown ff_cs_settings">
+                    <button class="btn btn-link" type="button" title="Report options" aria-label="Report options"
+                            t-att-aria-expanded="this.state.settingsOpen"
+                            t-on-click="() => this.state.settingsOpen = !this.state.settingsOpen">
+                        <i class="fa fa-cog"/>
+                    </button>
+                    <div t-if="this.state.settingsOpen" class="dropdown-menu show">
+                        <button class="dropdown-item" type="button" t-on-click="this.exportXlsx">
+                            <i class="fa fa-file-excel-o me-2"/>XLSX
+                        </button>
+                    </div>
+                </div>
                 <div class="ff_cs_filters">
                     <div class="dropdown">
                         <button class="btn btn-outline-secondary dropdown-toggle" type="button"
@@ -49,12 +71,7 @@
                             <i class="fa fa-user me-1"/><t t-out="this.accountScopeLabel"/>
                         </button>
                         <div t-if="this.state.filterOpen" class="dropdown-menu show p-3 ff_cs_account_menu">
-                            <div class="form-check" t-foreach="[
-                                    ['receivable', 'Trade Receivable'],
-                                    ['non_trade_receivable', 'Non-trade Receivable'],
-                                    ['payable', 'Trade Payable'],
-                                    ['non_trade_payable', 'Non-trade Payable']
-                                ]" t-as="scope" t-key="scope[0]">
+                            <div class="form-check" t-foreach="this.accountScopeOptions" t-as="scope" t-key="scope[0]">
                                 <input class="form-check-input" type="checkbox" t-att-checked="this.state.accountScopes.includes(scope[0])"
                                        t-on-change="() => this.toggleAccountScope(scope[0])"/>
                                 <label class="form-check-label" t-out="scope[1]"/>
@@ -63,8 +80,10 @@
                     </div>
                     <div class="dropdown ff_cs_partner_picker">
                         <button class="btn btn-outline-secondary dropdown-toggle" type="button"
-                                data-bs-toggle="dropdown" data-bs-auto-close="outside"><i class="fa fa-users me-1"/> Partners</button>
-                        <div class="dropdown-menu p-2 ff_cs_partner_menu">
+                                t-on-click="() => this.state.partnerFilterOpen = !this.state.partnerFilterOpen">
+                            <i class="fa fa-users me-1"/> Partners
+                        </button>
+                        <div t-if="this.state.partnerFilterOpen" class="dropdown-menu show p-2 ff_cs_partner_menu">
                             <input class="form-control form-control-sm mb-2" type="search" placeholder="Search partners"
                                    t-att-value="this.state.partnerSearch"
                                    t-on-input="(ev) => { this.state.partnerSearch = ev.target.value; this.searchPartners(); }"
@@ -73,14 +92,8 @@
                                     class="dropdown-item" type="button" t-on-click="() => this.addPartner(partner)"
                                     t-out="partner.name"/>
                             <div t-if="!this.state.partnerOptions.length" class="dropdown-item-text text-muted">No partners found</div>
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown"
-                                data-bs-auto-close="outside">
-                            <i class="fa fa-folder-open me-1"/> Tags
-                        </button>
-                        <div class="dropdown-menu p-3 ff_cs_tag_menu">
+                            <div class="dropdown-divider"/>
+                            <div class="small text-muted mb-1">Tags</div>
                             <label class="form-check" t-foreach="this.state.tags" t-as="tag" t-key="tag.id">
                                 <input class="form-check-input" type="checkbox" t-att-checked="this.state.selectedTagIds.includes(tag.id)"
                                        t-on-change="() => this.toggleTag(tag.id)"/>
@@ -107,7 +120,6 @@
                 </div>
             </div>
             <div class="o_content">
-                <div class="ff_cs_report_header"><h2 t-out="this.reportTitle"/><span t-out="this.state.companyName"/></div>
                 <div t-if="this.state.selectedPartners.length" class="ff_cs_selected_partners">
                     <span t-foreach="this.state.selectedPartners" t-as="partner" t-key="partner.id" class="badge rounded-pill text-bg-secondary">
                         <t t-out="partner.name"/>
@@ -116,13 +128,31 @@
                     </span>
                 </div>
                 <div t-if="this.state.loading" class="text-center p-5"><i class="fa fa-spinner fa-spin me-2"/>Loading…</div>
-                <div t-elif="this.state.partners.length" class="ff_cs_table_wrap">
+                <div t-else="" class="ff_cs_table_wrap">
                     <table class="table table-hover ff_cs_table">
-                        <thead><tr><th>Date</th><th>Due Date</th>
-                            <th class="text-end">Amount</th><th class="text-end">Amount in Currency</th></tr></thead>
+                        <thead><tr><th></th><th>Date</th><th>Due Date</th>
+                            <th class="text-end">Amount</th><th class="text-end">Amount in Currency</th><th/></tr></thead>
+                        <tbody><tr class="ff_cs_report_row">
+                            <th><t t-out="this.reportTitle"/></th><td/><td/><td/><td/>
+                            <td class="ff_cs_info_cell">
+                                <button class="btn btn-link btn-sm ff_cs_info_button" type="button"
+                                        aria-label="Report calculation details" t-on-click="() => this.toggleInfo('report')">
+                                    <i class="fa fa-info-circle"/>
+                                </button>
+                                <div t-if="this.state.infoOpenFor === 'report'" class="ff_cs_info_popover" role="tooltip">
+                                    <div class="ff_cs_info_line"><span>Engine</span><strong>Custom Python Function</strong></div>
+                                    <div t-foreach="this.statementInfoRows" t-as="info" t-key="info.label" class="ff_cs_info_card">
+                                        <div class="ff_cs_info_line"><span>Label</span><span t-out="info.label"/></div>
+                                        <div class="ff_cs_info_line"><span>Formula</span><code t-out="info.formula"/></div>
+                                        <div class="ff_cs_info_line"><span>Sub Formula</span><code t-out="info.subFormula"/></div>
+                                        <div class="ff_cs_info_line"><span>Value</span><span t-out="info.value"/></div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr></tbody>
                         <tbody t-foreach="this.state.partners" t-as="partner" t-key="partner.id">
                             <tr class="ff_cs_partner_row">
-                                <th colspan="2">
+                                <th colspan="3">
                                     <button class="btn btn-link p-0 me-2" type="button"
                                             t-att-aria-expanded="this.isPartnerExpanded(partner.id)"
                                             t-att-aria-label="this.isPartnerExpanded(partner.id) ? 'Collapse partner' : 'Expand partner'"
@@ -137,23 +167,56 @@
                                                 t-on-click="() => this.openPartnerJournalItems(partner)">Journal Items</button>
                                     </span>
                                 </th>
-                                <th class="text-end" t-out="this.formatAmount(partner.amount)"/><th/></tr>
+                                <th class="text-end" t-out="this.formatAmount(partner.amount)"/><th/><th/></tr>
                             <tr t-if="this.isPartnerExpanded(partner.id)" t-foreach="partner.lines" t-as="line" t-key="line.id" class="ff_cs_move_row">
-                                <td><button class="btn btn-link p-0" t-att-title="line.reference || line.label"
-                                            t-on-click="() => this.openMove(line.move_id)"
-                                            t-out="this.formatDate(line.date)"/></td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-1">
+                                        <button class="btn btn-link p-0" t-att-title="line.reference || line.label"
+                                                t-on-click="() => this.openMove(line.move_id)"
+                                                t-out="line.label"/>
+                                        <div class="dropdown ff_cs_move_actions">
+                                            <button class="btn btn-link btn-sm p-0" type="button"
+                                                    aria-label="Journal entry actions"
+                                                    t-on-click.stop="() => this.toggleMoveAction(line.id)">
+                                                <i class="fa fa-ellipsis-v"/>
+                                            </button>
+                                            <div t-if="this.state.moveActionOpenFor === line.id" class="dropdown-menu show">
+                                                <button class="dropdown-item" type="button"
+                                                        t-on-click="() => this.openMove(line.move_id)">
+                                                    View Journal Entry
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td t-out="this.formatDate(line.date)"/>
                                 <td><t t-out="this.formatDate(line.date_maturity)"/></td>
                                 <td class="text-end" t-out="this.formatAmount(line.amount)"/>
                                 <td class="text-end" t-out="this.formatForeignAmount(line)"/>
+                                <td/>
                             </tr>
                         </tbody>
                         <tfoot><tr class="fw-bold ff_cs_total_row">
-                            <th colspan="2">Total</th>
+                            <th colspan="3">Total</th>
                             <th class="text-end" t-out="this.formatAmount(this.totalAmount)"/><th/>
+                            <td class="ff_cs_info_cell">
+                                <button class="btn btn-link btn-sm ff_cs_info_button" type="button"
+                                        aria-label="Total calculation details" t-on-click="() => this.toggleInfo('total')">
+                                    <i class="fa fa-info-circle"/>
+                                </button>
+                                <div t-if="this.state.infoOpenFor === 'total'" class="ff_cs_info_popover" role="tooltip">
+                                    <div class="ff_cs_info_line"><span>Engine</span><strong>Custom Python Function</strong></div>
+                                    <div t-foreach="this.statementInfoRows" t-as="info" t-key="info.label" class="ff_cs_info_card">
+                                        <div class="ff_cs_info_line"><span>Label</span><span t-out="info.label"/></div>
+                                        <div class="ff_cs_info_line"><span>Formula</span><code t-out="info.formula"/></div>
+                                        <div class="ff_cs_info_line"><span>Sub Formula</span><code t-out="info.subFormula"/></div>
+                                        <div class="ff_cs_info_line"><span>Value</span><span t-out="info.value"/></div>
+                                    </div>
+                                </div>
+                            </td>
                         </tr></tfoot>
                     </table>
                 </div>
-                <div t-elif="!this.state.loading" class="ff_cs_empty">No statement lines found for the selected filters.</div>
             </div>
         </div>
     </t>

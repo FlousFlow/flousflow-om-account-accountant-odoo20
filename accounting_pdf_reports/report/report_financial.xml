@@ -22,6 +22,8 @@
                                 <strong>Target Moves:</strong>
                                 <div t-if="data['target_move'] == 'all'">All Entries</div>
                                 <div t-if="data['target_move'] == 'posted'">All Posted Entries</div>
+                                <div t-if="data.get('cash_basis')">Cash Basis</div>
+                                <div t-else="">Accrual Basis</div>
                             </div>
                         </div>
 

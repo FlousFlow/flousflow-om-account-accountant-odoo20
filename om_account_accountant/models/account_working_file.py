@@ -14,6 +14,7 @@ class AccountWorkingFileTemplate(models.Model):
     section = fields.Char(required=True, translate=True)
     description = fields.Text(translate=True)
     sequence = fields.Integer(default=10)
+    evidence_required = fields.Boolean(default=False)
     active = fields.Boolean(default=True)
 
 
@@ -37,7 +38,11 @@ class AccountWorkingFile(models.Model):
     date_from = fields.Date(string="Start Date", required=True, tracking=True)
     date_to = fields.Date(string="End Date", required=True, tracking=True)
     state = fields.Selection(
-        [("in_progress", "In Progress"), ("validated", "Validated")],
+        [
+            ("in_progress", "In Progress"),
+            ("reviewed", "Reviewed"),
+            ("validated", "Certified"),
+        ],
         default="in_progress", required=True, copy=False, tracking=True, index=True,
     )
     check_ids = fields.One2many(
@@ -58,7 +63,7 @@ class AccountWorkingFile(models.Model):
     def _compute_progress(self):
         for record in self:
             checks = record.check_ids
-            completed = checks.filtered(lambda check: check.state == "reviewed")
+            completed = checks.filtered(lambda check: check.state != "pending")
             record.check_count = len(checks)
             record.reviewed_count = len(completed)
             record.progress = 100.0 * len(completed) / len(checks) if checks else 0.0
@@ -100,6 +105,7 @@ class AccountWorkingFile(models.Model):
                     "name": template.name,
                     "description": template.description,
                     "template_id": template.id,
+                    "evidence_required": template.evidence_required,
                 })
                 for template in templates
             ]
@@ -149,6 +155,7 @@ class AccountWorkingFile(models.Model):
                         "name": template.name,
                         "description": template.description,
                         "template_id": template.id,
+                        "evidence_required": template.evidence_required,
                     })
                     for template in templates
                 ]
@@ -159,27 +166,42 @@ class AccountWorkingFile(models.Model):
             file_record.message_post(body=_("Working file created for %(name)s.", name=file_record.name))
         return files
 
+    def action_mark_reviewed(self):
+        if not self.env.user.has_group("account.group_account_manager"):
+            raise AccessError(_("Only accounting managers can mark a working file as reviewed."))
+        for file_record in self:
+            if file_record.state == "reviewed":
+                continue
+            if file_record.state != "in_progress":
+                raise UserError(_("Reopen the working file before reviewing it again."))
+            # Enterprise shows Reviewed even while some checklist items remain pending.
+            super(AccountWorkingFile, file_record).write({"state": "reviewed"})
+            file_record.message_post(body=_("Working file marked as reviewed."))
+        return True
+
     def action_validate(self):
         if not self.env.user.has_group("account.group_account_manager"):
-            raise AccessError(_("Only accounting managers can validate a working file."))
+            raise AccessError(_("Only accounting managers can certify a working file."))
         for file_record in self:
             if file_record.state == "validated":
                 continue
             if not file_record.check_ids:
                 raise UserError(_("Load or add review checks before validating this working file."))
             pending = file_record.check_ids.filtered(
-                lambda check: check.state != "reviewed"
+                lambda check: check.state == "pending"
             )
             if pending:
-                raise UserError(_("Every review check must be reviewed before validation."))
+                raise UserError(_("Every review check must be resolved before certification."))
             super(AccountWorkingFile, file_record).write({"state": "validated"})
-            file_record.message_post(body=_("Working file validated."))
+            file_record.message_post(body=_("Working file certified."))
         return True
 
     def action_reopen(self):
         if not self.env.user.has_group("account.group_account_manager"):
             raise AccessError(_("Only accounting managers can reopen a working file."))
         for file_record in self:
+            if file_record.state == "in_progress":
+                continue
             super(AccountWorkingFile, file_record).write({"state": "in_progress"})
         self.message_post(body=_("Working file reopened for changes."))
         return True
@@ -219,6 +241,9 @@ class AccountWorkingFile(models.Model):
             "name": _("Review Checks"),
             "res_model": "account.working.file.check",
             "view_mode": "list,form",
+            "search_view_id": self.env.ref(
+                "om_account_accountant.view_account_working_file_check_search"
+            ).id,
             "domain": [("file_id", "=", self.id)],
             "context": {"default_file_id": self.id},
         }
@@ -267,8 +292,14 @@ class AccountWorkingFileCheck(models.Model):
     section = fields.Char(required=True, translate=True)
     name = fields.Char(required=True, translate=True)
     description = fields.Text(translate=True)
+    evidence_required = fields.Boolean(default=False)
     state = fields.Selection(
-        [("pending", "Pending Review"), ("reviewed", "Reviewed")],
+        [
+            ("pending", "Pending Review"),
+            ("reviewed", "Reviewed"),
+            ("supervised", "Supervised"),
+            ("exception", "Exception"),
+        ],
         default="pending", required=True, tracking=True, index=True,
     )
     reviewer_id = fields.Many2one("res.users", readonly=True, copy=False, tracking=True)
@@ -288,6 +319,13 @@ class AccountWorkingFileCheck(models.Model):
     )
     evidence_attachment_count = fields.Integer(compute="_compute_evidence_attachment_ids")
 
+    def _check_supervised_status_access(self, vals):
+        if (
+            vals.get("state") == "supervised"
+            and not self.env.user.has_group("account.group_account_manager")
+        ):
+            raise AccessError(_("Only accounting managers can mark a review check as supervised."))
+
     @api.depends("evidence_attachment_storage_ids")
     def _compute_evidence_attachment_ids(self):
         for check in self:
@@ -299,13 +337,14 @@ class AccountWorkingFileCheck(models.Model):
             check.evidence_attachment_storage_ids = check.evidence_attachment_ids
 
     def write(self, vals):
+        self._check_supervised_status_access(vals)
         if any(check.file_id.state == "validated" for check in self):
             raise UserError(_("Reopen the working file before changing its review checks."))
         if vals.get("file_id"):
             target_file = self.env["account.working.file"].browse(vals["file_id"])
             if target_file.state == "validated":
                 raise UserError(_("Reopen the working file before moving review checks into it."))
-        if vals.get("state") == "reviewed":
+        if vals.get("state") in ("reviewed", "supervised", "exception"):
             vals = {**vals, "reviewer_id": self.env.user.id, "reviewed_on": fields.Datetime.now()}
         elif vals.get("state") == "pending":
             vals = {**vals, "reviewer_id": False, "reviewed_on": False}
@@ -313,12 +352,14 @@ class AccountWorkingFileCheck(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        for vals in vals_list:
+            self._check_supervised_status_access(vals)
         file_ids = {vals.get("file_id") for vals in vals_list if vals.get("file_id")}
         files = self.env["account.working.file"].browse(file_ids)
         if any(file_record.state == "validated" for file_record in files):
             raise UserError(_("Reopen the working file before adding review checks."))
         for vals in vals_list:
-            if vals.get("state") == "reviewed":
+            if vals.get("state") in ("reviewed", "supervised", "exception"):
                 vals.update(reviewer_id=self.env.user.id, reviewed_on=fields.Datetime.now())
         return super().create(vals_list)
 

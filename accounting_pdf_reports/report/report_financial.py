@@ -199,7 +199,8 @@ class ReportFinancial(models.AbstractModel):
                              comparison_context=None, period_type=None,
                              comparison_mode='previous_period', comparison_date_from=None,
                              comparison_date_to=None, comparison_periods=1,
-                             comparison_period_ranges=None, financial_budget_id=None):
+                             comparison_period_ranges=None, financial_budget_id=None,
+                             cash_basis=False):
         """Return the native financial-report hierarchy for the Odoo web client."""
         if not self.env.user.has_group('account.group_account_readonly'):
             from odoo.exceptions import AccessError
@@ -235,6 +236,7 @@ class ReportFinancial(models.AbstractModel):
             'strict_range': bool(date_from),
             'company_id': company.id,
             'journal_ids': journals.ids,
+            'tax_exigible': bool(cash_basis),
         }
         data = {
             'account_report_id': (report.id, report.display_name),
@@ -397,6 +399,10 @@ class ReportFinancial(models.AbstractModel):
                     'CA.balance + FA.balance + PNCA.balance',
                 self.env.ref('accounting_pdf_reports.account_financial_report_balancesheet0').id:
                     'L.balance + EQ.balance',
+                self.env.ref('accounting_pdf_reports.account_financial_report_income0').id:
+                    'REV.balance + OIN.balance',
+                self.env.ref('accounting_pdf_reports.account_financial_report_expense0').id:
+                    'EXP.balance + DEP.balance + COS.balance',
                 self.env.ref('accounting_pdf_reports.account_financial_report_liability0').id:
                     'CL.balance + NL.balance',
                 self.env.ref('accounting_pdf_reports.account_financial_report_equity0').id:
@@ -416,11 +422,20 @@ class ReportFinancial(models.AbstractModel):
                 'earnings-total-': 'PYE.balance + CYE.balance',
                 'equity-total-': 'EQU.balance + EAR.balance + OCI.balance',
                 'liabilities-equity-total-': 'L.balance + EQ.balance',
+                'pnl-gross-profit-': 'REV.balance - COS.balance',
+                'pnl-operating-income-': 'REV.balance - COS.balance - EXP.balance',
+                'pnl-net-income-': 'REV.balance + OIN.balance - COS.balance - EXP.balance - OEXP.balance',
+            }
+            domain_formulas = {
+                'pnl-other-expenses-': "[('account_id.account_type', 'in', ('expense_depreciation', 'expense_other'))]",
             }
             formula = next((value for prefix, value in aggregate_formulas.items()
                             if row_key.startswith(prefix)), None)
             if not formula and line.get('report_id') in report_formula_by_id:
                 formula = report_formula_by_id[line['report_id']]
+            if not formula:
+                formula = next((value for prefix, value in domain_formulas.items()
+                                if row_key.startswith(prefix)), None)
             if not formula and row_key.startswith('account-type-'):
                 account_type = self.env['account.account.type'].browse(int(row_key.rsplit('-', 1)[-1]))
                 if account_type.exists():
@@ -435,12 +450,14 @@ class ReportFinancial(models.AbstractModel):
                 formula = account_type_domains[line['account_type']]
             engine = 'Aggregate Other Formulas' if formula and row_type in {'report', 'group', 'total'} else 'Odoo Domain'
             subformula = None
-            if not formula:
+            if row_key.startswith('pnl-other-expenses-'):
+                subformula = 'sum'
+            elif not formula:
                 account_type = line.get('account_type')
                 if account_type:
                     formula = "[('account_id.account_type', '=', '%s')]" % account_type
                     if account_type in {'liability_current', 'liability_credit_card', 'liability_payable',
-                                        'liability_non_current', 'equity'}:
+                                        'liability_non_current', 'equity', 'income', 'income_other'}:
                         subformula = '-sum'
                     else:
                         subformula = 'sum'
@@ -490,10 +507,98 @@ class ReportFinancial(models.AbstractModel):
             detail_lines = [row for row in report_lines if row.get('account_id')]
             return sum(row['balance'] for row in top_lines), detail_lines
 
-        all_lines = self.get_account_lines(data)
-        lines = []
+        def profit_and_loss_summary_lines():
+            """Build the same flat summary rows shown by Enterprise's P&L."""
+            category_specs = [
+                (_('Revenue'), 'revenue', {'income'}, -1, 'income'),
+                (_('Cost of Revenue'), 'cost-of-revenue', {'expense_direct_cost'}, 1,
+                 'expense_direct_cost'),
+                (_('Operating Expenses'), 'operating-expenses', {'expense'}, 1, 'expense'),
+                (_('Other Income'), 'other-income', {'income_other'}, -1, 'income_other'),
+                (_('Other Expenses'), 'other-expenses', {'expense_depreciation', 'expense_other'}, 1, False),
+                (_('Distributions and Withdrawals'), 'distributions-withdrawals',
+                 {'equity_unaffected'}, 1, 'equity_unaffected'),
+            ]
+            categories = {}
+            report_key = report.id
+            for name, key, account_types, sign, account_type in category_specs:
+                balances = account_lines_for_types(account_types, context)
+                accounts = []
+                for account_id, values in balances.items():
+                    account = self.env['account.account'].browse(account_id)
+                    account_values = {
+                        'account_id': account_id,
+                        'account_type': account.account_type,
+                        'debit': values.get('debit', 0.0),
+                        'credit': values.get('credit', 0.0),
+                        'balance': sign * values.get('balance', 0.0),
+                        'balance_cmp': sign * values.get('balance_cmp', 0.0),
+                        'balance_cmp_list': [sign * amount for amount in values.get('balance_cmp_list', [])],
+                    }
+                    accounts.append(account_values)
+                row_key = f'pnl-{key}-{report_key}'
+                row = amount_row(
+                    name, 'category', row_key, 0, accounts,
+                    extra_account_ids=account_ids_for_types(account_types),
+                )
+                if account_type:
+                    row['account_type'] = account_type
+                categories[key] = row
+
+            def formula_total(name, key, input_keys, calculate):
+                row = amount_row(
+                    name, 'total', f'pnl-{key}-{report_key}', 0,
+                    [categories[input_key] for input_key in input_keys],
+                )
+                row['balance'] = calculate({input_key: categories[input_key]['balance']
+                                            for input_key in input_keys})
+                comparisons = len(data.get('comparison_contexts', []))
+                row['balance_cmp_list'] = [
+                    calculate({
+                        input_key: (
+                            categories[input_key].get('balance_cmp_list', [])[index]
+                            if index < len(categories[input_key].get('balance_cmp_list', []))
+                            else categories[input_key].get('balance_cmp', 0.0)
+                        )
+                        for input_key in input_keys
+                    })
+                    for index in range(comparisons)
+                ]
+                if row['balance_cmp_list']:
+                    row['balance_cmp'] = row['balance_cmp_list'][0]
+                return row
+
+            revenue_minus_cost = lambda values: values['revenue'] - values['cost-of-revenue']
+            gross_profit = formula_total(
+                _('Gross Profit'), 'gross-profit', ('revenue', 'cost-of-revenue'), revenue_minus_cost,
+            )
+            operating_income = formula_total(
+                _('Operating Income (or Loss)'), 'operating-income',
+                ('revenue', 'cost-of-revenue', 'operating-expenses'),
+                lambda values: values['revenue'] - values['cost-of-revenue'] - values['operating-expenses'],
+            )
+            net_income = formula_total(
+                _('Net Income'), 'net-income',
+                ('revenue', 'other-income', 'cost-of-revenue', 'operating-expenses', 'other-expenses'),
+                lambda values: values['revenue'] + values['other-income'] - values['cost-of-revenue']
+                - values['operating-expenses'] - values['other-expenses'],
+            )
+            return [
+                categories['revenue'],
+                categories['cost-of-revenue'],
+                gross_profit,
+                categories['operating-expenses'],
+                operating_income,
+                categories['other-income'],
+                categories['other-expenses'],
+                net_income,
+                categories['distributions-withdrawals'],
+            ]
+
+        all_lines = [] if report == profit_loss else self.get_account_lines(data)
+        lines = profit_and_loss_summary_lines() if report == profit_loss else []
         expanded_group_keys = []
-        index = 0
+        index = len(all_lines) if report == profit_loss else 0
         while index < len(all_lines):
             line = all_lines[index]
             if line.get('report_id') in (report.id, hidden_wrapper.id):
@@ -762,12 +867,39 @@ class ReportFinancial(models.AbstractModel):
                 row['account_id'][0]: row['planned_amount'] * period_ratio for row in budget_lines
             }
             line_ids_by_account = {row['account_id'][0]: row['id'] for row in budget_lines}
+            budget_amounts_by_type = {}
+            for account in self.env['account.account'].browse(list(amounts_by_account)).exists():
+                account_type = account.account_type
+                budget_amounts_by_type[account_type] = (
+                    budget_amounts_by_type.get(account_type, 0.0)
+                    + amounts_by_account.get(account.id, 0.0)
+                )
+            revenue_budget = budget_amounts_by_type.get('income', 0.0)
+            cost_budget = budget_amounts_by_type.get('expense_direct_cost', 0.0)
+            operating_expense_budget = budget_amounts_by_type.get('expense', 0.0)
+            other_income_budget = budget_amounts_by_type.get('income_other', 0.0)
+            other_expense_budget = (
+                budget_amounts_by_type.get('expense_depreciation', 0.0)
+                + budget_amounts_by_type.get('expense_other', 0.0)
+            )
             for line in lines:
+                row_key = line.get('row_key', '')
+                if row_key.startswith('pnl-gross-profit-'):
+                    line['budget_amount'] = revenue_budget - cost_budget
+                elif row_key.startswith('pnl-operating-income-'):
+                    line['budget_amount'] = revenue_budget - cost_budget - operating_expense_budget
+                elif row_key.startswith('pnl-net-income-'):
+                    line['budget_amount'] = (
+                        revenue_budget + other_income_budget - cost_budget
+                        - operating_expense_budget - other_expense_budget
+                    )
+                else:
+                    account_id = line.get('account_id')
+                    account_ids = [account_id] if account_id else line.get('account_ids', [])
+                    if account_ids:
+                        line['budget_amount'] = sum(amounts_by_account.get(account, 0.0)
+                                                    for account in account_ids)
                 account_id = line.get('account_id')
-                account_ids = [account_id] if account_id else line.get('account_ids', [])
-                if account_ids:
-                    line['budget_amount'] = sum(amounts_by_account.get(account, 0.0)
-                                                for account in account_ids)
                 if account_id:
                     line['budget_line_id'] = line_ids_by_account.get(account_id)
         return {
@@ -785,6 +917,9 @@ class ReportFinancial(models.AbstractModel):
             'journals': [{'id': journal.id, 'name': journal.display_name} for journal in journals],
             'comparison_context': data.get('comparison_context') or False,
             'comparison_contexts': data.get('comparison_contexts', []),
+            'cash_basis': bool(cash_basis),
+            'cash_basis_domain': list(self.env['account.move.line']._get_tax_exigible_domain())
+                                 if cash_basis else [],
             'financial_budget': {'id': financial_budget.id, 'name': financial_budget.name}
                                  if financial_budget else False,
             'can_edit_financial_budget': self.env.user.has_group('account.group_account_manager'),

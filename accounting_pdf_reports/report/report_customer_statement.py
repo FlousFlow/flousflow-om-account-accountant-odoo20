@@ -1,4 +1,5 @@
 from collections import defaultdict
+from dateutil.relativedelta import relativedelta
 
 from odoo import api, fields, models, _
 from odoo.exceptions import AccessError, UserError, ValidationError
@@ -38,6 +39,11 @@ class ReportCustomerStatement(models.AbstractModel):
         if not isinstance(account_scopes, list) or not account_scopes or any(
                 scope not in ACCOUNT_SCOPES for scope in account_scopes):
             raise ValidationError(_('Choose at least one valid account scope.'))
+        # Match the Enterprise Customer Statement's initial period: the previous
+        # calendar month, rather than the financial reports' fiscal-year default.
+        if period_type == 'month' and not period_anchor:
+            today = fields.Date.context_today(self)
+            period_anchor = fields.Date.to_string(today.replace(day=1) - relativedelta(days=1))
         try:
             date_from, date_to = self.env['report.accounting_pdf_reports.report_general_ledger']._get_interactive_period_dates(
                 period_type, period_anchor, custom_date_from, custom_date_to
@@ -98,9 +104,13 @@ class ReportCustomerStatement(models.AbstractModel):
             grouped[partner.id].append({
                 'id': line.id,
                 'move_id': line.move_id.id,
-                'date': fields.Date.to_string(line.date),
+                # Enterprise's first date column is the document invoice date;
+                # fall back to the accounting date for non-invoice journal items.
+                'date': fields.Date.to_string(line.move_id.invoice_date or line.date),
                 'date_maturity': fields.Date.to_string(line.date_maturity) if line.date_maturity else False,
-                'label': line.name or line.move_id.ref or line.move_id.name,
+                # The expandable statement tree identifies the document by its
+                # move number, rather than repeating the receivable line label.
+                'label': line.move_id.name or line.move_id.ref or line.name,
                 'reference': line.move_id.ref or line.move_id.name,
                 'amount': amount,
                 'amount_currency': line.amount_currency,

@@ -1,6 +1,8 @@
 .ff_general_ledger {
+    min-width: 0;
     .ff_gl_toolbar {
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
         justify-content: space-between;
         gap: 1rem;
@@ -14,7 +16,9 @@
         align-items: center;
         flex-wrap: wrap;
         gap: 0.5rem;
-        width: 100%;
+        flex: 1 1 36rem;
+        width: auto;
+        min-width: 0;
     }
 
     .ff_gl_filters > .form-control:first-child {
@@ -56,15 +60,20 @@
     }
 
     .ff_gl_table_wrap {
+        width: calc(100% - 2rem);
         max-width: 78rem;
+        min-width: 0;
         margin: 0 auto;
         padding: 1rem 1.5rem;
         background: var(--o-view-background-color, #fff);
         border: 1px solid #dee2e6;
         border-radius: 0.25rem;
+        overflow-x: auto;
+        overscroll-behavior-inline: contain;
     }
 
     .ff_gl_table {
+        min-width: 64rem;
         margin: 0;
 
         th {
@@ -97,4 +106,23 @@
     .ff_gl_fold {
         color: #69737d;
     }
+}
+
+@media (max-width: 1100px) {
+    .ff_general_ledger .ff_gl_toolbar { padding: .75rem 1rem; }
+    .ff_general_ledger .ff_gl_filters { flex: 1 1 100%; }
+    .ff_general_ledger .ff_gl_report_header,
+    .ff_general_ledger .alert-info,
+    .ff_general_ledger .ff_gl_table_wrap { width: calc(100% - 1.5rem); }
+    .ff_general_ledger .ff_gl_table_wrap { padding: .75rem; }
+}
+
+@media (max-width: 520px) {
+    .ff_general_ledger .ff_gl_toolbar { gap: .5rem; padding: .65rem .75rem; }
+    .ff_general_ledger .ff_gl_filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ff_general_ledger .ff_gl_filters > * { width: 100%; min-width: 0; max-width: 100%; }
+    .ff_general_ledger .ff_gl_filters > .form-control:first-child { grid-column: 1 / -1; width: 100%; max-width: 100%; }
+    .ff_general_ledger .ff_gl_period_picker > button { max-width: 100%; }
+    .ff_general_ledger .ff_gl_report_header { align-items: flex-start; gap: .5rem; font-size: .9rem; }
+    .ff_general_ledger .ff_gl_table_wrap { width: calc(100% - 1rem); padding: .5rem; }
 }

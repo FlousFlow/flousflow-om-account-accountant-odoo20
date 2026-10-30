@@ -34,8 +34,18 @@ class TestMenuAccess(AccountTestInvoicingCommon):
         return {xmlid for xmlid in xmlids if self.env.ref(xmlid).id in visible}
 
     def _run(self, user, xmlid):
-        """ Open the wizard of the menu as `user` and compute the report. """
+        """Run the report behind a menu as `user`, including interactive actions."""
         action = self.env.ref(xmlid).action
+        if action._name == 'ir.actions.client':
+            if action.tag == 'accounting_pdf_reports.aged_partner':
+                data = self.env['report.accounting_pdf_reports.report_agedpartnerbalance'].with_user(user).get_interactive_data(
+                    result_selection='customer_supplier',
+                )
+                return {'type': action._name, 'tag': action.tag, 'data': data}
+            if action.tag == 'accounting_pdf_reports.partner_ledger':
+                data = self.env['report.accounting_pdf_reports.report_partnerledger'].with_user(user).get_interactive_data()
+                return {'type': action._name, 'tag': action.tag, 'data': data}
+            self.fail(f'No interactive report runner is configured for {action.tag!r}')
         wizard = self.env[action.res_model].with_user(user).with_context(active_model=action.res_model).create({})
         return wizard.check_report()
 
@@ -63,9 +73,13 @@ class TestMenuAccess(AccountTestInvoicingCommon):
                               'accounting_pdf_reports.menu_aged_trial_balance',
                               'accounting_pdf_reports.menu_partner_ledger'):
                     if xmlid != 'accounting_pdf_reports.menu_general_balance_report':
-                        self.assertEqual(self._run(user, xmlid)['type'], 'ir.actions.report', xmlid)
+                        result = self._run(user, xmlid)
+                        self.assertEqual(result['type'], 'ir.actions.client', xmlid)
+                        self.assertTrue(result['data'], xmlid)
 
     def test_invoicing_user_sees_the_partner_reports(self):
         user = self._user('report_billing', 'account.group_account_invoice')
         self.assertEqual(self._visible(user, FINANCIAL_MENUS + PARTNER_MENUS), set(PARTNER_MENUS))
-        self.assertEqual(self._run(user, 'accounting_pdf_reports.menu_aged_trial_balance')['type'], 'ir.actions.report')
+        result = self._run(user, 'accounting_pdf_reports.menu_aged_trial_balance')
+        self.assertEqual(result['type'], 'ir.actions.client')
+        self.assertIn('rows', result['data'])

@@ -26,6 +26,15 @@ async function fillDateAndWait(input, value) {
 
 registry.category("web_tour.tours").add("ff_deferred_schedule_periods", {
     steps: () => [
+        {
+            trigger: ".o_ff_deferred_schedule .ff_deferred_title",
+            run() {
+                const title = document.querySelector(".o_ff_deferred_schedule .ff_deferred_title");
+                if (title.parentElement.innerText.trim() !== title.innerText.trim()) {
+                    throw new Error("Deferred Schedule should show only the report title in its header.");
+                }
+            },
+        },
         { trigger: ".ff_deferred_options button", run: "click" },
         { trigger: ".ff_deferred_unfold_all", run: "click" },
         {

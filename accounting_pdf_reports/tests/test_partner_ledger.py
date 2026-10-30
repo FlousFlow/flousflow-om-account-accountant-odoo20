@@ -50,3 +50,58 @@ class TestPartnerLedger(AccountTestInvoicingCommon):
         self.assertEqual(values['docs'], [partner_c])
         self.assertEqual(values['sum_partner'](values['data'], partner_c, 'debit - credit'), 0.0)
         self.assertEqual(values['lines'](values['data'], partner_c), [])
+
+    def test_balance_confirmation_uses_cumulative_balance_through_end_date(self):
+        self.init_invoice('out_invoice', partner=self.partner_a, amounts=[100.0], taxes=[],
+                          invoice_date='2024-12-01', post=True)
+        self.init_invoice('out_invoice', partner=self.partner_a, amounts=[40.0], taxes=[],
+                          invoice_date='2025-07-01', post=True)
+        self.init_invoice('out_refund', partner=self.partner_a, amounts=[30.0], taxes=[],
+                          invoice_date='2025-08-01', post=True)
+
+        wizard = self.env['account.report.partner.ledger'].create({
+            'result_selection': 'customer',
+            'partner_ids': [(6, 0, self.partner_a.ids)],
+            'date_from': '2025-06-01',
+            'date_to': '2025-12-31',
+            'target_move': 'posted',
+            'document_type': 'balance_confirmation',
+        })
+        data = wizard.with_context(
+            active_model=wizard._name, active_id=wizard.id,
+        ).check_report()['data']
+        values = self.env['report.accounting_pdf_reports.report_partnerledger']._get_report_values(
+            None, data,
+        )
+
+        self.assertEqual(data['form']['document_type'], 'balance_confirmation')
+        self.assertEqual(values['confirmation_closing_balance'](self.partner_a), 110.0)
+
+        html, report_type = self.env['ir.actions.report']._render_qweb_html(
+            'accounting_pdf_reports.report_partnerledger',
+            wizard.ids,
+            data=data,
+        )
+        self.assertEqual(report_type, 'html')
+        self.assertIn(b'Balance Confirmation Request', html)
+        self.assertIn(b'110.00', html)
+        self.assertIn(b'I agree with this balance.', html)
+        self.assertIn(b'I disagree with this balance', html)
+
+    def test_interactive_lines_show_journal_entry_and_account_code(self):
+        move = self.init_invoice(
+            'out_invoice', partner=self.partner_a, amounts=[100.0], taxes=[],
+            invoice_date='2025-06-01', post=True,
+        )
+        rows = self.env['report.accounting_pdf_reports.report_partnerledger'].get_interactive_partner_lines(
+            self.partner_a.id, '2025-01-01', '2025-12-31', 'posted', 'receivable'
+        )
+        row = next(row for row in rows if row['move_id'] == move.id)
+        receivable_line = move.line_ids.filtered(
+            lambda line: line.account_id.account_type == 'asset_receivable'
+        )[:1]
+
+        self.assertEqual(row['label'], move.name)
+        self.assertEqual(row['journal'], move.journal_id.name)
+        self.assertEqual(row['account'], receivable_line.account_id.code)
+        self.assertEqual(row['move_id'], move.id)

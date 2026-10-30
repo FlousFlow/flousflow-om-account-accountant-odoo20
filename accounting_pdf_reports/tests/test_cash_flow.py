@@ -1,12 +1,59 @@
+from io import BytesIO
+from zipfile import ZipFile
+
 from odoo import Command
 from odoo.exceptions import UserError
 from odoo.tests import tagged
 
 from odoo.addons.account.tests.common import AccountTestInvoicingCommon
+from odoo.addons.accounting_pdf_reports.controllers.cash_flow import build_cash_flow_xlsx
 
 
 @tagged('post_install', '-at_install')
 class TestCashFlow(AccountTestInvoicingCommon):
+
+    def test_cash_flow_xlsx_and_unclassified_activity(self):
+        account = self.env['account.account'].new({'account_type': 'off_balance'})
+        report = self.env['report.accounting_pdf_reports.report_cash_flow']
+        self.assertEqual(report._classify(account), ('unclassified', 'other'))
+
+        data = {
+            'company_name': 'FlousFlow Test',
+            'date_from': '2026-01-01',
+            'date_to': '2026-01-31',
+            'target_move': 'posted',
+            'journal_filter_enabled': False,
+            'journal_names': [],
+            'opening': 100,
+            'net_change': 25,
+            'closing': 125,
+            'sections': [{
+                'name': 'Unclassified Activities',
+                'total': 25,
+                'lines': [{
+                    'name': 'Other',
+                    'amount': 25,
+                    'accounts': [{
+                        'code': 'OFF-BAL', 'name': 'Off Balance Account', 'amount': 25,
+                    }],
+                }],
+            }],
+        }
+        content = build_cash_flow_xlsx(data, 'unit', 'USD')
+        with ZipFile(BytesIO(content)) as workbook:
+            self.assertIsNone(workbook.testzip())
+            workbook_xml = ''.join(
+                workbook.read(name).decode(errors='replace')
+                for name in workbook.namelist() if name.endswith('.xml')
+            )
+        for label in (
+            'Cash and cash equivalents at the beginning of the period',
+            'Unclassified Activities',
+            'OFF-BAL',
+            'Net increase (decrease) in cash and cash equivalents',
+            'Cash and cash equivalents at the end of the period',
+        ):
+            self.assertIn(label, workbook_xml)
 
     @classmethod
     def setUpClass(cls):
@@ -96,6 +143,19 @@ class TestCashFlow(AccountTestInvoicingCommon):
         self.assertEqual(cash_flow['net_change'], -1090.0)
         self.assertEqual(cash_flow['closing'], 8910.0)
         self.assertEqual(sum(section['total'] for section in cash_flow['sections']), cash_flow['net_change'])
+        display_sections = self.env['report.accounting_pdf_reports.report_cash_flow']._get_display_sections(cash_flow)
+        self.assertEqual(
+            [line['name'] for line in display_sections[0]['lines']],
+            ['Payments received from customers', 'Operating income', 'Payments made to suppliers', 'Operating expenses'],
+        )
+        self.assertEqual(
+            [line['amount'] for line in display_sections[0]['lines']],
+            [1000.0, 0.0, -400.0, 60.0],
+        )
+        self.assertEqual(
+            sum(section['total'] for section in display_sections),
+            cash_flow['net_change'],
+        )
 
         _wizard, values = self._cash_flow(target_move='all', display_detail='accounts')
         self.assertEqual(self._lines(values['cash_flow'])[('financing', 'borrowing')], 3070.0)
@@ -108,7 +168,17 @@ class TestCashFlow(AccountTestInvoicingCommon):
                 ['date_from', 'date_to', 'journal_ids', 'target_move', 'company_id', 'display_detail'])[0]},
         )[0].decode()
         self.assertIn('Cash Flow Statement', html)
-        self.assertIn('Cash received from customers', html)
+        self.assertIn('Payments received from customers', html)
+        self.assertIn('Operating expenses', html)
+        self.assertLess(
+            html.index('Cash and cash equivalents at the beginning of the period'),
+            html.index('Net increase (decrease) in cash and cash equivalents'),
+        )
+        self.assertLess(
+            html.index('Net increase (decrease) in cash and cash equivalents'),
+            html.index('Cash Flows from Operating Activities'),
+        )
+        self.assertNotIn('Net cash from', html)
 
     def test_print_action(self):
         wizard = self.env['account.cash.flow.report'].create({'date_from': '2026-01-01', 'date_to': '2026-12-31'})
@@ -117,3 +187,12 @@ class TestCashFlow(AccountTestInvoicingCommon):
         wizard.date_from = '2027-01-01'
         with self.assertRaises(UserError):
             wizard.check_report()
+
+    def test_interactive_print_skips_layout_setup(self):
+        action = self.env['report.accounting_pdf_reports.report_cash_flow'].print_interactive_report(
+            date_from='2026-09-01', date_to='2026-09-30', target_move='posted',
+            display_detail='accounts',
+        )
+        self.assertEqual(action['type'], 'ir.actions.report')
+        self.assertEqual(action['report_name'], 'accounting_pdf_reports.report_cash_flow')
+        self.assertEqual(action['report_type'], 'qweb-pdf')

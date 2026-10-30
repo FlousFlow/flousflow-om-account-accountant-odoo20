@@ -68,6 +68,12 @@
             .o_om_report .o_om_date, .o_om_report td.o_om_date { white-space: nowrap; }
 
             .o_om_report .text-muted { color: #6b7280 !important; }
+
+            .o_om_report .o_ff_balance_confirmation { margin: 28px 0; font-size: 15px; line-height: 1.8; }
+            .o_om_report .o_ff_confirmation_amount { display: flex; align-items: baseline; gap: 8px; margin: 24px 0; padding: 16px; border: 1px solid #adb5bd; font-size: 18px; }
+            .o_om_report .o_ff_confirmation_responses { margin: 24px 0; }
+            .o_om_report .o_ff_confirmation_responses > div { margin: 12px 0; }
+            .o_om_report .o_ff_confirmation_checkbox { display: inline-block; width: 14px; height: 14px; margin-inline-end: 8px; border: 1px solid #343a40; vertical-align: -2px; }
         </style>
     </template>
 

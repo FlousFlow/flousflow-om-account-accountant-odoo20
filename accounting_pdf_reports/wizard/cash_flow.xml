@@ -20,10 +20,16 @@
         <field name="target">new</field>
     </record>
 
+    <record id="action_interactive_cash_flow_report" model="ir.actions.client">
+        <field name="name">Cash Flow Statement</field>
+        <field name="tag">accounting_pdf_reports.cash_flow</field>
+        <field name="target">main</field>
+    </record>
+
     <menuitem id="menu_account_report_cash_flow"
               name="Cash Flow Statement"
               sequence="30"
-              action="action_account_cash_flow_report"
+              action="action_interactive_cash_flow_report"
               parent="account.account_reports_legal_statements_menu"
               groups="account.group_account_readonly,account.group_account_manager"/>
 

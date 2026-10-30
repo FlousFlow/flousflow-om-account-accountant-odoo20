@@ -12,5 +12,7 @@ from . import report_financial
 
 
 from . import report_cash_flow
+from . import report_annual_document
 from . import report_annual
 from . import report_customer_statement
+from . import report_open_items

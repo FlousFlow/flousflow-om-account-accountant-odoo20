@@ -363,6 +363,108 @@ class TestBalanceSheet(AccountTestInvoicingCommon):
         self.assertIn('debit', line)
         self.assertIn('credit', line)
 
+    def test_profit_and_loss_revenue_formula_metadata_uses_negative_sum(self):
+        invoice = self.init_invoice('out_invoice', amounts=[420.0], invoice_date='2025-06-10',
+                                    taxes=[], post=True)
+        report = self.env.ref('accounting_pdf_reports.account_financial_report_profitandloss0')
+        result = self.env['report.accounting_pdf_reports.report_financial'].get_interactive_data(
+            report.id, '2025-06-01', '2025-06-30', 'posted',
+            self.env['account.journal'].search([('company_id', '=', self.env.company.id)]).ids,
+            False, False,
+        )
+        lines = result['lines']
+        by_name = {line['name']: line for line in lines}
+        self.assertEqual(
+            [line['name'] for line in lines],
+            [
+                'Revenue', 'Cost of Revenue', 'Gross Profit', 'Operating Expenses',
+                'Operating Income (or Loss)', 'Other Income', 'Other Expenses',
+                'Net Income', 'Distributions and Withdrawals',
+            ],
+        )
+        self.assertFalse(any(line.get('type') == 'report' for line in lines))
+        revenue = by_name['Revenue']
+        self.assertEqual(revenue['type'], 'category')
+        self.assertIn(invoice.invoice_line_ids.account_id.id, revenue['account_ids'])
+        self.assertAlmostEqual(revenue['balance'], 420.0)
+        self.assertAlmostEqual(by_name['Gross Profit']['balance'], 420.0)
+        self.assertAlmostEqual(by_name['Operating Income (or Loss)']['balance'], 420.0)
+        self.assertAlmostEqual(by_name['Net Income']['balance'], 420.0)
+        self.assertEqual(revenue['formula_info']['engine'], 'Odoo Domain')
+        self.assertEqual(revenue['formula_info']['label'], 'balance')
+        self.assertEqual(revenue['formula_info']['formula'], "[('account_id.account_type', '=', 'income')]")
+        self.assertEqual(revenue['formula_info']['subformula'], '-sum')
+        self.assertEqual(by_name['Gross Profit']['formula_info']['engine'], 'Aggregate Other Formulas')
+        self.assertEqual(by_name['Gross Profit']['formula_info']['formula'], 'REV.balance - COS.balance')
+        self.assertEqual(
+            by_name['Operating Income (or Loss)']['formula_info']['formula'],
+            'REV.balance - COS.balance - EXP.balance',
+        )
+        self.assertEqual(
+            by_name['Other Expenses']['formula_info']['formula'],
+            "[('account_id.account_type', 'in', ('expense_depreciation', 'expense_other'))]",
+        )
+        self.assertEqual(by_name['Other Expenses']['formula_info']['subformula'], 'sum')
+        self.assertEqual(
+            by_name['Net Income']['formula_info']['formula'],
+            'REV.balance + OIN.balance - COS.balance - EXP.balance - OEXP.balance',
+        )
+
+    def test_profit_and_loss_summary_uses_enterprise_category_formulas(self):
+        direct_cost = self.env['account.account'].create({
+            'code': '992001', 'name': 'P&L Direct Cost', 'account_type': 'expense_direct_cost',
+        })
+        operating_expense = self.env['account.account'].create({
+            'code': '992002', 'name': 'P&L Operating Expense', 'account_type': 'expense',
+        })
+        other_income = self.env['account.account'].create({
+            'code': '992003', 'name': 'P&L Other Income', 'account_type': 'income_other',
+        })
+        depreciation = self.env['account.account'].create({
+            'code': '992004', 'name': 'P&L Depreciation', 'account_type': 'expense_depreciation',
+        })
+        other_expense = self.env['account.account'].create({
+            'code': '992005', 'name': 'P&L Other Expense', 'account_type': 'expense_other',
+        })
+        self.env['account.move'].create({
+            'journal_id': self.company_data['default_journal_misc'].id,
+            'date': '2025-06-15',
+            'line_ids': [
+                (0, 0, {'name': 'Direct cost', 'account_id': direct_cost.id, 'balance': 100.0}),
+                (0, 0, {'name': 'Operating expense', 'account_id': operating_expense.id,
+                        'balance': 50.0}),
+                (0, 0, {'name': 'Other income', 'account_id': other_income.id, 'balance': -25.0}),
+                (0, 0, {'name': 'Depreciation', 'account_id': depreciation.id, 'balance': 10.0}),
+                (0, 0, {'name': 'Other expense', 'account_id': other_expense.id, 'balance': 5.0}),
+                (0, 0, {'name': 'Balancing payable',
+                        'account_id': self.company_data['default_account_payable'].id,
+                        'balance': -140.0}),
+            ],
+        }).action_post()
+        self.init_invoice('out_invoice', amounts=[420.0], invoice_date='2025-06-10',
+                          taxes=[], post=True)
+
+        report = self.env.ref('accounting_pdf_reports.account_financial_report_profitandloss0')
+        result = self.env['report.accounting_pdf_reports.report_financial'].get_interactive_data(
+            report.id, '2025-06-01', '2025-06-30', 'posted',
+            self.env['account.journal'].search([('company_id', '=', self.env.company.id)]).ids,
+            False, False,
+        )
+        lines = {line['name']: line for line in result['lines']}
+        expected = {
+            'Revenue': 420.0,
+            'Cost of Revenue': 100.0,
+            'Gross Profit': 320.0,
+            'Operating Expenses': 50.0,
+            'Operating Income (or Loss)': 270.0,
+            'Other Income': 25.0,
+            'Other Expenses': 15.0,
+            'Net Income': 280.0,
+        }
+        for name, amount in expected.items():
+            with self.subTest(name=name):
+                self.assertAlmostEqual(lines[name]['balance'], amount)
+
     def test_the_sections_keep_their_order(self):
         """ The sections without a sequence print in the order they were created (Assets before the
         liabilities, Income before Expense), not in the order the database happens to return them. """

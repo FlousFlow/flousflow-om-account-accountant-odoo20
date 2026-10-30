@@ -407,6 +407,11 @@ msgid "Annual Report"
 msgstr "التقرير السنوي"
 
 #. module: accounting_pdf_reports
+#: model_terms:ir.ui.view,arch_db:accounting_pdf_reports.view_annual_report_document_form
+msgid "Example, Annual Financial Overview FY"
+msgstr "مثال، نظرة عامة على الوضع المالي السنوي AR"
+
+#. module: accounting_pdf_reports
 #: model:ir.module.module,summary:base.module_accounting_pdf_reports
 msgid "Annual Report and Accounting Reports For Odoo 20"
 msgstr "التقرير السنوي والتقارير المحاسبية لـ Odoo 20"
@@ -578,6 +583,54 @@ msgstr "النقد المدفوع للموردين"
 #: code:addons/accounting_pdf_reports/report/report_cash_flow.py:0
 msgid "Cash received from customers"
 msgstr "النقد المقبوض من العملاء"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/cash_flow/cash_flow.js:0
+msgid "Payments received from customers"
+msgstr "المدفوعات المدفوعة مقدماً من قِبَل العملاء"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/cash_flow/cash_flow.js:0
+msgid "Operating income"
+msgstr "أرباح الأنشطة التشغيلية"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/cash_flow/cash_flow.js:0
+msgid "Payments made to suppliers"
+msgstr "المدفوعات المدفوعة مقدمًا للموردين"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/cash_flow/cash_flow.js:0
+msgid "Operating expenses"
+msgstr "نفقات الأنشطة التشغيلية"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/cash_flow/cash_flow.js:0
+msgid "Cash Flows from Operating Activities"
+msgstr "التدفقات النقدية من الأنشطة التشغيلية"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/cash_flow/cash_flow.js:0
+msgid "Cash Flows from Investing and Extraordinary Activities"
+msgstr "التدفقات النقدية من الأنشطة الاستثمارية وغير العادية"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/cash_flow/cash_flow.js:0
+msgid "Cash Flows from Financing Activities"
+msgstr "التدفقات النقدية من الأنشطة المالية"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/cash_flow/cash_flow.js:0
+msgid "Cash Flows from Unclassified Activities"
+msgstr "التدفقات النقدية من الأنشطة غير المصنفة"
 
 #. module: accounting_pdf_reports
 #: model:ir.model.fields,field_description:accounting_pdf_reports.field_account_financial_report__children_ids
@@ -1140,6 +1193,11 @@ msgstr "دخل"
 #: model:ir.model.fields.selection,name:accounting_pdf_reports.selection__account_account__cash_flow_activity__investing
 msgid "Investing Activities"
 msgstr "الأنشطة الاستثمارية"
+
+#. module: accounting_pdf_reports
+#: model:ir.model.fields.selection,name:accounting_pdf_reports.selection__account_account__cash_flow_activity__unclassified
+msgid "Unclassified Activities"
+msgstr "أنشطة غير مصنفة"
 
 #. module: accounting_pdf_reports
 #: model:ir.model.fields,help:accounting_pdf_reports.field_account_report_partner_ledger__amount_currency
@@ -2175,3 +2233,296 @@ msgstr "· أُعدّ في"
 #: model_terms:ir.ui.view,arch_db:accounting_pdf_reports.report_annual
 msgid "· Tax ID"
 msgstr "· معرف الضريبة"
+
+#. module: accounting_pdf_reports
+#: model_terms:ir.ui.view,arch_db:accounting_pdf_reports.report_financial
+msgid "Cash Basis Method"
+msgstr "طريقة الأساس النقدي"
+
+#. module: accounting_pdf_reports
+#: model_terms:ir.ui.view,arch_db:accounting_pdf_reports.report_financial
+msgid "Cash Basis"
+msgstr "الأساس النقدي"
+
+#. module: accounting_pdf_reports
+#: model_terms:ir.ui.view,arch_db:accounting_pdf_reports.report_financial
+msgid "Accrual Basis"
+msgstr "أساس الاستحقاق"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/customer_statement/customer_statement.xml:0
+msgid "Engine"
+msgstr "المحرك"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/customer_statement/customer_statement.xml:0
+msgid "Custom Python Function"
+msgstr "وظيفة بايثون مخصصة"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/customer_statement/customer_statement.xml:0
+msgid "Formula"
+msgstr "الصيغة"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/customer_statement/customer_statement.xml:0
+msgid "Sub Formula"
+msgstr "صيغة فرعية"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/customer_statement/customer_statement.xml:0
+msgid "Value"
+msgstr "القيمة"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/customer_statement/customer_statement.js:0
+msgid "Trade Partners"
+msgstr "شركاء تجاريون"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/customer_statement/customer_statement.js:0
+msgid "Trade Receivable"
+msgstr "المدين"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/customer_statement/customer_statement.js:0
+msgid "Non-trade Receivable"
+msgstr "حساب المدينين غير التجاري"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/customer_statement/customer_statement.js:0
+msgid "Trade Payable"
+msgstr "الدائن"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/customer_statement/customer_statement.js:0
+msgid "Non-trade Payable"
+msgstr "حساب الدائنين غير التجاري"
+
+#. module: accounting_pdf_reports
+#: model:ir.model.fields,field_description:accounting_pdf_reports.field_account_report_partner_ledger__document_type
+msgid "Document Type"
+msgstr "نوع المستند"
+
+#. module: accounting_pdf_reports
+#: model:ir.model.fields.selection,name:accounting_pdf_reports.selection__account_report_partner_ledger__document_type__statement
+msgid "Account Statement"
+msgstr "كشف حساب"
+
+#. module: accounting_pdf_reports
+#: model:ir.model.fields.selection,name:accounting_pdf_reports.selection__account_report_partner_ledger__document_type__balance_confirmation
+msgid "Balance Confirmation"
+msgstr "مصادقة رصيد"
+
+#. module: accounting_pdf_reports
+#: model:ir.actions.report,name:accounting_pdf_reports.action_report_partnerledger
+msgid "Balance Confirmation Request"
+msgstr "طلب مصادقة رصيد"
+
+#. module: accounting_pdf_reports
+#: code:addons/accounting_pdf_reports/wizard/account_partner_ledger.py:0
+msgid "Select exactly one partner to print a balance confirmation."
+msgstr "حدد شريكًا واحدًا فقط لطباعة مصادقة الرصيد."
+
+#. module: accounting_pdf_reports
+#: code:addons/accounting_pdf_reports/wizard/account_partner_ledger.py:0
+msgid "Set an end date to calculate the confirmed balance."
+msgstr "حدد تاريخ نهاية لحساب الرصيد المطلوب تأكيده."
+
+#. module: accounting_pdf_reports
+#: code:addons/accounting_pdf_reports/wizard/account_partner_ledger.py:0
+msgid "Balance confirmations can include posted entries only."
+msgstr "مصادقة الرصيد تشمل القيود المرحلة فقط."
+
+#. module: accounting_pdf_reports
+#: code:addons/accounting_pdf_reports/wizard/account_partner_ledger.py:0
+msgid "Choose Receivable Accounts or Payable Accounts for a balance confirmation."
+msgstr "اختر حسابات المدينين أو الدائنين لمصادقة الرصيد."
+
+#. module: accounting_pdf_reports
+#: code:addons/accounting_pdf_reports/wizard/account_partner_ledger.py:0
+msgid "Choose Receivable Accounts or Payable Accounts for a balance confirmation. This partner has both or neither role."
+msgstr "اختر حسابات المدينين أو الدائنين لمصادقة الرصيد. هذا الشريك له الصفتان أو لا يحمل أيًا منهما."
+
+#. module: accounting_pdf_reports
+#: model_terms:ir.ui.view,arch_db:accounting_pdf_reports.report_partnerledger
+msgid "Dear"
+msgstr "السادة"
+
+#. module: accounting_pdf_reports
+#: model_terms:ir.ui.view,arch_db:accounting_pdf_reports.report_partnerledger
+msgid "We request that you review the closing balance below and confirm whether it agrees with your records."
+msgstr "نرجو مراجعة الرصيد الختامي أدناه وتأكيد مطابقته لسجلاتكم."
+
+#. module: accounting_pdf_reports
+#: model_terms:ir.ui.view,arch_db:accounting_pdf_reports.report_partnerledger
+msgid "Closing balance as of"
+msgstr "الرصيد الختامي في"
+
+#. module: accounting_pdf_reports
+#: model_terms:ir.ui.view,arch_db:accounting_pdf_reports.report_partnerledger
+msgid "A positive amount means the partner owes the company; a negative amount means the company owes the partner."
+msgstr "الرصيد الموجب يعني أن على الشريك مبلغًا للشركة، والرصيد السالب يعني أن على الشركة مبلغًا للشريك."
+
+#. module: accounting_pdf_reports
+#: model_terms:ir.ui.view,arch_db:accounting_pdf_reports.report_partnerledger
+msgid "I agree with this balance."
+msgstr "أوافق على هذا الرصيد."
+
+#. module: accounting_pdf_reports
+#: model_terms:ir.ui.view,arch_db:accounting_pdf_reports.report_partnerledger
+msgid "I disagree with this balance; please contact me."
+msgstr "لا أوافق على هذا الرصيد؛ يرجى التواصل معي."
+
+#. module: accounting_pdf_reports
+#: model_terms:ir.ui.view,arch_db:accounting_pdf_reports.report_partnerledger
+msgid "This document requests balance confirmation. It is not a receipt or proof of payment and does not change accounting records."
+msgstr "هذا المستند لطلب مصادقة الرصيد، ولا يعد إيصالًا أو إثباتًا للسداد ولا يغيّر السجلات المحاسبية."
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/partner_ledger/partner_ledger.xml:0
+msgid "Filters"
+msgstr "الفلاتر"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/partner_ledger/partner_ledger.xml:0
+msgid "Journal entry actions"
+msgstr "إجراءات قيد اليومية"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/partner_ledger/partner_ledger.xml:0
+msgid "View Journal Entry"
+msgstr "عرض قيد اليومية"
+
+#. module: accounting_pdf_reports
+#. odoo-python
+#: code:addons/accounting_pdf_reports/report/report_financial.py:0
+msgid "Gross Profit"
+msgstr "إجمالي الربح"
+
+#. module: accounting_pdf_reports
+#. odoo-python
+#: code:addons/accounting_pdf_reports/report/report_financial.py:0
+msgid "Operating Expenses"
+msgstr "نفقات التشغيل"
+
+#. module: accounting_pdf_reports
+#. odoo-python
+#: code:addons/accounting_pdf_reports/report/report_financial.py:0
+msgid "Operating Income (or Loss)"
+msgstr "الدخل التشغيلي (أو الخسائر التشغيلية)"
+
+#. module: accounting_pdf_reports
+#. odoo-python
+#: code:addons/accounting_pdf_reports/report/report_financial.py:0
+msgid "Other Expenses"
+msgstr "النفقات الأخرى"
+
+#. module: accounting_pdf_reports
+#. odoo-python
+#: code:addons/accounting_pdf_reports/report/report_financial.py:0
+msgid "Net Income"
+msgstr "صافي الربح"
+
+#. module: accounting_pdf_reports
+#. odoo-python
+#: code:addons/accounting_pdf_reports/report/report_financial.py:0
+msgid "Distributions and Withdrawals"
+msgstr "التخصيصات والسحوبات"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/tax_report/tax_report.xml:0
+msgid "No Comparison"
+msgstr "بلا مقارنة"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/tax_report/tax_report.xml:0
+msgid "Previous Period"
+msgstr "الفترة السابقة"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/tax_report/tax_report.xml:0
+msgid "Same Period Last Year"
+msgstr "نفس الفترة العام الماضي"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/tax_report/tax_report.xml:0
+msgid "Custom Dates"
+msgstr "التواريخ المخصصة"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/tax_report/tax_report.xml:0
+msgid "Previous Periods"
+msgstr "الفترات السابقة"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/tax_report/tax_report.xml:0
+msgid "Request Period"
+msgstr "طلب المدة"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/tax_report/tax_report.xml:0
+msgid "Descending"
+msgstr "تنازلي"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/tax_report/tax_report.xml:0
+msgid "Ascending"
+msgstr "تصاعدي"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/tax_report/tax_report.xml:0
+msgid "Comparison Start Date"
+msgstr "تاريخ بداية المقارنة"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/tax_report/tax_report.xml:0
+msgid "Comparison End Date"
+msgstr "تاريخ نهاية المقارنة"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/tax_report/tax_report.xml:0
+msgid "Currency Scale"
+msgstr "مقياس العملة"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/tax_report/tax_report.xml:0
+msgid "General Tax Report"
+msgstr "التقرير الضريبي العام"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/tax_report/tax_report.xml:0
+msgid "Group by: Account > Tax"
+msgstr "التجميع حسب: الحساب > الضريبة"
+
+#. module: accounting_pdf_reports
+#. odoo-javascript
+#: code:addons/accounting_pdf_reports/static/src/tax_report/tax_report.xml:0
+msgid "Group by: Tax > Account"
+msgstr "التجميع حسب: الضريبة > الحساب"

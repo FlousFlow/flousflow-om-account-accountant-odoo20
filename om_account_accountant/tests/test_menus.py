@@ -8,6 +8,7 @@ PARENTS = {
     'om_account_reconcile.menu_open_items_reconciliation': 'om_account_reconcile.menu_reconciliation',
     'om_account_reconcile.menu_move_line_match': 'om_account_reconcile.menu_reconciliation',
     'om_account_reconcile.menu_reconciliation': 'account.menu_finance_entries',
+    'om_account_accountant.menu_review_bank_rec_to_review': 'om_account_reconcile.menu_reconciliation',
     'om_account_asset.menu_action_account_asset_asset_form': 'account.menu_finance_entries',
     'om_account_budget.menu_account_budget': 'account.menu_finance_entries',
     'om_recurring_payments.menu_recurring_payment': 'account.menu_finance_entries',
@@ -54,6 +55,29 @@ class TestMenus(TransactionCase):
                 self.assertEqual(self.env.ref(xmlid).parent_id, self.env.ref(parent))
         for xmlid in REMOVED:
             self.assertFalse(self.env.ref(xmlid, raise_if_not_found=False), xmlid)
+
+    def test_reconciliation_menu_has_no_duplicate_actions(self):
+        reconciliation = self.env.ref('om_account_reconcile.menu_reconciliation')
+        duplicate_menu_xmlids = (
+            'om_account_accountant.menu_review_reconciliation',
+            'om_account_accountant.menu_review_bank_reconciliation',
+            'om_account_accountant.menu_review_open_items',
+            'om_account_accountant.menu_review_match_journal_items',
+        )
+        for xmlid in duplicate_menu_xmlids:
+            with self.subTest(menu=xmlid):
+                self.assertFalse(self.env.ref(xmlid).active)
+
+        transaction_queue = self.env.ref('om_account_accountant.menu_review_bank_rec_to_review')
+        self.assertEqual(transaction_queue.parent_id, reconciliation)
+        visible_children = reconciliation.child_id.filtered('active')
+        expected_children = {
+            self.env.ref('om_account_reconcile.menu_bank_reconciliation').id,
+            self.env.ref('om_account_reconcile.menu_open_items_reconciliation').id,
+            self.env.ref('om_account_reconcile.menu_move_line_match').id,
+            transaction_queue.id,
+        }
+        self.assertTrue(expected_children.issubset(set(visible_children.ids)))
 
     def test_review_control_matches_enterprise_menu(self):
         control_menu = self.env.ref('account.account_audit_control_menu')

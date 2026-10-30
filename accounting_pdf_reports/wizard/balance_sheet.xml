@@ -134,6 +134,7 @@
                         <field name="comparison_mode" invisible="True"/>
                         <field name="percentage_of_row_key" invisible="True"/>
                         <field name="financial_budget_id" invisible="True"/>
+                        <field name="cash_basis" invisible="True"/>
                     </page>
                 </notebook>
             </field>

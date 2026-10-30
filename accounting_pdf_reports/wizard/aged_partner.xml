@@ -42,10 +42,28 @@
         <field name="target">new</field>
     </record>
 
+    <record id="action_interactive_aged_receivable" model="ir.actions.client">
+        <field name="name">Aged Receivable</field>
+        <field name="tag">accounting_pdf_reports.aged_partner</field>
+        <field name="context">{'default_result_selection': 'customer'}</field>
+    </record>
+
+    <record id="action_interactive_aged_payable" model="ir.actions.client">
+        <field name="name">Aged Payable</field>
+        <field name="tag">accounting_pdf_reports.aged_partner</field>
+        <field name="context">{'default_result_selection': 'supplier'}</field>
+    </record>
+
+    <record id="action_interactive_aged_partner_balance" model="ir.actions.client">
+        <field name="name">Aged Partner Balance</field>
+        <field name="tag">accounting_pdf_reports.aged_partner</field>
+        <field name="context">{'default_result_selection': 'customer_supplier'}</field>
+    </record>
+
     <menuitem id="menu_aged_trial_balance"
               name="Aged Partner Balance"
               sequence="50"
-              action="action_account_aged_balance_view"
+              action="action_interactive_aged_partner_balance"
               parent="account.account_reports_partners_reports_menu"
               groups="account.group_account_invoice,account.group_account_readonly"/>
 
@@ -63,7 +81,7 @@
     <menuitem id="menu_aged_receivable"
               name="Aged Receivable"
               sequence="30"
-              action="action_account_aged_receivable"
+              action="action_interactive_aged_receivable"
               parent="account.account_reports_partners_reports_menu"
               groups="account.group_account_invoice,account.group_account_readonly"/>
 
@@ -82,7 +100,7 @@
     <menuitem id="menu_aged_payable"
               name="Aged Payable"
               sequence="40"
-              action="action_account_aged_payable"
+              action="action_interactive_aged_payable"
               parent="account.account_reports_partners_reports_menu"
               groups="account.group_account_invoice,account.group_account_readonly"/>
 

@@ -47,6 +47,7 @@ class AccountingReport(models.TransientModel):
     comparison_mode = fields.Char(default='none')
     percentage_of_row_key = fields.Char()
     financial_budget_id = fields.Many2one('account.financial.budget', string='Financial Budget')
+    cash_basis = fields.Boolean(string='Cash Basis Method')
 
     def _build_comparison_context(self, data):
         result = {}
@@ -55,6 +56,7 @@ class AccountingReport(models.TransientModel):
         # the comparison context replaces the main one, so it must carry the company
         # too, otherwise the comparison column spans every company of the switcher
         result['company_id'] = self.company_id.id or False
+        result['tax_exigible'] = bool(data['form'].get('cash_basis'))
         if data['form']['filter_cmp'] == 'filter_date':
             result['date_from'] = data['form']['date_from_cmp']
             result['date_to'] = data['form']['date_to_cmp']
@@ -68,6 +70,7 @@ class AccountingReport(models.TransientModel):
             'filter_cmp', 'target_move', 'comparison_period_ranges',
             'comparison_sort', 'comparison_display', 'enable_filter',
             'comparison_mode', 'percentage_of_row_key', 'financial_budget_id',
+            'cash_basis',
         ])[0]}
         for field in ['account_report_id']:
             if isinstance(data['form'][field], tuple):
@@ -83,7 +86,7 @@ class AccountingReport(models.TransientModel):
             'account_report_id', 'enable_filter', 'label_filter', 'target_move',
             'comparison_period_ranges', 'comparison_sort', 'comparison_display',
             'comparison_mode', 'percentage_of_row_key',
-            'financial_budget_id',
+            'financial_budget_id', 'cash_basis',
         ])[0])
         return self.env.ref('accounting_pdf_reports.action_report_financial').report_action(
             self, data=data, config=False)
@@ -112,6 +115,7 @@ class AccountingReport(models.TransientModel):
             financial_budget_id=(form.get('financial_budget_id') or [False])[0]
             if isinstance(form.get('financial_budget_id'), (list, tuple))
             else form.get('financial_budget_id') or False,
+            cash_basis=bool(form.get('cash_basis')),
         )
 
     def _prepare_export_data(self, form, report_data):
@@ -215,7 +219,7 @@ class AccountingReport(models.TransientModel):
             'enable_filter', 'label_filter', 'debit_credit',
             'comparison_period_ranges', 'comparison_sort', 'comparison_display',
             'comparison_mode', 'percentage_of_row_key',
-            'financial_budget_id',
+            'financial_budget_id', 'cash_basis',
         ])[0]
         if self.enable_filter:
             form['comparison_context'] = self._build_comparison_context({'form': form})
@@ -245,7 +249,9 @@ class AccountingReport(models.TransientModel):
         sheet.write(1, 0, _('Company'), meta_format)
         sheet.write(1, 1, self.company_id.display_name, meta_format)
         sheet.write(2, 0, _('Target Moves'), meta_format)
-        sheet.write(2, 1, _('All Posted Entries') if self.target_move == 'posted' else _('All Entries'), meta_format)
+        move_label = _('All Posted Entries') if self.target_move == 'posted' else _('All Entries')
+        basis_label = _('Cash Basis') if self.cash_basis else _('Accrual Basis')
+        sheet.write(2, 1, f'{move_label}, {basis_label}', meta_format)
         if self.date_from or self.date_to:
             sheet.write(3, 0, _('Period'), meta_format)
             sheet.write(3, 1, ' - '.join(str(value) for value in (self.date_from, self.date_to) if value), meta_format)

@@ -1,6 +1,7 @@
 import time
 from odoo import api, models, fields, _
-from odoo.exceptions import UserError
+from odoo.exceptions import AccessError, UserError
+from odoo.tools.misc import formatLang
 from odoo.tools import float_is_zero
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -11,7 +12,7 @@ class ReportAgedPartnerBalance(models.AbstractModel):
     _description = 'Aged Partner Balance Report'
 
     def _get_partner_move_lines(self, account_type, partner_ids,
-                                date_from, target_move, period_length):
+                                date_from, target_move, period_length, date_basis='due_date'):
         # This method can receive the context key 'include_nullified_amount' {Boolean}
         # Do an invoice and a payment and unreconcile. The amount will be nullified
         # By default, the partner wouldn't appear in this report.
@@ -91,21 +92,26 @@ class ReportAgedPartnerBalance(models.AbstractModel):
             partner_ids = [partner['partner_id'] for partner in partners if partner['partner_id']]
         lines = dict((partner['partner_id'] or False, []) for partner in partners)
         if not partner_ids:
-            return [], [], {}
+            return [], [0.0] * 7, {}
         args['partner_ids'] = tuple(partner_ids)
 
+        aging_date = (
+            'COALESCE(l.date_maturity, l.date)'
+            if date_basis == 'due_date'
+            else 'COALESCE(am.invoice_date, l.date)'
+        )
         # the period of each item: 6 when it is not due yet, else 1 to 5 for the
         # periods '0' (the oldest) to '4' (the most recent)
-        period_cases = ['WHEN COALESCE(l.date_maturity, l.date) >= %(date_from)s THEN 6']
+        period_cases = [f'WHEN {aging_date} >= %(date_from)s THEN 6']
         for i in range(5):
             start, stop = periods[str(i)]['start'], periods[str(i)]['stop']
             args.update({f'start_{i}': start, f'stop_{i}': stop})
             if start and stop:
-                condition = f'COALESCE(l.date_maturity, l.date) BETWEEN %(start_{i})s AND %(stop_{i})s'
+                condition = f'{aging_date} BETWEEN %(start_{i})s AND %(stop_{i})s'
             elif start:
-                condition = f'COALESCE(l.date_maturity, l.date) >= %(start_{i})s'
+                condition = f'{aging_date} >= %(start_{i})s'
             else:
-                condition = f'COALESCE(l.date_maturity, l.date) <= %(stop_{i})s'
+                condition = f'{aging_date} <= %(stop_{i})s'
             period_cases.append(f'WHEN {condition} THEN {i + 1}')
 
         # the open items with what was reconciled with them until the date, in one query: an item
@@ -202,6 +208,405 @@ class ReportAgedPartnerBalance(models.AbstractModel):
         return res, total, lines
 
     @api.model
+    def _check_interactive_report_access(self):
+        if not any(self.env.user.has_group(group) for group in (
+            'account.group_account_readonly',
+            'account.group_account_invoice',
+            'account.group_account_manager',
+        )):
+            raise AccessError(_('You do not have access to aged partner reports.'))
+
+    @api.model
+    def get_open_items_action(self, partner_id):
+        self._check_interactive_report_access()
+        try:
+            partner_id = int(partner_id)
+        except (TypeError, ValueError):
+            raise UserError(_('Choose a valid partner.'))
+        partner = self.env['res.partner'].search([('id', '=', partner_id)], limit=1)
+        if not partner:
+            raise UserError(_('The selected partner is unavailable.'))
+        return {
+            'type': 'ir.actions.client',
+            'name': _('Open Items'),
+            'tag': 'accounting_pdf_reports.open_items',
+            'context': {
+                'default_partner_ids': [partner.commercial_partner_id.id],
+                'default_result_selection': 'trade',
+            },
+        }
+
+    @api.model
+    def get_open_items_data(self, date_from=None, result_selection='trade',
+                            target_move='posted', partner_ids=None):
+        """Return open receivable/payable items as of a date using Odoo's native residual fields."""
+        self._check_interactive_report_access()
+        if result_selection not in ('trade', 'customer', 'supplier'):
+            raise UserError(_('Choose a valid partner account type.'))
+        if target_move not in ('posted', 'all'):
+            raise UserError(_('Choose a valid journal entry state.'))
+        date_from = fields.Date.to_date(date_from) if date_from else fields.Date.context_today(self)
+        if not isinstance(partner_ids, (list, tuple)):
+            partner_ids = []
+        try:
+            partner_ids = [int(partner_id) for partner_id in partner_ids]
+        except (TypeError, ValueError):
+            raise UserError(_('Choose valid partners.'))
+
+        account_types = {
+            'trade': ['asset_receivable', 'liability_payable'],
+            'customer': ['asset_receivable'],
+            'supplier': ['liability_payable'],
+        }[result_selection]
+        move_states = ['posted', 'draft'] if target_move == 'all' else ['posted']
+        domain = [
+            ('company_id', 'child_of', self.env.company.id),
+            ('account_id.account_type', 'in', account_types),
+            ('parent_state', 'in', move_states),
+            ('date', '<=', date_from),
+            ('open_on', '<=', date_from),
+            ('partner_id', '!=', False),
+        ]
+        if partner_ids:
+            selected_partners = self.env['res.partner'].search([('id', 'in', partner_ids)])
+            if len(selected_partners) != len(set(partner_ids)):
+                raise UserError(_('One or more selected partners are unavailable.'))
+            domain.append(('partner_id', 'child_of', selected_partners.commercial_partner_id.ids))
+
+        draft_domain = [
+            ('company_id', 'child_of', self.env.company.id),
+            ('account_id.account_type', 'in', account_types),
+            ('parent_state', '=', 'draft'),
+            ('date', '<=', date_from),
+            ('partner_id', '!=', False),
+        ]
+        if partner_ids:
+            draft_domain.append(('partner_id', 'child_of', selected_partners.commercial_partner_id.ids))
+        unposted_count = self.env['account.move.line'].search_count(draft_domain)
+
+        MoveLine = self.env['account.move.line'].with_context(recon_limit=date_from)
+        lines = MoveLine.search(domain, order='partner_id, date, id')
+        groups = {}
+        totals = {'amount': 0.0, 'residual': 0.0}
+        for line in lines:
+            residual = line.residual_at_date
+            residual_currency = line.residual_currency_at_date
+            currency = line.currency_id or line.company_currency_id
+            if line.company_currency_id.is_zero(residual) and currency.is_zero(residual_currency):
+                continue
+            partner = line.partner_id.commercial_partner_id
+            row = groups.setdefault(partner.id, {
+                'partner_id': partner.id,
+                'name': partner.display_name,
+                'lines': [],
+                'amount': 0.0,
+                'residual': 0.0,
+            })
+            move = line.move_id
+            row['lines'].append({
+                'id': line.id,
+                'move_id': move.id,
+                'label': move.name or move.ref or line.name or '',
+                'no_reminder': line.no_followup,
+                'invoice_date': fields.Date.to_string(move.invoice_date or line.date),
+                'due_date': fields.Date.to_string(line.date_maturity) if line.date_maturity else '',
+                'amount': line.balance,
+                'amount_currency': line.amount_currency,
+                'residual': residual,
+                'residual_currency': residual_currency,
+                'currency_id': currency.id,
+            })
+            row['amount'] += line.balance
+            row['residual'] += residual
+            totals['amount'] += line.balance
+            totals['residual'] += residual
+
+        return {
+            'rows': list(groups.values()),
+            'totals': totals,
+            'date_from': fields.Date.to_string(date_from),
+            'result_selection': result_selection,
+            'target_move': target_move,
+            'currency_id': self.env.company.currency_id.id,
+            'unposted_count': unposted_count,
+            'can_edit_reminder': self.env.user.has_group('account.group_account_user')
+            or self.env.user.has_group('account.group_account_manager'),
+            'can_send_reminder': self.env.user.has_group('account.group_account_user')
+            or self.env.user.has_group('account.group_account_invoice')
+            or self.env.user.has_group('account.group_account_manager'),
+            'selected_partners': [
+                {'id': partner.id, 'name': partner.display_name}
+                for partner in self.env['res.partner'].browse(partner_ids).exists().commercial_partner_id
+            ],
+        }
+
+    @api.model
+    def search_open_items_partners(self, query, result_selection='trade', limit=25):
+        self._check_interactive_report_access()
+        if not isinstance(query, str) or len(query.strip()) < 2:
+            return []
+        if result_selection not in ('trade', 'customer', 'supplier'):
+            return []
+        account_types = {
+            'trade': ['asset_receivable', 'liability_payable'],
+            'customer': ['asset_receivable'],
+            'supplier': ['liability_payable'],
+        }[result_selection]
+        try:
+            limit = min(max(int(limit or 25), 1), 50)
+        except (TypeError, ValueError):
+            limit = 25
+        partners = self.env['account.move.line'].search([
+            ('company_id', 'child_of', self.env.company.id),
+            ('account_id.account_type', 'in', account_types),
+            ('parent_state', 'in', ('posted', 'draft')),
+            ('partner_id.name', 'ilike', query.strip()),
+        ], limit=limit).mapped('partner_id').commercial_partner_id
+        partners = partners.sorted('display_name')
+        return [{'id': partner.id, 'name': partner.display_name} for partner in partners[:limit]]
+
+    @api.model
+    def set_open_items_no_reminder(self, line_ids, value):
+        self._check_interactive_report_access()
+        if not isinstance(line_ids, (list, tuple)) or not line_ids:
+            raise UserError(_('Choose at least one journal item.'))
+        try:
+            line_ids = list({int(line_id) for line_id in line_ids})
+        except (TypeError, ValueError):
+            raise UserError(_('Choose valid journal items.'))
+        lines = self.env['account.move.line'].search([
+            ('id', 'in', line_ids),
+            ('company_id', 'child_of', self.env.company.id),
+            ('account_id.account_type', 'in', ('asset_receivable', 'liability_payable')),
+        ])
+        if len(lines) != len(line_ids):
+            raise UserError(_('One or more journal items are unavailable.'))
+        lines.write({'no_followup': bool(value)})
+        return True
+
+    @api.model
+    def get_open_items_partner_action(self, partner_id):
+        self._check_interactive_report_access()
+        try:
+            partner_id = int(partner_id)
+        except (TypeError, ValueError):
+            raise UserError(_('Choose a valid partner.'))
+        partner = self.env['res.partner'].search([('id', '=', partner_id)], limit=1)
+        if not partner:
+            raise UserError(_('The selected partner is unavailable.'))
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Partner'),
+            'res_model': 'res.partner',
+            'res_id': partner.id,
+            'views': [(False, 'form')],
+            'target': 'current',
+        }
+
+    @api.model
+    def get_open_items_journal_action(self, line_ids):
+        self._check_interactive_report_access()
+        try:
+            line_ids = list({int(line_id) for line_id in line_ids or []})
+        except (TypeError, ValueError):
+            raise UserError(_('Choose valid journal items.'))
+        lines = self.env['account.move.line'].search([
+            ('id', 'in', line_ids),
+            ('company_id', 'child_of', self.env.company.id),
+            ('account_id.account_type', 'in', ('asset_receivable', 'liability_payable')),
+        ])
+        if len(lines) != len(line_ids):
+            raise UserError(_('One or more journal items are unavailable.'))
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Journal Items'),
+            'res_model': 'account.move.line',
+            'view_mode': 'list,form',
+            'domain': [('id', 'in', lines.ids)],
+            'context': {'create': False},
+            'target': 'current',
+        }
+
+    @api.model
+    def get_open_items_reminder_action(self, partner_id):
+        self._check_interactive_report_access()
+        if not any(self.env.user.has_group(group) for group in (
+            'account.group_account_invoice',
+            'account.group_account_user',
+            'account.group_account_manager',
+        )):
+            raise AccessError(_('You do not have access to send reminders.'))
+        try:
+            partner_id = int(partner_id)
+        except (TypeError, ValueError):
+            raise UserError(_('Choose a valid partner.'))
+        partner = self.env['res.partner'].search([('id', '=', partner_id)], limit=1)
+        if not partner:
+            raise UserError(_('The selected partner is unavailable.'))
+        action = self.env.ref('om_account_followup.action_followup_send').read()[0]
+        action['context'] = {
+            **self.env.context,
+            'active_model': 'res.partner',
+            'active_id': partner.commercial_partner_id.id,
+            'active_ids': [partner.commercial_partner_id.id],
+        }
+        return action
+
+    @api.model
+    def print_open_items(self, date_from=None, result_selection='trade',
+                         target_move='posted', partner_ids=None):
+        data = self.get_open_items_data(
+            date_from=date_from,
+            result_selection=result_selection,
+            target_move=target_move,
+            partner_ids=partner_ids,
+        )
+        return self.env.ref('accounting_pdf_reports.action_report_open_items').with_context(
+            discard_logo_check=True,
+        ).report_action(
+            self.env['account.move.line'], data={'report_data': data},
+        )
+
+    @api.model
+    def get_interactive_data(self, result_selection='customer', date_from=None,
+                             target_move='posted', period_length=30,
+                             partner_ids=None, date_basis='due_date'):
+        self._check_interactive_report_access()
+        if result_selection not in ('customer', 'supplier', 'customer_supplier'):
+            raise UserError(_('Choose a valid partner account type.'))
+        if target_move not in ('posted', 'all'):
+            raise UserError(_('Choose a valid journal entry state.'))
+        if date_basis not in ('due_date', 'invoice_date'):
+            raise UserError(_('Choose a valid aging date basis.'))
+        try:
+            period_length = int(period_length)
+        except (TypeError, ValueError):
+            period_length = 0
+        if period_length <= 0 or period_length > 3660:
+            raise UserError(_('Period length must be between 1 and 3660 days.'))
+        date_from = fields.Date.to_date(date_from) if date_from else fields.Date.context_today(self)
+        account_types = {
+            'customer': ['asset_receivable'],
+            'supplier': ['liability_payable'],
+            'customer_supplier': ['asset_receivable', 'liability_payable'],
+        }[result_selection]
+        if not isinstance(partner_ids, (list, tuple)):
+            partner_ids = []
+        partner_ids = [int(partner_id) for partner_id in partner_ids if str(partner_id).isdigit()]
+        rows, totals, line_map = self.with_context(company_id=self.env.company.id)._get_partner_move_lines(
+            account_types, partner_ids, date_from, target_move, period_length, date_basis=date_basis,
+        )
+        if partner_ids:
+            rows = [row for row in rows if row.get('partner_id') in partner_ids]
+        result_rows = []
+        for row in rows:
+            partner_id = row.get('partner_id') or False
+            detail_lines = []
+            for detail in line_map.get(partner_id, []):
+                move_line = detail['line']
+                move = move_line.move_id
+                detail_lines.append({
+                    'id': move_line.id,
+                    'move_id': move.id,
+                    'label': move.name or move.ref or move_line.name or '',
+                    'invoice_date': fields.Date.to_string(move.invoice_date or move_line.date),
+                    'due_date': fields.Date.to_string(move_line.date_maturity) if move_line.date_maturity else '',
+                    'period': detail['period'],
+                    'amount': detail['amount'],
+                })
+            result_rows.append({
+                'partner_id': partner_id,
+                'name': row['name'],
+                'not_due': row['direction'],
+                # SQL numbers buckets oldest-to-newest; the report UI is newest-first.
+                'buckets': [row[str(index)] for index in reversed(range(5))],
+                'total': row['total'],
+                'lines': detail_lines,
+            })
+        return {
+            'rows': result_rows,
+            'totals': {
+                'not_due': totals[6],
+                'buckets': list(reversed(totals[:5])),
+                'total': totals[5],
+            },
+            'date_from': fields.Date.to_string(date_from),
+            'period_length': period_length,
+            'date_basis': date_basis,
+            'target_move': target_move,
+            'result_selection': result_selection,
+            'currency_id': self.env.company.currency_id.id,
+        }
+
+    @api.model
+    def search_interactive_partners(self, query, result_selection='customer', limit=25):
+        self._check_interactive_report_access()
+        if not isinstance(query, str) or len(query.strip()) < 2:
+            return []
+        if result_selection not in ('customer', 'supplier', 'customer_supplier'):
+            return []
+        try:
+            limit = min(max(int(limit or 25), 1), 50)
+        except (TypeError, ValueError):
+            limit = 25
+        account_types = {
+            'customer': ['asset_receivable'],
+            'supplier': ['liability_payable'],
+            'customer_supplier': ['asset_receivable', 'liability_payable'],
+        }[result_selection]
+        partners = self.env['account.move.line'].search([
+            ('company_id', 'child_of', self.env.company.id),
+            ('account_id.account_type', 'in', account_types),
+            ('parent_state', 'in', ('posted', 'draft')),
+            ('partner_id.name', 'ilike', query.strip()),
+        ], limit=limit).mapped('partner_id')
+        return [{'id': partner.id, 'name': partner.display_name} for partner in partners[:limit]]
+
+    @api.model
+    def print_interactive_report(self, result_selection='customer', date_from=None,
+                                 target_move='posted', period_length=30,
+                                 partner_ids=None, date_basis='due_date', scale='unit'):
+        self._check_interactive_report_access()
+        if result_selection not in ('customer', 'supplier', 'customer_supplier'):
+            raise UserError(_('Choose a valid partner account type.'))
+        if target_move not in ('posted', 'all'):
+            raise UserError(_('Choose a valid journal entry state.'))
+        if date_basis not in ('due_date', 'invoice_date'):
+            raise UserError(_('Choose a valid aging date basis.'))
+        if scale not in ('unit', 'rounded', 'thousand', 'million'):
+            raise UserError(_('Choose a valid currency scale.'))
+        try:
+            period_length = int(period_length)
+        except (TypeError, ValueError):
+            raise UserError(_('Period length must be between 1 and 3660 days.'))
+        if period_length <= 0 or period_length > 3660:
+            raise UserError(_('Period length must be between 1 and 3660 days.'))
+        date_from = fields.Date.to_date(date_from) if date_from else fields.Date.context_today(self)
+        if not isinstance(partner_ids, (list, tuple)):
+            partner_ids = []
+        partner_ids = [int(partner_id) for partner_id in partner_ids if str(partner_id).isdigit()]
+        wizard = self.env['account.aged.trial.balance'].create({
+            'result_selection': result_selection,
+            'target_move': target_move,
+            'date_from': date_from or fields.Date.context_today(self),
+            'period_length': period_length,
+            'partner_ids': [(6, 0, partner_ids or [])],
+            'journal_ids': [(6, 0, self.env['account.journal'].search([
+                ('company_id', 'child_of', self.env.company.id),
+            ]).ids)],
+        })
+        action = wizard.with_context(
+            active_model='account.aged.trial.balance',
+            active_id=wizard.id,
+            date_basis=date_basis,
+        ).check_report()
+        # Carry the UI scale into the QWeb report without changing the accounting
+        # values used by the aged-balance calculation.
+        action_data = action.setdefault('data', {})
+        action_data.setdefault('form', {})['scale'] = scale
+        return action
+
+    @api.model
     def _get_form_company_id(self, form):
         company = form.get('company_id')
         return company[0] if isinstance(company, (list, tuple)) else company or self.env.company.id
@@ -228,8 +633,23 @@ class ReportAgedPartnerBalance(models.AbstractModel):
         movelines, total, dummy = self.with_context(
             company_id=self._get_form_company_id(data['form'])
         )._get_partner_move_lines(
-            account_type, partner_ids, date_from, target_move, data['form']['period_length']
+            account_type, partner_ids, date_from, target_move, data['form']['period_length'],
+            date_basis=self.env.context.get('date_basis', 'due_date'),
         )
+        scale = data['form'].get('scale', 'unit')
+        scale_divisor = {'unit': 1, 'rounded': 1, 'thousand': 1000, 'million': 1000000}[scale]
+        rounding_unit = 'units' if scale == 'rounded' else 'decimals'
+        scale_suffix = {'unit': '', 'rounded': '', 'thousand': 'k', 'million': 'M'}[scale]
+        company = self.env['res.company'].browse(self._get_form_company_id(data['form']))
+
+        def format_aged_amount(amount):
+            return formatLang(
+                self.env,
+                (amount or 0) / scale_divisor,
+                currency_obj=company.currency_id,
+                rounding_unit=rounding_unit,
+            ) + scale_suffix
+
         return {
             'doc_ids': self.ids,
             'doc_model': model,
@@ -238,4 +658,5 @@ class ReportAgedPartnerBalance(models.AbstractModel):
             'time': time,
             'get_partner_lines': movelines,
             'get_direction': total,
+            'format_aged_amount': format_aged_amount,
         }

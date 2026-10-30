@@ -1,6 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
+    <!-- Journal Audit uses a focused read-through list like Enterprise's drill-down. -->
+    <record id="view_journal_audit_items_list" model="ir.ui.view">
+        <field name="name">account.move.line.journal.audit.list</field>
+        <field name="model">account.move.line</field>
+        <field name="arch" type="xml">
+            <list string="Journal Items" create="false">
+                <field name="move_id" column_invisible="True"/>
+                <field name="invoice_date" string="Invoice Date" optional="show"/>
+                <field name="account_id" options="{'no_open': True, 'no_create': True}"/>
+                <field name="name" string="Description"/>
+                <field name="tax_ids" string="Taxes" widget="many2many_tax_tags" readonly="1" optional="show"/>
+                <field name="debit" sum="Total Debit" readonly="1" decoration-muted="debit == 0"/>
+                <field name="credit" sum="Total Credit" readonly="1" decoration-muted="credit == 0"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_journal_audit_items" model="ir.actions.act_window">
+        <field name="name">Journal Items</field>
+        <field name="res_model">account.move.line</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_journal_audit_items_list"/>
+        <field name="context">{'create': False, 'search_default_group_by_move': 1}</field>
+    </record>
+
     <record id="action_moves_to_review" model="ir.actions.act_window">
         <field name="name">Entries to Review</field>
         <field name="res_model">account.move</field>
@@ -144,7 +169,7 @@
                 <field name="currency_id" column_invisible="True"/>
                 <field name="company_id" column_invisible="True"/>
                 <field name="review_accrual_unit_cost" string="Unit Cost" sum="Unit Cost"/>
-                <field name="review_accrual_delivered_total_cost" string="Total Cost" sum="Total Cost"/>
+                <field name="review_accrual_delivered_total_cost" string="Total Cost"/>
             </list>
         </field>
     </record>
@@ -157,7 +182,7 @@
                 <attribute name="string">Invoiced Not Delivered</attribute>
             </xpath>
             <xpath expr="//field[@name='review_accrual_delivered_total_cost']" position="replace">
-                <field name="review_accrual_invoiced_total_cost" string="Total Cost" sum="Total Cost"/>
+                <field name="review_accrual_invoiced_total_cost" string="Total Cost"/>
             </xpath>
         </field>
     </record>
@@ -210,6 +235,26 @@
     <menuitem id="menu_review_bank_rec_to_review" action="action_bank_rec_to_review"
               parent="menu_review_reconciliation" groups="account.group_account_user" sequence="40"/>
 
+    <!-- om_account_reconcile already exposes the first three actions under its
+         Accounting > Reconciliation menu. Keep their former records inactive
+         to avoid duplicate navigation; retain the unique review queue there. -->
+    <record id="menu_review_reconciliation" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+    <record id="menu_review_bank_reconciliation" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+    <record id="menu_review_open_items" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+    <record id="menu_review_match_journal_items" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+    <record id="menu_review_bank_rec_to_review" model="ir.ui.menu">
+        <field name="parent_id" ref="om_account_reconcile.menu_reconciliation"/>
+        <field name="sequence" eval="50"/>
+    </record>
+
     <record id="action_journal_audit" model="ir.actions.client">
         <field name="name">Journal Audit</field>
         <field name="tag">om_account_accountant.journal_audit</field>
@@ -243,11 +288,9 @@
     </record>
 
     <!-- Enterprise keeps Inventory Valuation inside its Inventory folder. -->
-    <record id="menu_review_inventory" model="ir.ui.menu">
-        <field name="active" eval="True"/>
-        <field name="parent_id" ref="account.account_audit_menu"/>
-        <field name="sequence" eval="40"/>
-    </record>
+    <menuitem id="menu_review_inventory" name="Inventory"
+              parent="account.account_audit_menu"
+              groups="account.group_account_readonly" sequence="40"/>
     <menuitem id="menu_review_inventory_valuation" name="Inventory Valuation"
               action="account.action_report_stock_valuation" parent="menu_review_inventory"
               groups="account.group_account_readonly" sequence="10"/>

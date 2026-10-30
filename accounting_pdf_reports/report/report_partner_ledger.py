@@ -1,6 +1,6 @@
 import time
 from odoo import api, models, _
-from odoo.exceptions import UserError
+from odoo.exceptions import AccessError, UserError, ValidationError
 
 
 # the amounts the report sums, as the template asks for them
@@ -12,6 +12,182 @@ LINES_BATCH = 500
 class ReportPartnerLedger(models.AbstractModel):
     _name = 'report.accounting_pdf_reports.report_partnerledger'
     _description = 'Partner Ledger Report'
+
+    @api.model
+    def get_interactive_data(self, period_type='fiscal_year', period_anchor=None,
+                             custom_date_from=None, custom_date_to=None,
+                             target_move='posted', partner_ids=None,
+                             account_scope='trade', partner_tag_ids=None):
+        """Return the interactive Partner Ledger using the same posted move lines as the PDF."""
+        if not any(self.env.user.has_group(group) for group in (
+            'account.group_account_readonly', 'account.group_account_invoice',
+            'account.group_account_user', 'account.group_account_manager',
+        )):
+            raise AccessError(_('You are not allowed to view the Partner Ledger.'))
+        if target_move not in ('posted', 'all'):
+            raise ValidationError(_('Choose a valid journal entry state.'))
+        if account_scope not in ('trade', 'receivable', 'payable'):
+            raise ValidationError(_('Choose a valid partner account type.'))
+        date_from, date_to = self.env[
+            'report.accounting_pdf_reports.report_general_ledger'
+        ]._get_interactive_period_dates(
+            period_type, period_anchor, custom_date_from, custom_date_to
+        )
+        company = self.env.company
+        companies = self.env['res.company'].search([('id', 'child_of', company.id)])
+        account_types = {
+            'trade': ('asset_receivable', 'liability_payable'),
+            'receivable': ('asset_receivable',),
+            'payable': ('liability_payable',),
+        }[account_scope]
+        accounts = self.env['account.account'].search([
+            ('company_ids', 'in', companies.ids), ('active', '=', True),
+            ('account_type', 'in', account_types),
+        ])
+        domain = [
+            ('company_id', 'in', companies.ids), ('account_id', 'in', accounts.ids),
+            ('partner_id', '!=', False), ('date', '>=', date_from), ('date', '<=', date_to),
+            ('parent_state', 'in', ('posted', 'draft') if target_move == 'all' else ('posted',)),
+            ('display_type', 'not in', ('line_section', 'line_note')),
+        ]
+        if partner_ids:
+            try:
+                ids = list({int(value) for value in partner_ids})
+            except (TypeError, ValueError):
+                raise ValidationError(_('Invalid partner selection.'))
+            found = self.env['res.partner'].search([('id', 'in', ids)])
+            if len(found) != len(ids):
+                raise ValidationError(_('One or more selected partners are unavailable.'))
+            domain.append(('partner_id.commercial_partner_id', 'in', found.mapped('commercial_partner_id').ids))
+        if partner_tag_ids:
+            try:
+                tag_ids = list({int(value) for value in partner_tag_ids})
+            except (TypeError, ValueError):
+                raise ValidationError(_('Invalid partner tag selection.'))
+            tags = self.env['res.partner.category'].search([('id', 'in', tag_ids)])
+            if len(tags) != len(tag_ids):
+                raise ValidationError(_('One or more selected partner tags are unavailable.'))
+            domain.append(('partner_id.commercial_partner_id.category_id', 'in', tags.ids))
+
+        MoveLine = self.env['account.move.line']
+        grouped = MoveLine._read_group(
+            domain, groupby=['partner_id'], aggregates=['debit:sum', 'credit:sum']
+        )
+        partner_totals = {}
+        for partner_record, debit, credit in grouped:
+            partner = partner_record.commercial_partner_id
+            totals = partner_totals.setdefault(partner.id, {'debit': 0.0, 'credit': 0.0})
+            totals['debit'] += debit or 0.0
+            totals['credit'] += credit or 0.0
+        partners = self.env['res.partner'].browse(list(partner_totals)).sorted(
+            lambda partner: (partner.name or '').casefold()
+        )
+        draft_count = 0
+        if target_move == 'posted':
+            journals = self.env['account.journal'].search([('company_id', 'in', companies.ids)])
+            draft_count = self.env['account.move'].search_count([
+                ('state', '=', 'draft'),
+                ('company_id', 'in', companies.ids),
+                ('journal_id', 'in', journals.ids),
+                ('date', '<=', date_to),
+            ])
+        return {
+            'partners': [{
+                'id': partner.id,
+                'name': partner.display_name,
+                'debit': partner_totals[partner.id]['debit'],
+                'credit': partner_totals[partner.id]['credit'],
+                'balance': partner_totals[partner.id]['debit'] - partner_totals[partner.id]['credit'],
+                'lines': [],
+            } for partner in partners],
+            'date_from': date_from, 'date_to': date_to,
+            'company_ids': companies.ids, 'currency_id': company.currency_id.id,
+            'company_name': company.name, 'target_move': target_move,
+            'draft_count': draft_count,
+        }
+
+    @api.model
+    def get_partner_filter_options(self, partner_ids=None):
+        if not any(self.env.user.has_group(group) for group in (
+            'account.group_account_readonly', 'account.group_account_invoice',
+            'account.group_account_user', 'account.group_account_manager',
+        )):
+            raise AccessError(_('You are not allowed to view the Partner Ledger.'))
+        try:
+            ids = list({int(value) for value in (partner_ids or [])})
+        except (TypeError, ValueError):
+            raise ValidationError(_('Invalid partner selection.'))
+        companies = self.env['res.company'].search([('id', 'child_of', self.env.company.id)])
+        domain = [('parent_id', '=', False), ('company_id', 'in', [False] + companies.ids)]
+        if ids:
+            partners = self.env['res.partner'].search(domain + [('id', 'in', ids)])
+            if len(partners) != len(ids):
+                raise ValidationError(_('One or more selected partners are unavailable.'))
+        else:
+            partners = self.env['res.partner']
+        tags = self.env['res.partner.category'].search([], order='name', limit=200)
+        return {
+            'partners': [{'id': partner.id, 'name': partner.display_name} for partner in partners],
+            'tags': [{'id': tag.id, 'name': tag.name} for tag in tags],
+        }
+
+    @api.model
+    def search_interactive_partners(self, query, limit=40):
+        if not any(self.env.user.has_group(group) for group in (
+            'account.group_account_readonly', 'account.group_account_invoice',
+            'account.group_account_user', 'account.group_account_manager',
+        )):
+            raise AccessError(_('You are not allowed to view the Partner Ledger.'))
+        try:
+            limit = min(max(int(limit or 40), 1), 100)
+        except (TypeError, ValueError):
+            limit = 40
+        if not isinstance(query, str) or len(query.strip()) < 2:
+            return []
+        companies = self.env['res.company'].search([('id', 'child_of', self.env.company.id)])
+        partners = self.env['res.partner'].search([
+            ('parent_id', '=', False), ('company_id', 'in', [False] + companies.ids),
+            ('name', 'ilike', query.strip()),
+        ], order='name', limit=limit)
+        return [{'id': partner.id, 'name': partner.display_name} for partner in partners]
+
+    @api.model
+    def get_interactive_partner_lines(self, partner_id, date_from, date_to,
+                                      target_move='posted', account_scope='trade'):
+        """Load details only after a partner row is expanded."""
+        data = self.get_interactive_data(
+            period_type='custom', custom_date_from=date_from, custom_date_to=date_to,
+            target_move=target_move, partner_ids=[partner_id], account_scope=account_scope,
+        )
+        partner = self.env['res.partner'].browse(int(partner_id)).commercial_partner_id
+        company_ids = data['company_ids']
+        account_types = {
+            'trade': ('asset_receivable', 'liability_payable'),
+            'receivable': ('asset_receivable',), 'payable': ('liability_payable',),
+        }[account_scope]
+        domain = [
+            ('company_id', 'in', company_ids), ('account_id.account_type', 'in', account_types),
+            ('account_id.active', '=', True), ('partner_id.commercial_partner_id', '=', partner.id),
+            ('date', '>=', date_from), ('date', '<=', date_to),
+            ('parent_state', 'in', ('posted', 'draft') if target_move == 'all' else ('posted',)),
+            ('display_type', 'not in', ('line_section', 'line_note')),
+        ]
+        lines = self.env['account.move.line'].search(domain, order='date, move_id, id')
+        running = 0.0
+        result = []
+        for line in lines:
+            running += line.debit - line.credit
+            result.append({
+                'id': line.id, 'move_id': line.move_id.id, 'date': line.date,
+                'due_date': line.date_maturity, 'journal': line.journal_id.name,
+                'account': line.account_id.code,
+                'matching': line.matching_number or '',
+                'label': line.move_id.name or line.move_id.ref or line.name or '',
+                'debit': line.debit, 'credit': line.credit, 'balance': running,
+                'amount_currency': line.amount_currency,
+                'currency_id': line.currency_id.id if line.currency_id else False,
+            })
+        return result
 
     def _lines(self, data, partner):
         return self._lines_by_partner(data, partner.ids)[partner.id]
@@ -66,6 +242,26 @@ class ReportPartnerLedger(models.AbstractModel):
         if field not in SUMMED_FIELDS:
             return
         return self._sum_by_partner(data, partner.ids)[partner.id][field]
+
+    def _confirmation_closing_balance(self, data, partner):
+        """Return the partner's cumulative selected-account balance through date_to."""
+        form = data['form']
+        context = dict(form.get('used_context', {}))
+        context.pop('date_from', None)
+        context.pop('strict_range', None)
+        context.pop('initial_bal', None)
+        context['date_to'] = form['date_to']
+        move_line_model = self.env['account.move.line'].with_context(context)
+        query_data = move_line_model._query_get([
+            ('partner_id.commercial_partner_id', '=', partner.commercial_partner_id.id),
+            ('account_id', 'in', data['computed']['account_ids']),
+        ])
+        self.env.cr.execute(
+            'SELECT COALESCE(sum("account_move_line".debit - "account_move_line".credit), 0) '
+            'FROM %s WHERE %s' % (query_data[0], query_data[1]),
+            tuple(query_data[2]),
+        )
+        return self.env.cr.fetchone()[0]
 
     def _sum_by_partner(self, data, partner_ids):
         """ The debit, the credit and the balance of the partners, in one query """
@@ -174,4 +370,7 @@ class ReportPartnerLedger(models.AbstractModel):
             'time': time,
             'lines': lines,
             'sum_partner': sum_partner,
+            'confirmation_closing_balance': lambda partner: self._confirmation_closing_balance(
+                data, partner
+            ),
         }
